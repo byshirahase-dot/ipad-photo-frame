@@ -205,3 +205,19 @@ h1 {
 #btn-back:active {
   background: rgba(255,255,255,0.3);
 }
+
+#btn-logout {
+  background: rgba(255,80,80,0.25);
+  color: #fff;
+  border: 1px solid rgba(255,100,100,0.4);
+  padding: 11px 22px;
+  font-size: 15px;
+  border-radius: 7px;
+  cursor: pointer;
+  -webkit-appearance: none;
+  margin-left: 10px;
+}
+
+#btn-logout:active {
+  background: rgba(255,80,80,0.45);
+}

@@ -338,6 +338,12 @@ document.addEventListener('DOMContentLoaded', function() {
     localStorage.removeItem('selected_album');
     showAlbums();
   });
+  document.getElementById('btn-logout').addEventListener('click', function() {
+    stopSlideshow();
+    clearAuth();
+    localStorage.clear();
+    showScreen('screen-login');
+  });
   document.getElementById('screen-slideshow').addEventListener('click', showOverlay);
 
   // 認証フロー判定
