@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <title>Photo Frame</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ログイン画面 -->
+  <div id="screen-login" class="screen active">
+    <div class="login-box">
+      <div class="login-icon">&#128444;</div>
+      <h1>Photo Frame</h1>
+      <p>Google Photos のアルバムを<br>スライドショー表示します</p>
+      <button id="btn-login">Google でログイン</button>
+    </div>
+  </div>
+
+  <!-- アルバム選択画面 -->
+  <div id="screen-albums" class="screen">
+    <div class="albums-wrapper">
+      <h2>アルバムを選択</h2>
+      <div id="album-list"></div>
+    </div>
+  </div>
+
+  <!-- スライドショー画面 -->
+  <div id="screen-slideshow" class="screen">
+    <img id="photo-display" class="photo" alt="">
+
+    <!-- タップすると4秒だけ表示されるオーバーレイ -->
+    <div id="overlay">
+      <div id="clock"></div>
+      <div id="overlay-bottom">
+        <span id="photo-info"></span>
+        <button id="btn-back">アルバム選択</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
