@@ -346,6 +346,16 @@ document.addEventListener('DOMContentLoaded', function() {
   });
   document.getElementById('screen-slideshow').addEventListener('click', showOverlay);
 
+  // ?logout でアクセスされたら強制ログアウト
+  if (window.location.search.indexOf('logout') >= 0) {
+    stopSlideshow();
+    clearAuth();
+    localStorage.clear();
+    window.history.replaceState(null, '', window.location.pathname);
+    showScreen('screen-login');
+    return;
+  }
+
   // 認証フロー判定
   var result = handleHashParams();
 
