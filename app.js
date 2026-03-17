@@ -65,6 +65,15 @@ function handleHashParams() {
     localStorage.setItem('access_token', params.access_token);
     localStorage.setItem('token_expires_at', String(Date.now() + exp * 1000));
     accessToken = params.access_token;
+    // トークンのスコープをログ確認
+    var xhr2 = new XMLHttpRequest();
+    xhr2.open('GET', 'https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=' + params.access_token, true);
+    xhr2.onreadystatechange = function() {
+      if (xhr2.readyState === 4) {
+        console.log('TOKEN INFO:', xhr2.responseText);
+      }
+    };
+    xhr2.send();
     // 期限5分前にサイレント再認証
     setTimeout(function() { startLogin(true); }, Math.max(0, exp - 300) * 1000);
     return 'token';
