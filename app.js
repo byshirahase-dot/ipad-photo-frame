@@ -4,7 +4,7 @@
 
 var CLIENT_ID    = 'amzn1.application-oa2-client.37b5eb1b2c3a4385a6fda690e9fab380';
 var REDIRECT_URI = 'https://byshirahase-dot.github.io/ipad-photo-frame/';
-var SCOPE        = 'profile clouddrive:read_all';
+var SCOPE        = 'profile';
 var API_BASE     = 'https://drive.amazonaws.com/v1';
 
 var SLIDE_DURATION_MS       = 8000;
