@@ -109,7 +109,8 @@ function apiFetch(url, options, callback) {
       return;
     }
     if (xhr.status < 200 || xhr.status >= 300) {
-      callback(new Error('HTTP ' + xhr.status), null);
+      console.error('API Error body:', xhr.responseText);
+      callback(new Error('HTTP ' + xhr.status + ' ' + xhr.responseText), null);
       return;
     }
     try {
