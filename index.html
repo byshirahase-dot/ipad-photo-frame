@@ -16,16 +16,28 @@
     <div class="center-box">
       <div class="icon">&#128444;</div>
       <h1>Photo Frame</h1>
-      <p>Amazon Photos のアルバムを<br>スライドショー表示します</p>
-      <button id="btn-login" class="btn-primary">Amazon でログイン</button>
+      <p>Google Photos の写真を<br>スライドショー表示します</p>
+      <button id="btn-login" class="btn-primary">Google でログイン</button>
     </div>
   </div>
 
-  <!-- アルバム選択画面 -->
-  <div id="screen-albums" class="screen">
-    <div class="albums-wrapper">
-      <h2>アルバムを選択</h2>
-      <div id="album-list"></div>
+  <!-- 写真選択画面 -->
+  <div id="screen-picker" class="screen">
+    <div class="center-box">
+      <h2>表示する写真を選んでください</h2>
+      <p id="picker-desc">
+        下のボタンで Google Photos を開き、<br>
+        表示したい写真を選択してください。<br>
+        <small>アルバムで選ぶには「アルバム」タブを探してください</small>
+      </p>
+      <div id="picker-loading">準備中…</div>
+      <a id="picker-link" class="btn-primary" target="_blank" style="display:none">
+        Google Photos で写真を選ぶ
+      </a>
+      <p id="picker-waiting" style="display:none">
+        選択が終わったら、このページに戻ってください。<br>自動的にスライドショーが始まります。
+      </p>
+      <button id="btn-picker-logout" class="btn-sub">ログアウト</button>
     </div>
   </div>
 
@@ -37,13 +49,14 @@
       <div id="overlay-bottom">
         <span id="photo-info"></span>
         <div>
-          <button id="btn-back">アルバム選択</button>
+          <button id="btn-reselect">写真を選び直す</button>
           <button id="btn-logout">ログアウト</button>
         </div>
       </div>
     </div>
   </div>
 
+  <script src="https://accounts.google.com/gsi/client"></script>
   <script src="app.js"></script>
 </body>
 </html>
