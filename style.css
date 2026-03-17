@@ -24,19 +24,22 @@ html, body {
 }
 
 .screen.active {
+  display: -webkit-flex;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* ---- Login ---- */
+/* ---- Login / Picker shared ---- */
 
-.login-box {
+.center-box {
   text-align: center;
   padding: 40px 32px;
+  max-width: 500px;
+  width: 100%;
 }
 
-.login-icon {
+.icon {
   font-size: 64px;
   margin-bottom: 16px;
 }
@@ -48,79 +51,74 @@ h1 {
   letter-spacing: 1px;
 }
 
-.login-box p {
-  font-size: 17px;
-  color: #aaa;
-  margin-bottom: 36px;
+h2 {
+  font-size: 22px;
+  font-weight: 300;
+  margin-bottom: 16px;
+  color: #ddd;
+}
+
+.center-box p {
+  font-size: 16px;
+  color: #999;
+  margin-bottom: 32px;
   line-height: 1.7;
 }
 
-#btn-login {
+/* ---- Buttons ---- */
+
+.btn-primary {
+  display: inline-block;
   background: #4285f4;
   color: #fff;
   border: none;
-  padding: 15px 40px;
+  padding: 15px 36px;
   font-size: 18px;
   border-radius: 8px;
   cursor: pointer;
+  text-decoration: none;
+  margin-bottom: 24px;
   -webkit-appearance: none;
 }
 
-#btn-login:active {
+.btn-primary:active {
   background: #3367d6;
 }
 
-/* ---- Albums ---- */
-
-#screen-albums {
-  align-items: flex-start;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.albums-wrapper {
-  width: 100%;
-  max-width: 640px;
-  padding: 48px 24px 40px;
-}
-
-.albums-wrapper h2 {
-  font-size: 20px;
-  font-weight: 300;
-  color: #999;
-  margin-bottom: 20px;
-  letter-spacing: 0.5px;
-}
-
-.album-btn {
+button.btn-primary {
   display: block;
   width: 100%;
-  background: #111;
-  color: #fff;
-  border: 1px solid #2a2a2a;
-  padding: 18px 20px;
-  font-size: 17px;
-  text-align: left;
+}
+
+.btn-sub {
+  background: transparent;
+  color: #555;
+  border: 1px solid #333;
+  padding: 10px 24px;
+  font-size: 14px;
+  border-radius: 6px;
   cursor: pointer;
-  margin-bottom: 8px;
-  border-radius: 10px;
+  margin-top: 16px;
   -webkit-appearance: none;
 }
 
-.album-btn:active {
-  background: #1e1e1e;
+.btn-sub:active {
+  color: #888;
 }
 
-.loading {
+/* ---- Picker specific ---- */
+
+#picker-loading {
   color: #666;
-  padding: 24px 0;
   font-size: 15px;
+  margin-bottom: 24px;
 }
 
-.error {
-  color: #e55;
-  padding: 24px 0;
-  font-size: 15px;
+#picker-waiting {
+  font-size: 14px;
+  color: #777;
+  line-height: 1.7;
+  margin-bottom: 24px;
 }
 
 /* ---- Slideshow ---- */
@@ -142,6 +140,7 @@ h1 {
   top: 0; left: 0;
   width: 100%; height: 100%;
   z-index: 10;
+  display: -webkit-flex;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -191,33 +190,22 @@ h1 {
   text-shadow: 0 1px 4px rgba(0,0,0,0.7);
 }
 
-#btn-back {
+#btn-reselect, #btn-logout {
   background: rgba(255,255,255,0.18);
   color: #fff;
   border: 1px solid rgba(255,255,255,0.35);
-  padding: 11px 22px;
-  font-size: 15px;
+  padding: 11px 18px;
+  font-size: 14px;
   border-radius: 7px;
   cursor: pointer;
   -webkit-appearance: none;
-}
-
-#btn-back:active {
-  background: rgba(255,255,255,0.3);
+  margin-left: 8px;
 }
 
 #btn-logout {
   background: rgba(255,80,80,0.25);
-  color: #fff;
-  border: 1px solid rgba(255,100,100,0.4);
-  padding: 11px 22px;
-  font-size: 15px;
-  border-radius: 7px;
-  cursor: pointer;
-  -webkit-appearance: none;
-  margin-left: 10px;
+  border-color: rgba(255,100,100,0.4);
 }
 
-#btn-logout:active {
-  background: rgba(255,80,80,0.45);
-}
+#btn-reselect:active { background: rgba(255,255,255,0.3); }
+#btn-logout:active   { background: rgba(255,80,80,0.45); }
