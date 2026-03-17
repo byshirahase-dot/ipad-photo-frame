@@ -32,7 +32,11 @@ function startLogin(silent) {
     + '&redirect_uri=' + encodeURIComponent(REDIRECT_URI)
     + '&response_type=token'
     + '&scope=' + encodeURIComponent(SCOPE);
-  if (silent) params += '&prompt=none';
+  if (silent) {
+    params += '&prompt=none';
+  } else {
+    params += '&prompt=consent';
+  }
   window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params;
 }
 
