@@ -30,7 +30,7 @@ html, body {
   justify-content: center;
 }
 
-/* ---- Login / Picker shared ---- */
+/* ---- Login ---- */
 
 .center-box {
   text-align: center;
@@ -51,13 +51,6 @@ h1 {
   letter-spacing: 1px;
 }
 
-h2 {
-  font-size: 22px;
-  font-weight: 300;
-  margin-bottom: 16px;
-  color: #ddd;
-}
-
 .center-box p {
   font-size: 16px;
   color: #999;
@@ -69,56 +62,72 @@ h2 {
 
 .btn-primary {
   display: inline-block;
-  background: #4285f4;
-  color: #fff;
+  background: #ff9900;
+  color: #111;
   border: none;
-  padding: 15px 36px;
+  padding: 15px 40px;
   font-size: 18px;
+  font-weight: bold;
   border-radius: 8px;
   cursor: pointer;
   text-decoration: none;
-  margin-bottom: 24px;
   -webkit-appearance: none;
 }
 
 .btn-primary:active {
-  background: #3367d6;
+  background: #e68a00;
 }
 
-button.btn-primary {
+/* ---- Albums ---- */
+
+#screen-albums {
+  align-items: flex-start;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.albums-wrapper {
+  width: 100%;
+  max-width: 640px;
+  padding: 48px 24px 40px;
+}
+
+h2 {
+  font-size: 20px;
+  font-weight: 300;
+  color: #999;
+  margin-bottom: 20px;
+}
+
+.album-btn {
   display: block;
   width: 100%;
-}
-
-.btn-sub {
-  background: transparent;
-  color: #555;
-  border: 1px solid #333;
-  padding: 10px 24px;
-  font-size: 14px;
-  border-radius: 6px;
+  background: #111;
+  color: #fff;
+  border: 1px solid #2a2a2a;
+  padding: 18px 20px;
+  font-size: 17px;
+  text-align: left;
   cursor: pointer;
-  margin-top: 16px;
+  margin-bottom: 8px;
+  border-radius: 10px;
   -webkit-appearance: none;
 }
 
-.btn-sub:active {
-  color: #888;
+.album-btn:active {
+  background: #1e1e1e;
 }
 
-/* ---- Picker specific ---- */
-
-#picker-loading {
+.loading {
   color: #666;
+  padding: 24px 0;
   font-size: 15px;
-  margin-bottom: 24px;
 }
 
-#picker-waiting {
-  font-size: 14px;
-  color: #777;
-  line-height: 1.7;
-  margin-bottom: 24px;
+.error {
+  color: #e55;
+  padding: 24px 0;
+  font-size: 15px;
 }
 
 /* ---- Slideshow ---- */
@@ -190,7 +199,7 @@ button.btn-primary {
   text-shadow: 0 1px 4px rgba(0,0,0,0.7);
 }
 
-#btn-reselect, #btn-logout {
+#btn-back, #btn-logout {
   background: rgba(255,255,255,0.18);
   color: #fff;
   border: 1px solid rgba(255,255,255,0.35);
@@ -207,5 +216,5 @@ button.btn-primary {
   border-color: rgba(255,100,100,0.4);
 }
 
-#btn-reselect:active { background: rgba(255,255,255,0.3); }
-#btn-logout:active   { background: rgba(255,80,80,0.45); }
+#btn-back:active   { background: rgba(255,255,255,0.3); }
+#btn-logout:active { background: rgba(255,80,80,0.45); }
