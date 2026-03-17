@@ -2,9 +2,8 @@
 
 // ===================== 設定 =====================
 
-var CLIENT_ID    = '222393962099-2c1f3gm8phanh3netrf2k1ss3snc75np.apps.googleusercontent.com';
-var REDIRECT_URI = 'https://byshirahase-dot.github.io/ipad-photo-frame/';
-var SCOPE        = 'https://www.googleapis.com/auth/photoslibrary.readonly';
+var CLIENT_ID = '222393962099-2c1f3gm8phanh3netrf2k1ss3snc75np.apps.googleusercontent.com';
+var SCOPE     = 'https://www.googleapis.com/auth/photoslibrary.readonly';
 
 var SLIDE_DURATION_MS      = 8000;        // 1枚あたりの表示時間（ミリ秒）
 var URL_REFRESH_INTERVAL_MS = 45 * 60 * 1000; // 45分ごとに写真URLを再取得
@@ -20,75 +19,64 @@ var urlRefreshTimer = null;
 var overlayTimer    = null;
 var isTransitioning = false;
 
-// ===================== 認証 =====================
+// ===================== 認証 (Google Identity Services) =====================
 
-function startLogin(silent) {
-  // スライドショー中ならページ再開用に状態を保存
+var tokenClient = null;
+
+function initGoogleAuth() {
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPE,
+    callback: onTokenReceived,
+  });
+}
+
+function onTokenReceived(response) {
+  if (response.error) {
+    console.error('Auth error:', response.error);
+    clearAuth();
+    showScreen('screen-login');
+    return;
+  }
+  var exp = parseInt(response.expires_in || '3600', 10);
+  accessToken = response.access_token;
+  localStorage.setItem('access_token', response.access_token);
+  localStorage.setItem('token_expires_at', String(Date.now() + exp * 1000));
+
+  // 期限5分前にサイレント再認証
+  setTimeout(silentRefresh, Math.max(0, exp - 300) * 1000);
+
+  // アルバム選択またはスライドショー再開
+  var albumId = localStorage.getItem('resume_album') || localStorage.getItem('selected_album');
+  localStorage.removeItem('resume_album');
+  if (albumId) {
+    startSlideshow(albumId);
+  } else {
+    showAlbums();
+  }
+}
+
+function requestLogin() {
+  if (!tokenClient) initGoogleAuth();
+  tokenClient.requestAccessToken({ prompt: 'consent' });
+}
+
+function silentRefresh() {
   if (currentAlbumId) {
     localStorage.setItem('resume_album', currentAlbumId);
     localStorage.setItem('resume_index', String(currentIndex));
   }
-  var params = 'client_id=' + encodeURIComponent(CLIENT_ID)
-    + '&redirect_uri=' + encodeURIComponent(REDIRECT_URI)
-    + '&response_type=token'
-    + '&scope=' + encodeURIComponent(SCOPE);
-  if (silent) {
-    params += '&prompt=none';
-  } else {
-    params += '&prompt=consent';
-  }
-  window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params;
+  if (!tokenClient) initGoogleAuth();
+  tokenClient.requestAccessToken({ prompt: '' });
 }
 
-// URLハッシュからトークンを取り出す（OAuth リダイレクト後）
-function handleHashParams() {
-  var hash = window.location.hash.slice(1);
-  if (!hash) return null;
-
-  var params = {};
-  hash.split('&').forEach(function(part) {
-    var eq = part.indexOf('=');
-    if (eq >= 0) params[part.slice(0, eq)] = decodeURIComponent(part.slice(eq + 1));
-  });
-
-  // ハッシュをURLから消す（ブラウザ履歴に残さない）
-  if (window.history && window.history.replaceState) {
-    window.history.replaceState(null, '', window.location.pathname);
-  } else {
-    window.location.hash = '';
-  }
-
-  if (params.error) return 'error';
-
-  if (params.access_token) {
-    var exp = parseInt(params.expires_in || '3600', 10);
-    localStorage.setItem('access_token', params.access_token);
-    localStorage.setItem('token_expires_at', String(Date.now() + exp * 1000));
-    accessToken = params.access_token;
-    // トークンのスコープをログ確認
-    var xhr2 = new XMLHttpRequest();
-    xhr2.open('GET', 'https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=' + params.access_token, true);
-    xhr2.onreadystatechange = function() {
-      if (xhr2.readyState === 4) {
-        console.log('TOKEN INFO:', xhr2.responseText);
-      }
-    };
-    xhr2.send();
-    // 期限5分前にサイレント再認証
-    setTimeout(function() { startLogin(true); }, Math.max(0, exp - 300) * 1000);
-    return 'token';
-  }
-  return null;
-}
-
-// localStorage の既存トークンを読み込む
 function loadStoredToken() {
   var token = localStorage.getItem('access_token');
   var exp   = parseInt(localStorage.getItem('token_expires_at') || '0', 10);
   if (token && Date.now() < exp - 30000) {
     accessToken = token;
     var remaining = exp - Date.now();
-    setTimeout(function() { startLogin(true); }, Math.max(0, remaining - 300000));
+    setTimeout(silentRefresh, Math.max(0, remaining - 300000));
     return true;
   }
   return false;
@@ -344,10 +332,11 @@ document.addEventListener('DOMContentLoaded', function() {
   updateClock();
   setInterval(updateClock, 10000);
 
+  // GIS 初期化
+  initGoogleAuth();
+
   // ボタン
-  document.getElementById('btn-login').addEventListener('click', function() {
-    startLogin(false);
-  });
+  document.getElementById('btn-login').addEventListener('click', requestLogin);
   document.getElementById('btn-back').addEventListener('click', function() {
     localStorage.removeItem('selected_album');
     showAlbums();
@@ -370,23 +359,7 @@ document.addEventListener('DOMContentLoaded', function() {
     return;
   }
 
-  // 認証フロー判定
-  var result = handleHashParams();
-
-  if (result === 'token') {
-    // OAuth リダイレクトから戻ってきた
-    var albumId = localStorage.getItem('resume_album') || localStorage.getItem('selected_album');
-    localStorage.removeItem('resume_album');
-    if (albumId) {
-      startSlideshow(albumId);
-    } else {
-      showAlbums();
-    }
-  } else if (result === 'error') {
-    // サイレント認証失敗 → ログイン画面
-    clearAuth();
-    showScreen('screen-login');
-  } else if (loadStoredToken()) {
+  if (loadStoredToken()) {
     // 保存済みトークンが有効
     var savedAlbum = localStorage.getItem('selected_album');
     if (savedAlbum) {
