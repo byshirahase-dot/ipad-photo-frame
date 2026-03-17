@@ -20,50 +20,124 @@ var urlRefreshTimer = null;
 var overlayTimer    = null;
 var isTransitioning = false;
 
-// ===================== 認証 =====================
+// ===================== 認証 (PKCE) =====================
+
+function base64urlEncode(array) {
+  var str = '';
+  for (var i = 0; i < array.length; i++) str += String.fromCharCode(array[i]);
+  return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
+function generateVerifier() {
+  var array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return base64urlEncode(array);
+}
 
 function startLogin() {
+  var verifier = generateVerifier();
+  localStorage.setItem('pkce_verifier', verifier);
+
+  // SHA-256 が使えるなら S256、なければ plain
+  if (window.crypto && window.crypto.subtle) {
+    var encoder = new TextEncoder();
+    window.crypto.subtle.digest('SHA-256', encoder.encode(verifier)).then(function(digest) {
+      var challenge = base64urlEncode(new Uint8Array(digest));
+      doRedirect(challenge, 'S256');
+    });
+  } else {
+    doRedirect(verifier, 'plain');
+  }
+}
+
+function doRedirect(challenge, method) {
   var url = 'https://www.amazon.com/ap/oa'
-    + '?client_id='     + encodeURIComponent(CLIENT_ID)
-    + '&redirect_uri='  + encodeURIComponent(REDIRECT_URI)
-    + '&response_type=token'
-    + '&scope='         + encodeURIComponent(SCOPE);
+    + '?client_id='              + encodeURIComponent(CLIENT_ID)
+    + '&redirect_uri='           + encodeURIComponent(REDIRECT_URI)
+    + '&response_type=code'
+    + '&scope='                  + encodeURIComponent(SCOPE)
+    + '&code_challenge='         + challenge
+    + '&code_challenge_method='  + method;
   window.location.href = url;
 }
 
-function handleHashParams() {
-  var hash = window.location.hash.slice(1);
-  if (!hash) return null;
+function exchangeCode(code, callback) {
+  var verifier = localStorage.getItem('pkce_verifier') || '';
+  localStorage.removeItem('pkce_verifier');
+
+  var body = 'grant_type=authorization_code'
+    + '&code='          + encodeURIComponent(code)
+    + '&redirect_uri='  + encodeURIComponent(REDIRECT_URI)
+    + '&client_id='     + encodeURIComponent(CLIENT_ID)
+    + '&code_verifier=' + encodeURIComponent(verifier);
+
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', 'https://api.amazon.com/auth/o2/token', true);
+  xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+  xhr.onreadystatechange = function() {
+    if (xhr.readyState !== 4) return;
+    if (xhr.status === 200) {
+      try { callback(null, JSON.parse(xhr.responseText)); }
+      catch(e) { callback(e, null); }
+    } else {
+      console.error('Token exchange error:', xhr.status, xhr.responseText);
+      callback(new Error('Token exchange failed: ' + xhr.status), null);
+    }
+  };
+  xhr.send(body);
+}
+
+function handleUrlParams() {
+  var search = window.location.search.slice(1);
+  if (!search) return null;
 
   var params = {};
-  hash.split('&').forEach(function(part) {
+  search.split('&').forEach(function(part) {
     var eq = part.indexOf('=');
     if (eq >= 0) params[part.slice(0, eq)] = decodeURIComponent(part.slice(eq + 1));
   });
 
   if (window.history && window.history.replaceState) {
     window.history.replaceState(null, '', window.location.pathname);
-  } else {
-    window.location.hash = '';
   }
 
   if (params.error) return 'error';
 
-  if (params.access_token) {
-    var exp = parseInt(params.expires_in || '3600', 10);
-    localStorage.setItem('access_token', params.access_token);
-    localStorage.setItem('token_expires_at', String(Date.now() + exp * 1000));
-    accessToken = params.access_token;
-    // 期限5分前に再ログイン
-    setTimeout(function() {
-      if (localStorage.getItem('selected_album_id')) {
-        localStorage.setItem('resume_album_id', localStorage.getItem('selected_album_id'));
+  if (params.code) {
+    // コードをトークンに交換
+    exchangeCode(params.code, function(err, data) {
+      if (err) {
+        showScreen('screen-login');
+        return;
       }
-      startLogin();
-    }, Math.max(0, exp - 300) * 1000);
-    return 'token';
+      saveToken(data);
+      var resumeId = localStorage.getItem('resume_album_id');
+      localStorage.removeItem('resume_album_id');
+      if (resumeId) {
+        startSlideshow(resumeId);
+      } else {
+        showAlbums();
+      }
+    });
+    return 'exchanging';
   }
   return null;
+}
+
+function saveToken(data) {
+  var exp = parseInt(data.expires_in || '3600', 10);
+  accessToken = data.access_token;
+  localStorage.setItem('access_token', data.access_token);
+  localStorage.setItem('token_expires_at', String(Date.now() + exp * 1000));
+  if (data.refresh_token) {
+    localStorage.setItem('refresh_token', data.refresh_token);
+  }
+  setTimeout(function() {
+    if (localStorage.getItem('selected_album_id')) {
+      localStorage.setItem('resume_album_id', localStorage.getItem('selected_album_id'));
+    }
+    startLogin();
+  }, Math.max(0, exp - 300) * 1000);
 }
 
 function loadStoredToken() {
@@ -351,17 +425,8 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // OAuth リダイレクト後の処理
-  var result = handleHashParams();
-  if (result === 'token') {
-    var resumeId = localStorage.getItem('resume_album_id');
-    localStorage.removeItem('resume_album_id');
-    if (resumeId) {
-      startSlideshow(resumeId);
-    } else {
-      showAlbums();
-    }
-    return;
-  }
+  var result = handleUrlParams();
+  if (result === 'exchanging') return; // コード交換中
   if (result === 'error') {
     clearAuth();
     showScreen('screen-login');
