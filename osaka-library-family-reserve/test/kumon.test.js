@@ -132,6 +132,47 @@ test("シリーズ展開: 全巻がキュー経由で巻順に消化される", 
   assert.equal(week2.picks[1].title, "いやいやえん");
 });
 
+test("週4冊 = シリーズ2冊＋リスト2冊（シリーズ枠は週2冊まで）", () => {
+  const resolver = (row) =>
+    row.title === "エルマーのぼうけん"
+      ? {
+          name: "エルマー",
+          volumes: [1, 2, 3, 4, 5, 6].map((i) => ({ order: i, title: `エルマー巻${i}` })),
+        }
+      : null;
+  const queue = fakeQueue();
+  const { picks } = planWeek({
+    flat: sampleFlat(),
+    progress: fakeProgress("A", 11), // エルマーのぼうけん から
+    queue,
+    ledger: fakeLedger(),
+    quota: 4,
+    seriesResolver: resolver,
+    seriesPerWeek: 2,
+  });
+  assert.deepEqual(
+    picks.map((p) => p.title),
+    ["エルマー巻1", "エルマー巻2", "いやいやえん", "ももいろのきりん"]
+  );
+  // 残り4巻はキューへ（翌週以降、週2冊ずつ）
+  assert.deepEqual(queue.items.map((q) => q.title), ["エルマー巻3", "エルマー巻4", "エルマー巻5", "エルマー巻6"]);
+
+  // 翌週: キューから2冊＋リスト2冊
+  const week2 = planWeek({
+    flat: sampleFlat(),
+    progress: fakeProgress("A", 12),
+    queue,
+    ledger: fakeLedger(["エルマー巻1", "エルマー巻2", "いやいやえん", "ももいろのきりん"]),
+    quota: 4,
+    seriesResolver: null,
+    seriesPerWeek: 2,
+  });
+  assert.deepEqual(
+    week2.picks.map((p) => p.title),
+    ["エルマー巻3", "エルマー巻4", "ロボット・カミイ", "モモ"]
+  );
+});
+
 test("advanceTo: 各pickは自分の次のリスト位置を指す（中断時の取りこぼし防止）", () => {
   const { picks } = planWeek({
     flat: sampleFlat(),

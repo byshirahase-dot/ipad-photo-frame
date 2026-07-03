@@ -1,7 +1,7 @@
 {
   "name": "O・ヘンリー傑作選",
   "totalVolumes": 3,
-  "note": "全巻",
+  "note": "全巻（最終巻まで）",
   "volumes": [
     {
       "order": 1,
@@ -15,5 +15,6 @@
       "order": 3,
       "title": "O・ヘンリー傑作選Ⅲ"
     }
-  ]
+  ],
+  "complete": true
 }

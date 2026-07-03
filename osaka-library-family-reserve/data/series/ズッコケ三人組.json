@@ -1,7 +1,7 @@
 {
   "name": "ズッコケ三人組",
   "totalVolumes": 50,
-  "note": "全50巻のうち最初の5巻のみ（長編シリーズは5巻まで方針）",
+  "note": "確認済みの巻のみ。最終巻までの続きは Cowork の Claude が Web 検索で追記し complete を true にする",
   "volumes": [
     {
       "order": 1,
@@ -23,5 +23,6 @@
       "order": 5,
       "title": "ズッコケ心霊学入門"
     }
-  ]
+  ],
+  "complete": false
 }

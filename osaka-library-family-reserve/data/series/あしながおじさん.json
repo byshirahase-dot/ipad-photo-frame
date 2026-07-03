@@ -1,7 +1,7 @@
 {
   "name": "あしながおじさん",
   "totalVolumes": 2,
-  "note": "全巻",
+  "note": "全巻（最終巻まで）",
   "volumes": [
     {
       "order": 1,
@@ -11,5 +11,6 @@
       "order": 2,
       "title": "続あしながおじさん"
     }
-  ]
+  ],
+  "complete": true
 }

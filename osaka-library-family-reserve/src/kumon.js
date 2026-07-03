@@ -46,25 +46,29 @@ export function indexOfProgress(flat, { level, position }) {
 
 /**
  * 今週予約する候補を quota 冊ぶん組み立てる。
- * 優先順: 1) queue.json（シリーズ展開の残り） 2) リストの現在位置から順に。
+ * シリーズは全巻を巻順に読むが、週あたり seriesPerWeek 冊（デフォルト2）まで。
+ * 残りの枠はリストの現在位置から埋める（同じシリーズばかりにならないように）。
  * 台帳(Ledger)にある本はスキップ。返り値の nextProgress はリスト消化後の新カーソル。
  */
-export function planWeek({ flat, progress, queue, ledger, quota, seriesResolver }) {
+export function planWeek({ flat, progress, queue, ledger, quota, seriesResolver, seriesPerWeek = 2 }) {
   const picks = [];
   const skipped = [];
+  const seriesQuota = Math.min(seriesPerWeek, quota);
+  let seriesTaken = 0;
 
-  // 1) 持ち越しキュー（シリーズの続巻など）
-  while (picks.length < quota && queue.length > 0) {
+  // 1) 持ち越しキュー（シリーズの続巻）からシリーズ枠ぶんだけ
+  while (seriesTaken < seriesQuota && queue.length > 0) {
     const item = queue.peek();
     if (ledger.has(item.title)) {
       queue.shift();
       continue;
     }
-    picks.push({ ...item, from: "queue" });
+    picks.push({ ...item, from: item.from ?? "queue" });
     queue.shift();
+    seriesTaken += 1;
   }
 
-  // 2) 公文リスト本体
+  // 2) 公文リスト本体（シリーズ第1巻を見つけたら残りのシリーズ枠を使い、超過分はキューへ）
   let idx = indexOfProgress(flat, progress.get());
   if (idx < 0) idx = flat.length; // リスト終端
   while (picks.length < quota && idx < flat.length) {
@@ -78,14 +82,14 @@ export function planWeek({ flat, progress, queue, ledger, quota, seriesResolver 
       skipped.push({ ...row, reason: "予約・処理済み" });
       continue;
     }
-    // シリーズ第1巻なら展開し、全巻をキューに積んで先頭から消化
     const series = seriesResolver ? seriesResolver(row) : null;
     if (series && series.volumes.length > 1) {
       const rest = [];
       for (const v of series.volumes) {
         if (ledger.has(v.title)) continue;
-        if (picks.length < quota) {
+        if (seriesTaken < seriesQuota && picks.length < quota) {
           picks.push({ title: v.title, author: row.author, from: `series:${series.name}`, advanceTo });
+          seriesTaken += 1;
         } else {
           rest.push({ title: v.title, author: row.author, from: `series:${series.name}` });
         }
@@ -94,6 +98,17 @@ export function planWeek({ flat, progress, queue, ledger, quota, seriesResolver 
       continue;
     }
     picks.push({ ...row, from: "list", advanceTo });
+  }
+
+  // 3) リストが尽きた場合はキューから補充（シリーズ枠の制限を超えてよい）
+  while (picks.length < quota && queue.length > 0) {
+    const item = queue.peek();
+    if (ledger.has(item.title)) {
+      queue.shift();
+      continue;
+    }
+    picks.push({ ...item, from: item.from ?? "queue" });
+    queue.shift();
   }
 
   const nextProgress = idx < flat.length

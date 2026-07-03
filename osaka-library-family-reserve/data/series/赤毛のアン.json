@@ -1,7 +1,7 @@
 {
   "name": "赤毛のアン",
   "totalVolumes": 10,
-  "note": "全10巻のうち最初の5巻のみ（長編シリーズは5巻まで方針）",
+  "note": "全巻（最終巻まで）",
   "volumes": [
     {
       "order": 1,
@@ -17,11 +17,32 @@
     },
     {
       "order": 4,
-      "title": "アンの幸福"
+      "title": "アンの友達"
     },
     {
       "order": 5,
+      "title": "アンの幸福"
+    },
+    {
+      "order": 6,
       "title": "アンの夢の家"
+    },
+    {
+      "order": 7,
+      "title": "炉辺荘のアン"
+    },
+    {
+      "order": 8,
+      "title": "アンをめぐる人々"
+    },
+    {
+      "order": 9,
+      "title": "虹の谷のアン"
+    },
+    {
+      "order": 10,
+      "title": "アンの娘リラ"
     }
-  ]
+  ],
+  "complete": true
 }

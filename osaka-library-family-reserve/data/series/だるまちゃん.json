@@ -1,7 +1,7 @@
 {
   "name": "だるまちゃん",
   "totalVolumes": 11,
-  "note": "全11巻のうち最初の5巻のみ（長編シリーズは5巻まで方針）",
+  "note": "確認済みの巻のみ。最終巻までの続きは Cowork の Claude が Web 検索で追記し complete を true にする",
   "volumes": [
     {
       "order": 1,
@@ -22,6 +22,11 @@
     {
       "order": 5,
       "title": "だるまちゃんとだいこくちゃん"
+    },
+    {
+      "order": 6,
+      "title": "だるまちゃんとてんじんちゃん"
     }
-  ]
+  ],
+  "complete": false
 }

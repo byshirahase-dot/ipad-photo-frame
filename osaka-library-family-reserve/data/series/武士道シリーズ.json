@@ -1,7 +1,7 @@
 {
   "name": "武士道シリーズ",
   "totalVolumes": 4,
-  "note": "全巻",
+  "note": "全巻（最終巻まで）",
   "volumes": [
     {
       "order": 1,
@@ -19,5 +19,6 @@
       "order": 4,
       "title": "武士道ジェネレーション"
     }
-  ]
+  ],
+  "complete": true
 }

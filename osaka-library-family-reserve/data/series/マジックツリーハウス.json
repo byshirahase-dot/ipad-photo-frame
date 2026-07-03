@@ -1,7 +1,7 @@
 {
   "name": "マジックツリーハウス",
   "totalVolumes": 40,
-  "note": "全40巻のうち最初の5巻のみ（長編シリーズは5巻まで方針）",
+  "note": "確認済みの巻のみ。最終巻までの続きは Cowork の Claude が Web 検索で追記し complete を true にする",
   "volumes": [
     {
       "order": 1,
@@ -22,6 +22,27 @@
     {
       "order": 5,
       "title": "マジックツリーハウス 5"
+    },
+    {
+      "order": 6,
+      "title": "マジックツリーハウス 6"
+    },
+    {
+      "order": 7,
+      "title": "マジックツリーハウス 7"
+    },
+    {
+      "order": 8,
+      "title": "マジックツリーハウス 8"
+    },
+    {
+      "order": 9,
+      "title": "マジックツリーハウス 9"
+    },
+    {
+      "order": 10,
+      "title": "マジックツリーハウス 10"
     }
-  ]
+  ],
+  "complete": false
 }

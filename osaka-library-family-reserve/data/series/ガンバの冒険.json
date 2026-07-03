@@ -1,7 +1,7 @@
 {
   "name": "ガンバの冒険",
   "totalVolumes": 3,
-  "note": "全巻",
+  "note": "全巻（最終巻まで）",
   "volumes": [
     {
       "order": 1,
@@ -15,5 +15,6 @@
       "order": 3,
       "title": "ガンバとカワウソの冒険"
     }
-  ]
+  ],
+  "complete": true
 }

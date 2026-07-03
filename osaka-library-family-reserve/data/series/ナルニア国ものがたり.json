@@ -1,7 +1,7 @@
 {
   "name": "ナルニア国ものがたり",
   "totalVolumes": 7,
-  "note": "全巻",
+  "note": "全巻（最終巻まで）",
   "volumes": [
     {
       "order": 1,
@@ -31,5 +31,6 @@
       "order": 7,
       "title": "さいごの戦い"
     }
-  ]
+  ],
+  "complete": true
 }

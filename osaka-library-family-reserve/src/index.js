@@ -53,7 +53,11 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, pendingSe
     progress = new Progress(id, account.startProgress);
     queue = new Queue(id, { persist: !dryRun });
     const resolver = makeSeriesResolver({ pendingSeries, persist: !dryRun });
-    plan = planWeek({ flat, progress, queue, ledger, quota, seriesResolver: resolver });
+    plan = planWeek({
+      flat, progress, queue, ledger, quota,
+      seriesResolver: resolver,
+      seriesPerWeek: cfg.seriesPerWeek ?? 2,
+    });
     picks = plan.picks;
   } else {
     // 母: Cowork が置いた data/mom/queue.json を優先消化

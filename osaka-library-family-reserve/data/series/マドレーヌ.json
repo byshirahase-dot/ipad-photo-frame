@@ -1,7 +1,7 @@
 {
   "name": "マドレーヌ",
   "totalVolumes": 6,
-  "note": "全巻",
+  "note": "全巻（最終巻まで）",
   "volumes": [
     {
       "order": 1,
@@ -27,5 +27,6 @@
       "order": 6,
       "title": "ロンドンのマドレーヌ"
     }
-  ]
+  ],
+  "complete": true
 }

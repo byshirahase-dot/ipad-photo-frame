@@ -1,7 +1,7 @@
 {
   "name": "少年探偵団",
   "totalVolumes": 26,
-  "note": "全26巻のうち最初の5巻のみ（長編シリーズは5巻まで方針）",
+  "note": "確認済みの巻のみ。最終巻までの続きは Cowork の Claude が Web 検索で追記し complete を true にする",
   "volumes": [
     {
       "order": 1,
@@ -22,6 +22,23 @@
     {
       "order": 5,
       "title": "青銅の魔人"
+    },
+    {
+      "order": 6,
+      "title": "地底の魔術王"
+    },
+    {
+      "order": 7,
+      "title": "透明怪人"
+    },
+    {
+      "order": 8,
+      "title": "怪奇四十面相"
+    },
+    {
+      "order": 9,
+      "title": "宇宙怪人"
     }
-  ]
+  ],
+  "complete": false
 }

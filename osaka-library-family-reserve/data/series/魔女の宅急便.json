@@ -1,7 +1,7 @@
 {
   "name": "魔女の宅急便",
   "totalVolumes": 6,
-  "note": "全巻",
+  "note": "全巻（最終巻まで）",
   "volumes": [
     {
       "order": 1,
@@ -27,5 +27,6 @@
       "order": 6,
       "title": "魔女の宅急便 その6 それぞれの旅立ち"
     }
-  ]
+  ],
+  "complete": true
 }

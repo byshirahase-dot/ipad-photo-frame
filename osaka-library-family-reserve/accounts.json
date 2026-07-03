@@ -37,6 +37,7 @@
     }
   },
   "levelOrder": ["5A", "4A", "3A", "2A", "A", "B", "C", "D", "E", "F", "G", "H", "I"],
+  "seriesPerWeek": 2,
   "opac": {
     "baseUrl": "https://www.oml.city.osaka.lg.jp/licsxp-opac",
     "requestIntervalMs": 5000,

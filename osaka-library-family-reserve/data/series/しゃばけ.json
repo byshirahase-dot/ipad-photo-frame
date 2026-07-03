@@ -1,7 +1,7 @@
 {
   "name": "しゃばけ",
   "totalVolumes": 20,
-  "note": "全20巻のうち最初の5巻のみ（長編シリーズは5巻まで方針）",
+  "note": "確認済みの巻のみ。最終巻までの続きは Cowork の Claude が Web 検索で追記し complete を true にする",
   "volumes": [
     {
       "order": 1,
@@ -22,6 +22,31 @@
     {
       "order": 5,
       "title": "うそうそ"
+    },
+    {
+      "order": 6,
+      "title": "ちんぷんかん"
+    },
+    {
+      "order": 7,
+      "title": "いっちばん"
+    },
+    {
+      "order": 8,
+      "title": "ころころろ"
+    },
+    {
+      "order": 9,
+      "title": "ゆんでめて"
+    },
+    {
+      "order": 10,
+      "title": "やなりいなり"
+    },
+    {
+      "order": 11,
+      "title": "ひなこまち"
     }
-  ]
+  ],
+  "complete": false
 }

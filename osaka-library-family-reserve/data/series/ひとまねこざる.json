@@ -1,7 +1,7 @@
 {
   "name": "ひとまねこざる",
-  "totalVolumes": 6,
-  "note": "全巻",
+  "totalVolumes": 7,
+  "note": "全巻（最終巻まで）",
   "volumes": [
     {
       "order": 1,
@@ -26,6 +26,11 @@
     {
       "order": 6,
       "title": "ひとまねこざるびょういんへいく"
+    },
+    {
+      "order": 7,
+      "title": "ひとまねこざるのABC"
     }
-  ]
+  ],
+  "complete": true
 }

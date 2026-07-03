@@ -1,7 +1,7 @@
 {
   "name": "小人の冒険シリーズ",
   "totalVolumes": 5,
-  "note": "全巻",
+  "note": "全巻（最終巻まで）",
   "volumes": [
     {
       "order": 1,
@@ -23,5 +23,6 @@
       "order": 5,
       "title": "小人たちの新しい家"
     }
-  ]
+  ],
+  "complete": true
 }
