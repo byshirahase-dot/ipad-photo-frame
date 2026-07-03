@@ -1,0 +1,35 @@
+{
+  "name": "ナルニア国ものがたり",
+  "totalVolumes": 7,
+  "note": "全巻",
+  "volumes": [
+    {
+      "order": 1,
+      "title": "ライオンと魔女"
+    },
+    {
+      "order": 2,
+      "title": "カスピアン王子のつのぶえ"
+    },
+    {
+      "order": 3,
+      "title": "朝びらき丸東の海へ"
+    },
+    {
+      "order": 4,
+      "title": "銀のいす"
+    },
+    {
+      "order": 5,
+      "title": "馬と少年"
+    },
+    {
+      "order": 6,
+      "title": "魔術師のおい"
+    },
+    {
+      "order": 7,
+      "title": "さいごの戦い"
+    }
+  ]
+}

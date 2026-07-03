@@ -1,0 +1,15 @@
+{
+  "name": "あしながおじさん",
+  "totalVolumes": 2,
+  "note": "全巻",
+  "volumes": [
+    {
+      "order": 1,
+      "title": "あしながおじさん"
+    },
+    {
+      "order": 2,
+      "title": "続あしながおじさん"
+    }
+  ]
+}

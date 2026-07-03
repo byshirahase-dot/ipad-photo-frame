@@ -1,0 +1,35 @@
+{
+  "name": "あらしのよるに",
+  "totalVolumes": 7,
+  "note": "全巻",
+  "volumes": [
+    {
+      "order": 1,
+      "title": "あらしのよるに"
+    },
+    {
+      "order": 2,
+      "title": "あるはれたひに"
+    },
+    {
+      "order": 3,
+      "title": "くものきれまに"
+    },
+    {
+      "order": 4,
+      "title": "きりのなかで"
+    },
+    {
+      "order": 5,
+      "title": "どしゃぶりのひに"
+    },
+    {
+      "order": 6,
+      "title": "ふぶきのあした"
+    },
+    {
+      "order": 7,
+      "title": "まんげつのよるに"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "name": "バッテリー",
+  "totalVolumes": 6,
+  "note": "全巻",
+  "volumes": [
+    {
+      "order": 1,
+      "title": "バッテリー"
+    },
+    {
+      "order": 2,
+      "title": "バッテリーⅡ"
+    },
+    {
+      "order": 3,
+      "title": "バッテリーⅢ"
+    },
+    {
+      "order": 4,
+      "title": "バッテリーⅣ"
+    },
+    {
+      "order": 5,
+      "title": "バッテリーⅤ"
+    },
+    {
+      "order": 6,
+      "title": "バッテリーⅥ"
+    }
+  ]
+}

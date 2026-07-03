@@ -1,0 +1,15 @@
+{
+  "name": "クマのプーさん",
+  "totalVolumes": 2,
+  "note": "全巻",
+  "volumes": [
+    {
+      "order": 1,
+      "title": "クマのプーさん"
+    },
+    {
+      "order": 2,
+      "title": "プー横丁にたった家"
+    }
+  ]
+}

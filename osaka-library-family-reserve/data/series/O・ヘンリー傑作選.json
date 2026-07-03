@@ -1,0 +1,19 @@
+{
+  "name": "O・ヘンリー傑作選",
+  "totalVolumes": 3,
+  "note": "全巻",
+  "volumes": [
+    {
+      "order": 1,
+      "title": "O・ヘンリー傑作選Ⅰ 賢者の贈りもの"
+    },
+    {
+      "order": 2,
+      "title": "O・ヘンリー傑作選Ⅱ"
+    },
+    {
+      "order": 3,
+      "title": "O・ヘンリー傑作選Ⅲ"
+    }
+  ]
+}

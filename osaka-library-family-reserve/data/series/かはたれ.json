@@ -1,0 +1,15 @@
+{
+  "name": "かはたれ",
+  "totalVolumes": 2,
+  "note": "全巻",
+  "volumes": [
+    {
+      "order": 1,
+      "title": "かはたれ"
+    },
+    {
+      "order": 2,
+      "title": "たそかれ"
+    }
+  ]
+}

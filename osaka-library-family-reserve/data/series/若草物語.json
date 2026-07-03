@@ -1,0 +1,23 @@
+{
+  "name": "若草物語",
+  "totalVolumes": 4,
+  "note": "全巻",
+  "volumes": [
+    {
+      "order": 1,
+      "title": "若草物語１"
+    },
+    {
+      "order": 2,
+      "title": "若草物語２"
+    },
+    {
+      "order": 3,
+      "title": "若草物語３"
+    },
+    {
+      "order": 4,
+      "title": "若草物語４"
+    }
+  ]
+}

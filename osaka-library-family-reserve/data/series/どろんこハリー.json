@@ -1,0 +1,19 @@
+{
+  "name": "どろんこハリー",
+  "totalVolumes": 3,
+  "note": "全巻",
+  "volumes": [
+    {
+      "order": 1,
+      "title": "どろんこハリー"
+    },
+    {
+      "order": 2,
+      "title": "ハリーのセーター"
+    },
+    {
+      "order": 3,
+      "title": "うみべのハリー"
+    }
+  ]
+}

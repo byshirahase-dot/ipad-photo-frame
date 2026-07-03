@@ -1,0 +1,19 @@
+{
+  "name": "おばけのはなし",
+  "totalVolumes": 3,
+  "note": "全巻",
+  "volumes": [
+    {
+      "order": 1,
+      "title": "おばけのはなし１"
+    },
+    {
+      "order": 2,
+      "title": "おばけのはなし２"
+    },
+    {
+      "order": 3,
+      "title": "おばけのはなし３"
+    }
+  ]
+}

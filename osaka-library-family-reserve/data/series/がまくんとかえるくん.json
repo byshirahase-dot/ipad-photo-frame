@@ -1,0 +1,23 @@
+{
+  "name": "がまくんとかえるくん",
+  "totalVolumes": 4,
+  "note": "全巻",
+  "volumes": [
+    {
+      "order": 1,
+      "title": "ふたりはともだち"
+    },
+    {
+      "order": 2,
+      "title": "ふたりはいっしょ"
+    },
+    {
+      "order": 3,
+      "title": "ふたりはいつも"
+    },
+    {
+      "order": 4,
+      "title": "ふたりはきょうも"
+    }
+  ]
+}

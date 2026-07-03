@@ -1,0 +1,19 @@
+{
+  "name": "ガンバの冒険",
+  "totalVolumes": 3,
+  "note": "全巻",
+  "volumes": [
+    {
+      "order": 1,
+      "title": "グリックの冒険"
+    },
+    {
+      "order": 2,
+      "title": "冒険者たち"
+    },
+    {
+      "order": 3,
+      "title": "ガンバとカワウソの冒険"
+    }
+  ]
+}

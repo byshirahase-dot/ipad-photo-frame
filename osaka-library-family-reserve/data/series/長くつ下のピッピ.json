@@ -1,0 +1,19 @@
+{
+  "name": "長くつ下のピッピ",
+  "totalVolumes": 3,
+  "note": "全巻",
+  "volumes": [
+    {
+      "order": 1,
+      "title": "長くつ下のピッピ"
+    },
+    {
+      "order": 2,
+      "title": "ピッピ船にのる"
+    },
+    {
+      "order": 3,
+      "title": "ピッピ南の島へ"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "name": "エーミール",
+  "totalVolumes": 2,
+  "note": "全巻",
+  "volumes": [
+    {
+      "order": 1,
+      "title": "エーミールと探偵たち"
+    },
+    {
+      "order": 2,
+      "title": "エーミールと三人のふたご"
+    }
+  ]
+}

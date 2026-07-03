@@ -1,0 +1,19 @@
+{
+  "name": "エルマー",
+  "totalVolumes": 3,
+  "note": "全巻",
+  "volumes": [
+    {
+      "order": 1,
+      "title": "エルマーのぼうけん"
+    },
+    {
+      "order": 2,
+      "title": "エルマーとりゅう"
+    },
+    {
+      "order": 3,
+      "title": "エルマーと16ぴきのりゅう"
+    }
+  ]
+}

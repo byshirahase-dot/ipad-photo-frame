@@ -26,8 +26,15 @@ export class Opac {
     // クラウド環境のプリインストール Chromium を優先的に使う
     const preinstalled = process.env.OML_CHROMIUM_PATH;
     if (preinstalled && fs.existsSync(preinstalled)) opts.executablePath = preinstalled;
+    // 環境が HTTPS プロキシ経由の場合（Claude Code クラウド等）はブラウザもプロキシを使う
+    const proxyServer = process.env.HTTPS_PROXY || process.env.https_proxy;
+    const pageOpts = { locale: "ja-JP" };
+    if (proxyServer) {
+      opts.proxy = { server: proxyServer };
+      pageOpts.ignoreHTTPSErrors = true; // プロキシのMITM CAを許容（プロキシ利用時のみ）
+    }
     this.browser = await chromium.launch(opts);
-    this.page = await this.browser.newPage({ locale: "ja-JP" });
+    this.page = await this.browser.newPage(pageOpts);
     this.page.setDefaultTimeout(20000);
   }
 
@@ -78,10 +85,19 @@ export class Opac {
   async login(card, pass) {
     try {
       await this.politeWait();
-      await this.page.goto(
-        `${this.baseUrl}/WOpacMnuTopInitAction.do?WebLinkFlag=1&moveToGamenId=usrrsv`,
-        { waitUntil: "domcontentloaded" }
+      await this.page.goto(`${this.baseUrl}/WOpacSmtMnuTopAction.do`, {
+        waitUntil: "domcontentloaded",
+      });
+      await this.shot("top");
+      // トップページの「ログイン」リンク（JS遷移）
+      const loginLink = await this.firstVisible(
+        ["a#usr-lgin", 'a:has-text("ログイン")'],
+        "ログインリンク"
       );
+      await this.politeWait();
+      await loginLink.click();
+      await this.page.waitForLoadState("domcontentloaded");
+      await this.shot("login-form");
       const cardInput = await this.firstVisible(
         [
           this.page.getByLabel(/図書館カード|カード番号|利用者番号/),
@@ -152,15 +168,15 @@ export class Opac {
   async searchTitle(title) {
     try {
       await this.politeWait();
-      await this.page.goto(
-        `${this.baseUrl}/WOpacEsSchCmpdDispAction.do?moveToGamenId=esschcmpd`,
-        { waitUntil: "domcontentloaded" }
-      );
+      await this.page.goto(`${this.baseUrl}/WOpacSmtMnuTopAction.do`, {
+        waitUntil: "domcontentloaded",
+      });
       const box = await this.firstVisible(
         [
+          "#SearchKWInputSearch",
+          'input[name="kensaku_keyword"]',
           this.page.getByLabel(/書名|タイトル|キーワード/),
           'input[name*="word" i]',
-          'input[name*="title" i]',
           'form input[type="text"]',
         ],
         "検索キーワード入力欄"
@@ -168,9 +184,10 @@ export class Opac {
       await box.fill(title);
       const btn = await this.firstVisible(
         [
+          "#schButtonSearch",
+          'input[type="image"][alt="検索"]',
           this.page.getByRole("button", { name: /検索/ }),
           'input[type="submit"][value*="検索"]',
-          'button:has-text("検索")',
         ],
         "検索ボタン"
       );
