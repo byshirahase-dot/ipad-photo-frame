@@ -110,20 +110,28 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, pendingSe
     let available = cfg.opac.reserveLimit - (count ?? 0);
     if (count == null) available = quota; // 取得できない場合は quota まで（レポートに注記）
 
-    // 期限切れ・無効になった予約（借りられなかった本）を検出し、予約対象リストに戻す
+    // 取消された予約（＝借りられなかった本）を検出し、予約対象リストに戻す。
+    // サイト仕様: 取り置き期限切れ・延滞ペナルティによる無効化は「取消」と表示されて一覧に残る。
+    // 利用者が手動で取り消したものは一覧から消えるため、残っている「取消」は借りられなかった本。
     section.requeued = [];
     const states = await opac.listReservationStates();
+    const cancelledRe = /取消|期限切れ|無効/;
+    // 同じ本に有効な予約（待ち・用意等）がある場合、その「取消」行は過去の再予約済みの残骸なので無視
+    const activeKeys = new Set(
+      states.filter((s) => s.state && !cancelledRe.test(s.state)).map((s) => Ledger.key(s.title))
+    );
     for (const s of states) {
-      if (!/期限切れ|無効/.test(s.state)) continue;
+      if (!cancelledRe.test(s.state)) continue;
+      if (activeKeys.has(Ledger.key(s.title))) continue;
       const entry = ledger.findActiveReserved(s.title);
-      if (!entry) continue; // 台帳に無い（既に処理済み）ものは無視
+      if (!entry) continue; // 台帳に無い（このシステムの予約でない・処理済み）ものは無視
       section.requeued.push({ title: entry.title, state: s.state });
       if (!dryRun) {
-        ledger.markExpired(entry, `予約${s.state}のため再予約対象に戻した`);
+        ledger.markExpired(entry, `予約${s.state}（期限切れ・延滞ペナルティ等）のため再予約対象に戻した`);
         if (account.mode === "kumon") {
-          queue.unshift({ title: entry.title, author: entry.author ?? "", from: "requeue:期限切れ" });
+          queue.unshift({ title: entry.title, author: entry.author ?? "", from: "requeue:予約取消" });
         } else if (section.momQueue) {
-          section.momQueue.items.unshift({ title: entry.title, author: entry.author ?? "", reason: "予約期限切れの再予約" });
+          section.momQueue.items.unshift({ title: entry.title, author: entry.author ?? "", reason: "予約取消の再予約" });
         }
       }
     }
