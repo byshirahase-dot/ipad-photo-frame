@@ -15,6 +15,7 @@ for a in "$@"; do
     --account=*) ARGS+=("$a"); HAS_TARGET=1 ;;
     --dry-run) ARGS+=("--dry-run") ;;
     --plan-only) ARGS+=("--plan-only") ;;
+    --limit=*) ARGS+=("$a") ;;
     *) echo "不明なオプション: $a" >&2; exit 1 ;;
   esac
 done

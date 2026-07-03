@@ -18,11 +18,12 @@ function parseArgs(argv) {
     else if (a === "--dry-run") args.dryRun = true;
     else if (a === "--plan-only") { args.planOnly = true; args.dryRun = true; }
     else if (a.startsWith("--account=")) args.accounts.push(a.split("=")[1]);
+    else if (a.startsWith("--limit=")) args.limit = Number(a.split("=")[1]);
   }
   return args;
 }
 
-async function runAccount({ id, account, cfg, dryRun, planOnly, pendingSeries, logRoot }) {
+async function runAccount({ id, account, cfg, dryRun, planOnly, limit, pendingSeries, logRoot }) {
   const section = {
     accountId: id,
     name: account.name,
@@ -68,6 +69,8 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, pendingSeries, l
     section.momQueueFile = file;
     section.momQueue = momQueue;
   }
+
+  if (limit > 0) picks = picks.slice(0, limit);
 
   if (!picks.length) {
     section.skippedReason = "予約候補なし（リスト消化済み or すべて予約済み）";
@@ -186,6 +189,7 @@ async function main() {
       cfg,
       dryRun: args.dryRun,
       planOnly: args.planOnly,
+      limit: args.limit ?? 0,
       pendingSeries,
       logRoot,
     });
