@@ -3,7 +3,7 @@ import { ROOT, loadDotEnv, loadAccountsConfig, credentialsFor, todayStr, ensureD
 import { Ledger, Progress, Queue, readMomQueue, writeMomQueue, recordMomRecommended } from "./state.js";
 import { loadKumonList, flatten, planWeek } from "./kumon.js";
 import { makeSeriesResolver } from "./series.js";
-import { Opac, pickBestResult } from "./opac.js";
+import { Opac, rankResults } from "./opac.js";
 import { writeReport } from "./report.js";
 
 /**
@@ -106,14 +106,20 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, pendingSeries, l
         continue;
       }
       const results = await opac.searchTitle(pick.title);
-      const best = results?.length ? pickBestResult(results, pick.title) : null;
-      if (!best) {
+      const candidates = results?.length ? rankResults(results, pick.title) : [];
+      if (!candidates.length) {
         section.failed.push({ title: pick.title, note: "所蔵なし・検索ヒットなし" });
         if (!dryRun) ledger.add({ title: pick.title, author: pick.author ?? "", status: "failed", note: "所蔵なし", source: pick.from });
         continue;
       }
-      await opac.openResult(best.index);
-      const res = await opac.reserveCurrent({ pickupBranch: account.pickupBranch });
+      // 予約不可の版（大型絵本等）は次の候補へフォールバック
+      let res = null;
+      for (let ci = 0; ci < candidates.length; ci++) {
+        await opac.openResult(candidates[ci].index);
+        res = await opac.reserveCurrent({ pickupBranch: account.pickupBranch });
+        if (res.ok || !res.notReservable) break;
+        if (ci < candidates.length - 1) await opac.backToResults();
+      }
       if (res.ok) {
         available -= 1;
         section.reserved.push({ title: pick.title, note: res.dryRun ? "ドライラン" : res.message });

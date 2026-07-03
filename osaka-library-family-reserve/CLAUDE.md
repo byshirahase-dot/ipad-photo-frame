@@ -77,8 +77,17 @@ npm test                          # ロジックの単体テスト
   全13レベル×50冊、各レベルの先頭・末尾をPDFと照合済み。series_hints.json も実タイトル表記に更新。
   実リストでの --plan-only 確認済み: 長女=E1〜4（注文の多い料理店〜）、長男=A11〜14（11ぴきのねこ〜）、
   次男=3A1〜4（はらぺこあおむし〜）
-- [ ] **OPACセレクタ未検証**：src/opac.js は LICS-Re 系の一般構造＋フォールバックで実装済み。
-  初回ドライランで logs/ のスクショを見ながら要調整（docs/opac-structure.md 参照）
+- [x] **OPACセレクタ検証完了（2026-07-03 実サイトでドライラン成功）**。判明した実構造:
+  - スマホ版UI（Smt系）。トップ `WOpacSmtMnuTopAction.do`、検索欄 `#SearchKWInputSearch`＋`#schButtonSearch`
+  - ログイン: `#openmenu2`でマイ図書館メニュー→`a#usr-lgin`→`#usrcardnumber`/`#password`→`input[value*="ログイン"]`
+  - 検索は全項目→絞込みフォーム（`#searchkind_add`=書名, `#search_add`, `submitNarrow()`）→
+    `#AssistSortSelect`で出版年昇順に並べ替え（雑誌・大型絵本などの新しい特殊版を後ろへ）
+  - 結果行 `a.layer-doc`（`.title`/`.writer`）。予約中冊数はヘッダ `#stat-resv .value`
+  - 詳細ページ「※この書誌は予約できません。」（大型絵本等）は次候補へフォールバック（rankResults上位3件）
+  - 予約ボタンは「予約カート」系。**カート以降（受取館選択→確認→決定）は本番1冊テストで最終検証**
+  - ドライランは予約カート投入前で停止する設計（口座状態を一切変えない）
+  - Claude Codeクラウドのプロキシ環境ではChromiumのTLSが弾かれるため、page.route で
+    Node側fetchに中継する対策を実装済み（HTTPS_PROXY があるときのみ有効化）
 - [x] .env 作成済み（2026-07-03 ユーザーから4アカウント分を受領。**コンテナ内のみ・コミット禁止**。
   コンテナが再作成されると消えるため、恒久対応として Claude Code 環境設定の環境変数に
   OML_CARD_* / OML_PASS_* の8つを登録するのが望ましい）

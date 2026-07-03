@@ -36,6 +36,18 @@ export class Opac {
     this.browser = await chromium.launch(opts);
     this.page = await this.browser.newPage(pageOpts);
     this.page.setDefaultTimeout(20000);
+    if (proxyServer) {
+      // Chromium とプロキシ終端の TLS 非互換対策:
+      // リクエストを Playwright の Node 側 fetch（プロキシ・CA設定済み）で中継する
+      await this.page.route("**/*", async (route) => {
+        try {
+          const resp = await route.fetch({ maxRedirects: 0 });
+          await route.fulfill({ response: resp });
+        } catch {
+          await route.abort().catch(() => {});
+        }
+      });
+    }
   }
 
   async close() {
@@ -66,13 +78,16 @@ export class Opac {
     throw e;
   }
 
-  /** 複数候補のロケータから最初に見つかったものを返す */
+  /** 複数候補のロケータから最初に「見えている」要素を返す（候補ごとに先頭5件まで走査） */
   async firstVisible(cands, what) {
     for (const c of cands) {
       const loc = typeof c === "string" ? this.page.locator(c) : c;
       try {
-        const el = loc.first();
-        if (await el.isVisible({ timeout: 1500 })) return el;
+        const n = Math.min(await loc.count(), 5);
+        for (let i = 0; i < n; i++) {
+          const el = loc.nth(i);
+          if (await el.isVisible({ timeout: 1000 }).catch(() => false)) return el;
+        }
       } catch {
         /* 次の候補へ */
       }
@@ -89,7 +104,12 @@ export class Opac {
         waitUntil: "domcontentloaded",
       });
       await this.shot("top");
-      // トップページの「ログイン」リンク（JS遷移）
+      // 「マイ図書館」メニューを開いてから「ログイン」リンク（JS遷移）
+      const menuBtn = this.page.locator("#openmenu2");
+      if (await menuBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+        await menuBtn.click();
+        await this.page.waitForTimeout(800);
+      }
       const loginLink = await this.firstVisible(
         ["a#usr-lgin", 'a:has-text("ログイン")'],
         "ログインリンク"
@@ -100,26 +120,24 @@ export class Opac {
       await this.shot("login-form");
       const cardInput = await this.firstVisible(
         [
-          this.page.getByLabel(/図書館カード|カード番号|利用者番号/),
+          "#usrcardnumber",
+          'input[name="username"]',
           'input[name*="usercd" i]',
-          'input[name*="userid" i]',
           'form input[type="text"]',
-          'form input[type="tel"]',
         ],
         "カード番号入力欄"
       );
       await cardInput.fill(card);
       const passInput = await this.firstVisible(
-        ['input[type="password"]'],
+        ["#password", 'input[type="password"]'],
         "パスワード入力欄"
       );
       await passInput.fill(pass);
       const loginBtn = await this.firstVisible(
         [
+          'input[value*="ログイン"]',
           this.page.getByRole("button", { name: /ログイン/ }),
           'input[type="submit"][value*="ログイン"]',
-          'a:has-text("ログイン")',
-          'input[type="submit"]',
         ],
         "ログインボタン"
       );
@@ -138,25 +156,15 @@ export class Opac {
 
   // ---------- 予約状況（枠の残数確認） ----------
 
-  /** 利用状況ページから現在の予約冊数を取得する。取れない場合は null */
+  /** ログイン後のヘッダバー（#stat-resv）から現在の予約冊数を取得。取れない場合は null */
   async currentReserveCount() {
     try {
-      await this.politeWait();
-      const link = await this.firstVisible(
-        [
-          this.page.getByRole("link", { name: /予約中|予約状況|利用状況/ }),
-          'a:has-text("予約")',
-        ],
-        "予約状況リンク"
-      );
-      await link.click();
-      await this.page.waitForLoadState("domcontentloaded");
-      await this.shot("reserve-status");
-      const body = (await this.page.textContent("body")) || "";
-      const m = body.match(/予約[^0-9]{0,10}(\d+)\s*冊/);
-      if (m) return Number(m[1]);
-      const rows = await this.page.locator("table tr").count();
-      return rows > 1 ? rows - 1 : 0;
+      const v = await this.page
+        .locator("#stat-resv .value")
+        .first()
+        .textContent({ timeout: 5000 });
+      const n = Number((v || "").trim());
+      return Number.isInteger(n) ? n : null;
     } catch {
       return null; // 取得失敗は致命ではない。呼び出し側で保守的に扱う
     }
@@ -195,19 +203,46 @@ export class Opac {
       await this.page.waitForLoadState("domcontentloaded");
       await this.shot(`search-${title.slice(0, 12)}`);
 
-      const body = (await this.page.textContent("body")) || "";
-      if (/該当する資料|見つかりません|0\s*件/.test(body) && !/\b[1-9]\d*\s*件/.test(body)) {
-        return [];
+      if (await this.#noHits()) return [];
+
+      // 全項目検索は雑誌などのノイズが多いので、絞込みフォームで「書名」再検索
+      const narrowBox = this.page.locator("#search_add");
+      if (await narrowBox.isVisible({ timeout: 3000 }).catch(() => false)) {
+        await this.page.selectOption("#searchkind_add", "0"); // 書名
+        await narrowBox.fill(title);
+        await this.politeWait();
+        // 再検索ボタンは input の onchange で有効化されるため JS で直接実行
+        await this.page.evaluate(() => {
+          // eslint-disable-next-line no-undef
+          submitNarrow();
+        });
+        await this.page.waitForLoadState("domcontentloaded");
+        await this.shot(`narrow-${title.slice(0, 12)}`);
+        if (await this.#noHits()) return [];
       }
-      // 結果一覧: 書誌詳細へのリンクを収集
-      const links = this.page.locator(
-        'a[href*="BibDetail"], a[href*="bibdetail" i], a[onclick*="BibDetail"], .book_title a, td a'
-      );
-      const n = Math.min(await links.count(), 10);
+
+      // 出版年昇順に並べ替え（原典が先頭に、最新の雑誌・特殊版は後ろに）
+      const sortSel = this.page.locator("#AssistSortSelect");
+      if (await sortSel.isVisible({ timeout: 3000 }).catch(() => false)) {
+        const opts = await sortSel.locator("option").allTextContents();
+        const idx = opts.findIndex((t) => /出版年順/.test(t) && !/逆順/.test(t));
+        if (idx >= 0) {
+          const value = await sortSel.locator("option").nth(idx).getAttribute("value");
+          await this.politeWait();
+          await sortSel.selectOption(value);
+          await this.page.waitForLoadState("domcontentloaded");
+          await this.shot(`sorted-${title.slice(0, 12)}`);
+        }
+      }
+
+      // 結果行: a.layer-doc の .title がタイトル
+      const rows = this.page.locator("a.layer-doc");
+      const n = Math.min(await rows.count(), 10);
       const results = [];
       for (let i = 0; i < n; i++) {
-        const text = (await links.nth(i).textContent())?.trim();
-        if (text && text.length > 1) results.push({ index: i, title: text });
+        const t = (await rows.nth(i).locator(".title").first().textContent().catch(() => ""))?.trim();
+        const w = (await rows.nth(i).locator(".writer").first().textContent().catch(() => ""))?.trim();
+        if (t) results.push({ index: i, title: t, author: w });
       }
       return results;
     } catch (err) {
@@ -215,76 +250,105 @@ export class Opac {
     }
   }
 
+  async #noHits() {
+    const body = (await this.page.textContent("body")) || "";
+    if (/該当\s*[0-9,]+\s*件/.test(body)) {
+      return /該当\s*0\s*件/.test(body);
+    }
+    return /該当する資料(は|が)?(ありません|見つかりません)/.test(body);
+  }
+
   /** 検索結果 index 番目の詳細を開く */
   async openResult(index) {
-    const links = this.page.locator(
-      'a[href*="BibDetail"], a[href*="bibdetail" i], a[onclick*="BibDetail"], .book_title a, td a'
-    );
+    const rows = this.page.locator("a.layer-doc");
     await this.politeWait();
-    await links.nth(index).click();
+    await rows.nth(index).click();
     await this.page.waitForLoadState("domcontentloaded");
     await this.shot("bib-detail");
+  }
+
+  /** 書誌詳細から検索結果一覧へ戻る */
+  async backToResults() {
+    await this.politeWait();
+    await this.page.goBack({ waitUntil: "domcontentloaded" });
   }
 
   // ---------- 予約 ----------
 
   /**
-   * 開いている書誌詳細から予約する。dryRun 時は最終確定ボタンの手前で止める。
-   * 返り値: { ok, dryRun, message }
+   * 開いている書誌詳細から予約する（大阪市立図書館 Smt 版）。
+   * - 「※この書誌は予約できません。」表示の版（大型絵本・禁帯出等）は notReservable で返す
+   * - dryRun 時は予約ボタンの存在確認のみで停止（カートにも入れない）
+   * 返り値: { ok, dryRun?, notReservable?, message }
    */
   async reserveCurrent({ pickupBranch }) {
     try {
-      const reserveBtn = await this.firstVisible(
-        [
-          this.page.getByRole("button", { name: /予約かご|予約する|予約申込/ }),
-          this.page.getByRole("link", { name: /予約かご|予約する|予約申込/ }),
-          'input[type="submit"][value*="予約"]',
-          'a:has-text("予約")',
-        ],
-        "予約ボタン"
-      );
+      const body = (await this.page.textContent("body")) || "";
+      if (/この書誌は予約できません/.test(body)) {
+        return { ok: false, notReservable: true, message: "予約不可の版（大型絵本・禁帯出等）" };
+      }
+      const reserveBtn = this.page
+        .locator('a:has-text("予約カート"), input[value*="予約カート"], button:has-text("予約カート"), a:has-text("予約かご"), a[onclick*="yoycart" i], a[onclick*="YoyCart"]')
+        .first();
+      if (!(await reserveBtn.isVisible({ timeout: 4000 }).catch(() => false))) {
+        return { ok: false, notReservable: true, message: "予約ボタンが見つからない版（スクショ参照）" };
+      }
+
+      if (this.dryRun) {
+        return { ok: true, dryRun: true, message: "【ドライラン】予約可能を確認（カート投入前で停止）" };
+      }
+
+      // カートに入れる
       await this.politeWait();
       await reserveBtn.click();
       await this.page.waitForLoadState("domcontentloaded");
+      await this.shot("cart-added");
+
+      // カートへ移動（ヘッダの「カートを見る」または遷移済み画面）
+      if (!/カート/.test(await this.page.title().catch(() => ""))) {
+        const cartLink = this.page.locator('#usr-cart, a:has-text("カートを見る"), a:has-text("カート")').first();
+        if (await cartLink.isVisible({ timeout: 3000 }).catch(() => false)) {
+          await this.politeWait();
+          await cartLink.click();
+          await this.page.waitForLoadState("domcontentloaded");
+        }
+      }
+      await this.shot("cart");
+
+      // 予約手続きへ
+      const proceed = await this.firstVisible(
+        [
+          'input[value*="予約"], button:has-text("予約")',
+          this.page.getByRole("link", { name: /予約/ }),
+        ],
+        "カートの予約手続きボタン"
+      );
+      await this.politeWait();
+      await proceed.click();
+      await this.page.waitForLoadState("domcontentloaded");
       await this.shot("reserve-form");
 
-      // 予約かご経由の場合は「予約に進む」的なボタンをもう一段押す
-      const bodyNow = (await this.page.textContent("body")) || "";
-      if (/予約かご/.test(bodyNow) && !/受取/.test(bodyNow)) {
-        const goBtn = await this.firstVisible(
-          [
-            this.page.getByRole("button", { name: /予約に進む|通常予約|予約する/ }),
-            'input[type="submit"][value*="予約"]',
-          ],
-          "予約に進むボタン"
-        );
-        await this.politeWait();
-        await goBtn.click();
-        await this.page.waitForLoadState("domcontentloaded");
-        await this.shot("reserve-form2");
-      }
-
-      // 受取館の選択
-      const branchSelect = this.page.locator("select").filter({
-        has: this.page.locator(`option:has-text("${pickupBranch}")`),
-      });
+      // 受取館の選択（「切替」等の無関係セレクトを避け、name/文脈で特定）
+      const branchSelect = this.page
+        .locator("select")
+        .filter({ has: this.page.locator(`option:has-text("${pickupBranch}")`) })
+        .last();
       if ((await branchSelect.count()) > 0) {
-        await branchSelect
-          .first()
-          .selectOption({ label: await this.#optionLabel(branchSelect.first(), pickupBranch) });
+        const opts = branchSelect.locator("option");
+        const n = await opts.count();
+        for (let i = 0; i < n; i++) {
+          const t = (await opts.nth(i).textContent())?.trim() ?? "";
+          if (t.includes(pickupBranch)) {
+            await branchSelect.selectOption({ index: i });
+            break;
+          }
+        }
       }
       await this.shot("reserve-branch-set");
 
-      if (this.dryRun) {
-        return { ok: true, dryRun: true, message: `【ドライラン】受取館=${pickupBranch} で予約直前まで確認` };
-      }
-
-      // 確認 → 確定（LICS系は 予約 → 確認画面 → 決定 の2段が多い）
+      // 確認 → 決定
       const confirmBtn = await this.firstVisible(
-        [
-          this.page.getByRole("button", { name: /確認|次へ|予約/ }),
-          'input[type="submit"]',
-        ],
+        ['input[type="submit"], input[type="button"][value*="確認"], input[value*="次へ"], button:has-text("確認")'],
         "予約確認ボタン"
       );
       await this.politeWait();
@@ -292,44 +356,29 @@ export class Opac {
       await this.page.waitForLoadState("domcontentloaded");
       await this.shot("reserve-confirm");
 
-      const body2 = (await this.page.textContent("body")) || "";
-      if (/受付|完了|予約しました/.test(body2)) {
-        return { ok: true, message: "予約完了" };
+      let done = (await this.page.textContent("body")) || "";
+      if (!/受付|完了|予約しました/.test(done)) {
+        const finalBtn = await this.firstVisible(
+          ['input[value*="決定"], input[value*="送信"], input[type="submit"], button:has-text("決定")'],
+          "予約確定ボタン"
+        );
+        await this.politeWait();
+        await finalBtn.click();
+        await this.page.waitForLoadState("domcontentloaded");
+        await this.shot("reserve-done");
+        done = (await this.page.textContent("body")) || "";
       }
-      const finalBtn = await this.firstVisible(
-        [
-          this.page.getByRole("button", { name: /決定|確定|送信/ }),
-          'input[type="submit"][value*="決定"]',
-          'input[type="submit"]',
-        ],
-        "予約確定ボタン"
-      );
-      await this.politeWait();
-      await finalBtn.click();
-      await this.page.waitForLoadState("domcontentloaded");
-      await this.shot("reserve-done");
 
-      const body3 = (await this.page.textContent("body")) || "";
-      if (/受付|完了|予約しました/.test(body3)) {
+      if (/受付|完了|予約しました/.test(done)) {
         return { ok: true, message: "予約完了" };
       }
-      if (/上限|できません|エラー/.test(body3)) {
-        return { ok: false, message: `予約失敗: ${body3.match(/.{0,60}(上限|できません|エラー).{0,60}/)?.[0] ?? "画面参照"}` };
+      if (/上限|できません|エラー/.test(done)) {
+        return { ok: false, message: `予約失敗: ${done.match(/.{0,50}(上限|できません|エラー).{0,50}/)?.[0]?.trim() ?? "画面参照"}` };
       }
       return { ok: false, message: "予約結果を確認できませんでした（スクリーンショット参照）" };
     } catch (err) {
       await this.fail(`reserve`, err);
     }
-  }
-
-  async #optionLabel(selectLoc, contains) {
-    const opts = selectLoc.locator("option");
-    const n = await opts.count();
-    for (let i = 0; i < n; i++) {
-      const t = (await opts.nth(i).textContent())?.trim();
-      if (t && t.includes(contains)) return t;
-    }
-    return contains;
   }
 
   async logout() {
@@ -345,15 +394,25 @@ export class Opac {
   }
 }
 
-/** 検索結果から予約対象を選ぶ（正規化タイトルの前方一致・部分一致で最良を選択） */
-export function pickBestResult(results, wantedTitle) {
+/**
+ * 検索結果を予約候補順に並べる。
+ * 完全一致 > 前方一致 > 部分一致。特殊版らしきもの（大型絵本・紙芝居等）は後回し。
+ */
+export function rankResults(results, wantedTitle, limit = 3) {
   const norm = (s) => String(s).replace(/[\s　]/g, "").toLowerCase();
   const w = norm(wantedTitle);
-  let best = null;
+  const special = /大型|紙芝居|点字|デイジー|カセット|大活字|DVD|CD/;
+  const scored = [];
   for (const r of results) {
     const t = norm(r.title);
-    if (t === w) return r;
-    if ((t.includes(w) || w.includes(t)) && !best) best = r;
+    let score = -1;
+    if (t === w) score = 100;
+    else if (t.startsWith(w)) score = 60;
+    else if (t.includes(w) || w.includes(t)) score = 40;
+    if (score < 0) continue;
+    if (special.test(r.title)) score -= 30;
+    scored.push({ ...r, score });
   }
-  return best;
+  scored.sort((a, b) => b.score - a.score || a.index - b.index);
+  return scored.slice(0, limit);
 }
