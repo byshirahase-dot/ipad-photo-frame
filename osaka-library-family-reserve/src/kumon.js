@@ -70,6 +70,10 @@ export function planWeek({ flat, progress, queue, ledger, quota, seriesResolver 
   while (picks.length < quota && idx < flat.length) {
     const row = flat[idx];
     idx += 1;
+    // この本を処理し終えたときにカーソルを進める先（＝リスト上の次の本）
+    const advanceTo = idx < flat.length
+      ? { level: flat[idx].level, position: flat[idx].order }
+      : { level: "END", position: 0 };
     if (ledger.has(row.title)) {
       skipped.push({ ...row, reason: "予約・処理済み" });
       continue;
@@ -81,7 +85,7 @@ export function planWeek({ flat, progress, queue, ledger, quota, seriesResolver 
       for (const v of series.volumes) {
         if (ledger.has(v.title)) continue;
         if (picks.length < quota) {
-          picks.push({ title: v.title, author: row.author, from: `series:${series.name}` });
+          picks.push({ title: v.title, author: row.author, from: `series:${series.name}`, advanceTo });
         } else {
           rest.push({ title: v.title, author: row.author, from: `series:${series.name}` });
         }
@@ -89,7 +93,7 @@ export function planWeek({ flat, progress, queue, ledger, quota, seriesResolver 
       if (rest.length) queue.push(...rest);
       continue;
     }
-    picks.push({ ...row, from: "list" });
+    picks.push({ ...row, from: "list", advanceTo });
   }
 
   const nextProgress = idx < flat.length

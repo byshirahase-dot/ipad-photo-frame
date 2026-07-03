@@ -36,6 +36,8 @@ export class Opac {
     this.browser = await chromium.launch(opts);
     this.page = await this.browser.newPage(pageOpts);
     this.page.setDefaultTimeout(20000);
+    // confirm/alert ダイアログは受け入れる（LICSは確認にJSダイアログを使うことがある）
+    this.page.on("dialog", (d) => d.accept().catch(() => {}));
     if (proxyServer) {
       // Chromium とプロキシ終端の TLS 非互換対策:
       // リクエストを Playwright の Node 側 fetch（プロキシ・CA設定済み）で中継する
@@ -287,52 +289,52 @@ export class Opac {
       if (/この書誌は予約できません/.test(body)) {
         return { ok: false, notReservable: true, message: "予約不可の版（大型絵本・禁帯出等）" };
       }
-      const reserveBtn = this.page
-        .locator('a:has-text("予約カート"), input[value*="予約カート"], button:has-text("予約カート"), a:has-text("予約かご"), a[onclick*="yoycart" i], a[onclick*="YoyCart"]')
+      // 詳細ページの「カートに入れる」ボタン（inYoyCart）
+      const addBtn = this.page
+        .locator('input[value*="カートに入れる"], input[onclick*="inYoyCart"], button:has-text("カートに入れる")')
         .first();
-      if (!(await reserveBtn.isVisible({ timeout: 4000 }).catch(() => false))) {
-        return { ok: false, notReservable: true, message: "予約ボタンが見つからない版（スクショ参照）" };
+      if (!(await addBtn.isVisible({ timeout: 4000 }).catch(() => false))) {
+        return { ok: false, notReservable: true, message: "カートに入れるボタンが見つからない版（スクショ参照）" };
       }
 
       if (this.dryRun) {
         return { ok: true, dryRun: true, message: "【ドライラン】予約可能を確認（カート投入前で停止）" };
       }
 
+      const countBefore = await this.currentReserveCount();
+
       // カートに入れる
       await this.politeWait();
-      await reserveBtn.click();
+      await addBtn.click();
       await this.page.waitForLoadState("domcontentloaded");
+      await this.page.waitForTimeout(1000);
       await this.shot("cart-added");
 
-      // カートへ移動（ヘッダの「カートを見る」または遷移済み画面）
-      if (!/カート/.test(await this.page.title().catch(() => ""))) {
-        const cartLink = this.page.locator('#usr-cart, a:has-text("カートを見る"), a:has-text("カート")').first();
-        if (await cartLink.isVisible({ timeout: 3000 }).catch(() => false)) {
-          await this.politeWait();
-          await cartLink.click();
-          await this.page.waitForLoadState("domcontentloaded");
-        }
+      // カート（予約候補）画面へ
+      if (!/カート\s*（?予約候補/.test((await this.page.textContent("body")) || "")) {
+        const cartLink = this.page.locator('#stat-cart, #usr-cart, a[onclick*="yoycart"]').first();
+        await this.politeWait();
+        await cartLink.click();
+        await this.page.waitForLoadState("domcontentloaded");
       }
       await this.shot("cart");
 
-      // 予約手続きへ
-      const proceed = await this.firstVisible(
-        [
-          'input[value*="予約"], button:has-text("予約")',
-          this.page.getByRole("link", { name: /予約/ }),
-        ],
-        "カートの予約手続きボタン"
-      );
-      await this.politeWait();
-      await proceed.click();
-      await this.page.waitForLoadState("domcontentloaded");
-      await this.shot("reserve-form");
+      const cartBody = (await this.page.textContent("body")) || "";
+      if (/カートに\s*0\s*件/.test(cartBody)) {
+        return { ok: false, message: "カート投入に失敗（カートが0件のまま）" };
+      }
 
-      // 受取館の選択（「切替」等の無関係セレクトを避け、name/文脈で特定）
+      // 対象を選択（全選択チェックボックス）
+      const selectAll = this.page.locator('input[type="checkbox"]').first();
+      if (await selectAll.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await selectAll.check().catch(() => {});
+      }
+
+      // 受取館の選択（阿倍野などを含む select。カレンダー切替と区別するため受取館の近傍を優先）
       const branchSelect = this.page
         .locator("select")
         .filter({ has: this.page.locator(`option:has-text("${pickupBranch}")`) })
-        .last();
+        .first();
       if ((await branchSelect.count()) > 0) {
         const opts = branchSelect.locator("option");
         const n = await opts.count();
@@ -343,34 +345,45 @@ export class Opac {
             break;
           }
         }
+      } else {
+        return { ok: false, message: `受取館セレクトが見つかりません（${pickupBranch}）` };
       }
       await this.shot("reserve-branch-set");
 
-      // 確認 → 決定
-      const confirmBtn = await this.firstVisible(
-        ['input[type="submit"], input[type="button"][value*="確認"], input[value*="次へ"], button:has-text("確認")'],
-        "予約確認ボタン"
+      // 予約する
+      const reserveBtn = await this.firstVisible(
+        ['input[value*="予約する"], button:has-text("予約する")', 'input[value*="予約"]'],
+        "予約するボタン"
       );
       await this.politeWait();
-      await confirmBtn.click();
+      await reserveBtn.click();
       await this.page.waitForLoadState("domcontentloaded");
+      await this.page.waitForTimeout(1000);
       await this.shot("reserve-confirm");
 
+      // 確認画面があれば 決定/送信/はい で確定
       let done = (await this.page.textContent("body")) || "";
-      if (!/受付|完了|予約しました/.test(done)) {
-        const finalBtn = await this.firstVisible(
-          ['input[value*="決定"], input[value*="送信"], input[type="submit"], button:has-text("決定")'],
-          "予約確定ボタン"
-        );
-        await this.politeWait();
-        await finalBtn.click();
-        await this.page.waitForLoadState("domcontentloaded");
-        await this.shot("reserve-done");
-        done = (await this.page.textContent("body")) || "";
+      if (!/受付|完了|予約しました|予約を受け付け/.test(done)) {
+        const finalBtn = this.page
+          .locator('input[value*="決定"], input[value*="送信"], input[value*="はい"], button:has-text("決定"), input[value*="予約する"]')
+          .first();
+        if (await finalBtn.isVisible({ timeout: 4000 }).catch(() => false)) {
+          await this.politeWait();
+          await finalBtn.click();
+          await this.page.waitForLoadState("domcontentloaded");
+          await this.page.waitForTimeout(1000);
+          await this.shot("reserve-done");
+          done = (await this.page.textContent("body")) || "";
+        }
       }
 
-      if (/受付|完了|予約しました/.test(done)) {
+      if (/受付|完了|予約しました|予約を受け付け/.test(done)) {
         return { ok: true, message: "予約完了" };
+      }
+      // 文言で判定できない場合は予約中カウントの増加で判定
+      const countAfter = await this.currentReserveCount();
+      if (countBefore != null && countAfter != null && countAfter > countBefore) {
+        return { ok: true, message: `予約完了（予約中 ${countBefore}→${countAfter} 冊で確認）` };
       }
       if (/上限|できません|エラー/.test(done)) {
         return { ok: false, message: `予約失敗: ${done.match(/.{0,50}(上限|できません|エラー).{0,50}/)?.[0]?.trim() ?? "画面参照"}` };

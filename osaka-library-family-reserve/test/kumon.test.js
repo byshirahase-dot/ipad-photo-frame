@@ -132,6 +132,20 @@ test("シリーズ展開: 全巻がキュー経由で巻順に消化される", 
   assert.equal(week2.picks[1].title, "いやいやえん");
 });
 
+test("advanceTo: 各pickは自分の次のリスト位置を指す（中断時の取りこぼし防止）", () => {
+  const { picks } = planWeek({
+    flat: sampleFlat(),
+    progress: fakeProgress("3A", 1),
+    queue: fakeQueue(),
+    ledger: fakeLedger(),
+    quota: 3,
+    seriesResolver: null,
+  });
+  assert.deepEqual(picks[0].advanceTo, { level: "3A", position: 2 });
+  assert.deepEqual(picks[1].advanceTo, { level: "3A", position: 3 });
+  assert.deepEqual(picks[2].advanceTo, { level: "3A", position: 4 });
+});
+
 test("タイトル正規化: 空白や括弧の違いを同一視", () => {
   const led = fakeLedger(["ハリー・ポッターと賢者の石"]);
   assert.ok(led.has("ハリー・ポッターと賢者の石（上）"));

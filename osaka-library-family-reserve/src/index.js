@@ -93,6 +93,9 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, pendingSe
     dryRun,
   });
 
+  // 進度カーソル: 「実際に処理し終えた本」の分だけ進める（中断時に本を取りこぼさない）
+  let cursor = null;
+
   try {
     await opac.start();
     await opac.login(creds.card, creds.pass);
@@ -112,7 +115,10 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, pendingSe
       const candidates = results?.length ? rankResults(results, pick.title) : [];
       if (!candidates.length) {
         section.failed.push({ title: pick.title, note: "所蔵なし・検索ヒットなし" });
-        if (!dryRun) ledger.add({ title: pick.title, author: pick.author ?? "", status: "failed", note: "所蔵なし", source: pick.from });
+        if (!dryRun) {
+          ledger.add({ title: pick.title, author: pick.author ?? "", status: "failed", note: "所蔵なし", source: pick.from });
+          if (pick.advanceTo) cursor = pick.advanceTo;
+        }
         continue;
       }
       // 予約不可の版（大型絵本等）は次の候補へフォールバック
@@ -128,13 +134,17 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, pendingSe
         section.reserved.push({ title: pick.title, note: res.dryRun ? "ドライラン" : res.message });
         if (!dryRun) {
           ledger.add({ title: pick.title, author: pick.author ?? "", status: "reserved", source: pick.from });
+          if (pick.advanceTo) cursor = pick.advanceTo;
           if (account.mode === "recommend") {
             recordMomRecommended({ title: pick.title, author: pick.author ?? "" });
           }
         }
       } else {
         section.failed.push({ title: pick.title, note: res.message });
-        if (!dryRun) ledger.add({ title: pick.title, author: pick.author ?? "", status: "failed", note: res.message, source: pick.from });
+        if (!dryRun) {
+          ledger.add({ title: pick.title, author: pick.author ?? "", status: "failed", note: res.message, source: pick.from });
+          if (pick.advanceTo) cursor = pick.advanceTo;
+        }
       }
     }
 
@@ -145,11 +155,11 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, pendingSe
     await opac.close();
   }
 
-  // ---- 実行後の状態更新（本番のみ）----
+  // ---- 実行後の状態更新（本番のみ・処理し終えた本の分だけカーソルを進める）----
   if (!dryRun) {
-    if (account.mode === "kumon" && plan) {
-      progress.set(plan.nextProgress.level, plan.nextProgress.position);
-      section.next = plan.nextProgress;
+    if (account.mode === "kumon" && cursor) {
+      progress.set(cursor.level, cursor.position);
+      section.next = cursor;
     }
     if (account.mode === "recommend" && section.momQueue) {
       const reservedTitles = new Set(section.reserved.map((b) => b.title));
