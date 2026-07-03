@@ -125,7 +125,10 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, pendingSe
       let res = null;
       for (let ci = 0; ci < candidates.length; ci++) {
         await opac.openResult(candidates[ci].index);
-        res = await opac.reserveCurrent({ pickupBranch: account.pickupBranch });
+        res = await opac.reserveCurrent({
+          pickupBranch: account.pickupBranch,
+          contactMethod: account.contactMethod ?? cfg.opac.contactMethod,
+        });
         if (res.ok || !res.notReservable) break;
         if (ci < candidates.length - 1) await opac.backToResults();
       }

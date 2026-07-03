@@ -41,6 +41,7 @@
     "baseUrl": "https://www.oml.city.osaka.lg.jp/licsxp-opac",
     "requestIntervalMs": 5000,
     "maxRetries": 1,
-    "reserveLimit": 15
+    "reserveLimit": 15,
+    "contactMethod": "メール"
   }
 }

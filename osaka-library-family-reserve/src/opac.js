@@ -283,7 +283,7 @@ export class Opac {
    * - dryRun 時は予約ボタンの存在確認のみで停止（カートにも入れない）
    * 返り値: { ok, dryRun?, notReservable?, message }
    */
-  async reserveCurrent({ pickupBranch }) {
+  async reserveCurrent({ pickupBranch, contactMethod }) {
     try {
       const body = (await this.page.textContent("body")) || "";
       if (/この書誌は予約できません/.test(body)) {
@@ -347,6 +347,22 @@ export class Opac {
         }
       } else {
         return { ok: false, message: `受取館セレクトが見つかりません（${pickupBranch}）` };
+      }
+
+      // 連絡方法の選択（メール等。選択肢に無い場合はサイトのデフォルトのまま）
+      if (contactMethod) {
+        const cSel = this.page.locator('#receiveWay, select[name="contact"]').first();
+        if (await cSel.isVisible({ timeout: 3000 }).catch(() => false)) {
+          const opts = cSel.locator("option");
+          const n = await opts.count();
+          for (let i = 0; i < n; i++) {
+            const t = (await opts.nth(i).textContent())?.trim() ?? "";
+            if (t.includes(contactMethod)) {
+              await cSel.selectOption({ index: i });
+              break;
+            }
+          }
+        }
       }
       await this.shot("reserve-branch-set");
 
