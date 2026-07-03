@@ -67,9 +67,12 @@ npm test                          # ロジックの単体テスト
 - [x] 要件確認：受取館=全員阿倍野、進度=長女E-1/長男A-11/次男3A-1、認証情報はチャットで受領予定
 - [x] プロジェクト骨格・全ソースコード実装（src/ 一式、run.sh、テスト6件パス）
 - [x] --plan-only モードのスモークテスト成功（サンプルリストで4冊×3人の計画とレポート生成を確認）
-- [ ] **data/kumon_list.csv 未生成**：この環境はネットワーク制限があり外部サイト取得不可
-  （kumon.ne.jp も oml.city.osaka.lg.jp も 403）。公式PDF: https://www.kumon.ne.jp/dokusho/pdf/suisen.pdf
-  → ネットワーク許可のある環境で `npm run fetch-kumon` → Claude が PDF を読んで CSV 生成
+- [x] **data/kumon_list.csv 生成完了**（2026-07-03）：ユーザーが2026年度版公式PDFをアップロード。
+  `scripts/parse-suisen-pdf.mjs`（pdftotext -tsv の座標＋フォント高でタイトル/著者/出版社を分離、
+  複数列に現れるy座標を行グリッドとして折返しタイトルを結合）で650冊を抽出。
+  全13レベル×50冊、各レベルの先頭・末尾をPDFと照合済み。series_hints.json も実タイトル表記に更新。
+  実リストでの --plan-only 確認済み: 長女=E1〜4（注文の多い料理店〜）、長男=A11〜14（11ぴきのねこ〜）、
+  次男=3A1〜4（はらぺこあおむし〜）
 - [ ] **OPACセレクタ未検証**：src/opac.js は LICS-Re 系の一般構造＋フォールバックで実装済み。
   初回ドライランで logs/ のスクショを見ながら要調整（docs/opac-structure.md 参照）
 - [x] .env 作成済み（2026-07-03 ユーザーから4アカウント分を受領。**コンテナ内のみ・コミット禁止**。
