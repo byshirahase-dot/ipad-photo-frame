@@ -172,6 +172,32 @@ export class Opac {
     }
   }
 
+  /**
+   * 予約状況一覧から各予約の {title, state} を取得（ログイン済み前提）。
+   * state の例: 待ち / 取消 / 期限切れ / 用意できています 等
+   */
+  async listReservationStates() {
+    try {
+      await this.politeWait();
+      await this.page.locator("#stat-resv").click();
+      await this.page.waitForLoadState("domcontentloaded");
+      await this.page.waitForTimeout(1000);
+      await this.shot("rsv-list");
+      const rows = this.page.locator("a.layer-doc");
+      const n = await rows.count();
+      const out = [];
+      for (let i = 0; i < n; i++) {
+        const title = (await rows.nth(i).locator(".title").first().textContent().catch(() => ""))?.trim();
+        const text = (await rows.nth(i).textContent().catch(() => "")) || "";
+        const m = text.match(/予約状態\s*[:：]?\s*(\S+)/);
+        if (title) out.push({ title, state: m ? m[1].trim() : "" });
+      }
+      return out;
+    } catch {
+      return []; // 取得失敗は致命ではない（次回の実行で再チェック）
+    }
+  }
+
   // ---------- 検索 ----------
 
   /** 書名検索して結果一覧を返す: [{ index, title, author }] */

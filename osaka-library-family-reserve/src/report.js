@@ -21,6 +21,11 @@ export function writeReport({ dryRun, sections, pendingSeries }) {
       lines.push(`- 現在の予約冊数: ${s.reserveCount} / 上限 ${s.reserveLimit}`);
     }
     lines.push("");
+    if (s.requeued?.length) {
+      lines.push("### 予約が無効になっていた本（再予約リストに戻しました）");
+      for (const b of s.requeued) lines.push(`- 🔁 ${b.title}（予約状態: ${b.state}${dryRun ? "／ドライランのため未処理" : ""}）`);
+      lines.push("");
+    }
     if (s.reserved.length) {
       lines.push(`### ${dryRun ? "予約予定" : "予約成功"}`);
       for (const b of s.reserved) lines.push(`- ✅ ${b.title}${b.note ? `（${b.note}）` : ""}`);

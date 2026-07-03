@@ -192,3 +192,27 @@ test("タイトル正規化: 空白や括弧の違いを同一視", () => {
   assert.ok(led.has("ハリー・ポッターと賢者の石（上）"));
   assert.ok(led.has("ハリー・ポッターと賢者の石 "));
 });
+
+test("期限切れ予約は台帳から外れて再予約可能になる", async () => {
+  const fs = await import("node:fs");
+  const dir = path.join(ROOT, "state", "_test_ledger");
+  fs.rmSync(dir, { recursive: true, force: true });
+  try {
+    const led = new Ledger("_test_ledger");
+    led.add({ title: "にんじんさんがあかいわけ", author: "松谷みよ子", status: "reserved" });
+    assert.ok(led.has("にんじんさんがあかいわけ"));
+
+    // サイト側の表記は副題つき（「あかちゃんのむかしむかし」シリーズ名が付く）でも見つかる
+    const entry = led.findActiveReserved("にんじんさんがあかいわけ あかちゃんのむかしむかし");
+    assert.ok(entry);
+    led.markExpired(entry);
+
+    // 台帳ブロックが解除され、再予約対象になる
+    assert.ok(!led.has("にんじんさんがあかいわけ"));
+    // 再予約したら新エントリとして再びブロックされる
+    led.add({ title: "にんじんさんがあかいわけ", status: "reserved" });
+    assert.ok(led.has("にんじんさんがあかいわけ"));
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

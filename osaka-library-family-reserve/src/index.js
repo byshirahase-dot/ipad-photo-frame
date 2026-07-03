@@ -110,6 +110,24 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, pendingSe
     let available = cfg.opac.reserveLimit - (count ?? 0);
     if (count == null) available = quota; // 取得できない場合は quota まで（レポートに注記）
 
+    // 期限切れ・無効になった予約（借りられなかった本）を検出し、予約対象リストに戻す
+    section.requeued = [];
+    const states = await opac.listReservationStates();
+    for (const s of states) {
+      if (!/期限切れ|無効/.test(s.state)) continue;
+      const entry = ledger.findActiveReserved(s.title);
+      if (!entry) continue; // 台帳に無い（既に処理済み）ものは無視
+      section.requeued.push({ title: entry.title, state: s.state });
+      if (!dryRun) {
+        ledger.markExpired(entry, `予約${s.state}のため再予約対象に戻した`);
+        if (account.mode === "kumon") {
+          queue.unshift({ title: entry.title, author: entry.author ?? "", from: "requeue:期限切れ" });
+        } else if (section.momQueue) {
+          section.momQueue.items.unshift({ title: entry.title, author: entry.author ?? "", reason: "予約期限切れの再予約" });
+        }
+      }
+    }
+
     for (const pick of picks) {
       if (available <= 0) {
         section.failed.push({ title: pick.title, note: "予約上限に達するため見送り" });

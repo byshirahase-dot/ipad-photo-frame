@@ -28,13 +28,32 @@ export class Ledger {
       .replace(/[（(].*?[）)]/g, "")
       .toLowerCase();
   }
+  /** expired（予約無効）になった本はブロックしない＝再予約できる */
   has(title) {
     const k = Ledger.key(title);
-    return this.data.books.some((b) => Ledger.key(b.title) === k);
+    return this.data.books.some((b) => b.status !== "expired" && Ledger.key(b.title) === k);
   }
-  /** status: "reserved" | "borrowed" | "failed" | "skipped" */
+  /** status: "reserved" | "borrowed" | "failed" | "skipped" | "expired" */
   add({ title, author = "", status, note = "", source = "" }) {
     this.data.books.push({ title, author, status, note, source, date: todayStr() });
+    writeJson(this.file, this.data);
+  }
+  /**
+   * サイトの予約一覧のタイトル（副題やシリーズ名が付くことがある）から、
+   * 予約中(reserved)の台帳エントリを探す。
+   */
+  findActiveReserved(siteTitle) {
+    const sk = Ledger.key(siteTitle);
+    return (
+      this.data.books.findLast?.((b) => b.status === "reserved" && (sk === Ledger.key(b.title) || sk.includes(Ledger.key(b.title)))) ??
+      [...this.data.books].reverse().find((b) => b.status === "reserved" && (sk === Ledger.key(b.title) || sk.includes(Ledger.key(b.title))))
+    );
+  }
+  /** 予約が期限切れ・無効になった → 台帳から外して再予約可能にする */
+  markExpired(entry, note = "予約期限切れ・無効（取り置き期限切れ／延滞ペナルティ等）") {
+    entry.status = "expired";
+    entry.note = note;
+    entry.expiredDate = todayStr();
     writeJson(this.file, this.data);
   }
 }
@@ -77,6 +96,11 @@ export class Queue {
   }
   push(...items) {
     this.data.items.push(...items);
+    this.#save();
+  }
+  /** 先頭に割り込ませる（期限切れ再予約など優先度の高いもの） */
+  unshift(...items) {
+    this.data.items.unshift(...items);
     this.#save();
   }
   get length() {
