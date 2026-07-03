@@ -60,7 +60,11 @@ npm test                          # ロジックの単体テスト
 - **シリーズ展開**: スクリプトはWeb検索しない。`data/series_hints.json` で第1巻を検知し、
   `data/series/{名前}.json` があれば全巻を巻順にキューへ挿入。無ければレポートに
   「シリーズ展開待ち」と出し、Cowork の Claude がWeb検索でファイルを作る（次週から展開される）
-- **母の選書**: Cowork の Claude が `data/mom/queue.json` を書く。空ならスキップし「選書待ち」と報告
+- **母の選書**: Cowork の Claude が `data/mom/preferences.md` の選書ポリシー
+  （直木賞・芥川賞・本屋大賞・山本周五郎賞・日本ミステリー文学大賞の受賞作・候補作＋
+  その作家の他作品がベース。2026-07-03 ユーザー指定）に従い `data/mom/queue.json` を書く。
+  空ならスキップし「選書待ち」と報告。ユーザーのチャット発言（既読申告・感想・要望）は
+  Cowork が history.csv と preferences.md の要望メモに反映する（対応表は preferences.md 参照）
 - **状態変更は本番実行のみ**: dry-run / plan-only では reserved.json・progress.json・queue.json・
   _expanded.json を一切書き換えない
 - **予約枠**: ログイン後に予約中冊数を取得し、上限（accounts.json: reserveLimit=15）を超える分は
