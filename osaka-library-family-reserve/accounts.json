@@ -1,0 +1,46 @@
+{
+  "accounts": {
+    "mom": {
+      "name": "母",
+      "mode": "recommend",
+      "pickupBranch": "阿倍野",
+      "weeklyQuota": 4,
+      "envCard": "OML_CARD_MOM",
+      "envPass": "OML_PASS_MOM"
+    },
+    "chojo": {
+      "name": "長女",
+      "mode": "kumon",
+      "pickupBranch": "阿倍野",
+      "weeklyQuota": 4,
+      "envCard": "OML_CARD_CHOJO",
+      "envPass": "OML_PASS_CHOJO",
+      "startProgress": { "level": "E", "position": 1 }
+    },
+    "chonan": {
+      "name": "長男",
+      "mode": "kumon",
+      "pickupBranch": "阿倍野",
+      "weeklyQuota": 4,
+      "envCard": "OML_CARD_CHONAN",
+      "envPass": "OML_PASS_CHONAN",
+      "startProgress": { "level": "A", "position": 11 }
+    },
+    "jinan": {
+      "name": "次男",
+      "mode": "kumon",
+      "pickupBranch": "阿倍野",
+      "weeklyQuota": 4,
+      "envCard": "OML_CARD_JINAN",
+      "envPass": "OML_PASS_JINAN",
+      "startProgress": { "level": "3A", "position": 1 }
+    }
+  },
+  "levelOrder": ["5A", "4A", "3A", "2A", "A", "B", "C", "D", "E", "F", "G", "H", "I"],
+  "opac": {
+    "baseUrl": "https://www.oml.city.osaka.lg.jp/licsxp-opac",
+    "requestIntervalMs": 5000,
+    "maxRetries": 1,
+    "reserveLimit": 15
+  }
+}

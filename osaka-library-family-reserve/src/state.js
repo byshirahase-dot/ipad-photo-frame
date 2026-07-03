@@ -1,0 +1,102 @@
+import fs from "node:fs";
+import path from "node:path";
+import { ROOT, ensureDir, todayStr } from "./config.js";
+
+function stateDir(accountId) {
+  return ensureDir(path.join(ROOT, "state", accountId));
+}
+
+function readJson(file, fallback) {
+  if (!fs.existsSync(file)) return fallback;
+  return JSON.parse(fs.readFileSync(file, "utf8"));
+}
+
+function writeJson(file, data) {
+  fs.writeFileSync(file, JSON.stringify(data, null, 2) + "\n");
+}
+
+/** 予約・貸出・失敗の履歴。同じ本を二度予約しないための台帳 */
+export class Ledger {
+  constructor(accountId) {
+    this.file = path.join(stateDir(accountId), "reserved.json");
+    this.data = readJson(this.file, { books: [] });
+  }
+  /** タイトルの表記ゆれを吸収して照合するキー */
+  static key(title) {
+    return String(title)
+      .replace(/[\s　]/g, "")
+      .replace(/[（(].*?[）)]/g, "")
+      .toLowerCase();
+  }
+  has(title) {
+    const k = Ledger.key(title);
+    return this.data.books.some((b) => Ledger.key(b.title) === k);
+  }
+  /** status: "reserved" | "borrowed" | "failed" | "skipped" */
+  add({ title, author = "", status, note = "", source = "" }) {
+    this.data.books.push({ title, author, status, note, source, date: todayStr() });
+    writeJson(this.file, this.data);
+  }
+}
+
+/** 公文リスト上の現在位置（レベル・何冊目か） */
+export class Progress {
+  constructor(accountId, startProgress) {
+    this.file = path.join(stateDir(accountId), "progress.json");
+    this.data = readJson(this.file, { ...startProgress });
+  }
+  get() {
+    return { ...this.data };
+  }
+  set(level, position) {
+    this.data = { level, position };
+    writeJson(this.file, this.data);
+  }
+}
+
+/**
+ * シリーズ展開などで挿入された「次に予約すべき本」の待ち行列。
+ * persist=false（ドライラン）ではファイルに書き込まない。
+ */
+export class Queue {
+  constructor(accountId, { persist = true } = {}) {
+    this.file = path.join(stateDir(accountId), "queue.json");
+    this.data = readJson(this.file, { items: [] });
+    this.persist = persist;
+  }
+  #save() {
+    if (this.persist) writeJson(this.file, this.data);
+  }
+  peek() {
+    return this.data.items[0];
+  }
+  shift() {
+    const it = this.data.items.shift();
+    this.#save();
+    return it;
+  }
+  push(...items) {
+    this.data.items.push(...items);
+    this.#save();
+  }
+  get length() {
+    return this.data.items.length;
+  }
+}
+
+/** 母アカウント: Cowork が置く data/mom/queue.json と推薦済み記録 */
+export function readMomQueue() {
+  const file = path.join(ROOT, "data", "mom", "queue.json");
+  return { file, queue: readJson(file, null) };
+}
+
+export function writeMomQueue(file, queue) {
+  writeJson(file, queue);
+}
+
+export function recordMomRecommended(entry) {
+  const file = path.join(stateDir("mom"), "recommended.json");
+  const data = readJson(file, { books: [] });
+  data.books.push({ ...entry, date: todayStr() });
+  writeJson(file, data);
+}

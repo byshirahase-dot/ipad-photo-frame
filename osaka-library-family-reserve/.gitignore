@@ -1,0 +1,7 @@
+# 認証情報は絶対にコミットしない
+.env
+
+node_modules/
+logs/
+data/suisen.pdf
+*.png

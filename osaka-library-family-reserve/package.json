@@ -1,0 +1,16 @@
+{
+  "name": "osaka-library-family-reserve",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "大阪市立図書館 家族4アカウント 週次自動予約システム",
+  "scripts": {
+    "reserve": "bash run.sh",
+    "rate": "node src/rate.js",
+    "fetch-kumon": "node scripts/fetch-kumon-list.mjs",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "playwright": "^1.49.0"
+  }
+}
