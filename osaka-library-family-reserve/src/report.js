@@ -2,11 +2,27 @@ import fs from "node:fs";
 import path from "node:path";
 import { ROOT, ensureDir, todayStr } from "./config.js";
 
-/** 実行結果を reports/YYYY-MM-DD.md に出力する */
+/**
+ * 実行結果を reports/YYYY-MM-DD.md に出力する。
+ * アカウント別に分割実行しても1つのレポートにまとまるよう、同日のセクションは
+ * キャッシュ（reports/.cache-日付.json）にマージしてから全体を再生成する。
+ */
 export function writeReport({ dryRun, sections, pendingSeries }) {
   const date = todayStr();
   ensureDir(path.join(ROOT, "reports"));
   const file = path.join(ROOT, "reports", `${date}.md`);
+
+  const cacheFile = path.join(ROOT, "reports", `.cache-${date}.json`);
+  const cache = fs.existsSync(cacheFile)
+    ? JSON.parse(fs.readFileSync(cacheFile, "utf8"))
+    : { sections: {}, pendingSeries: [] };
+  for (const s of sections) cache.sections[s.accountId] = s;
+  for (const p of pendingSeries ?? []) {
+    if (!cache.pendingSeries.some((q) => q.series === p.series)) cache.pendingSeries.push(p);
+  }
+  fs.writeFileSync(cacheFile, JSON.stringify(cache, null, 2) + "\n");
+  sections = Object.values(cache.sections);
+  pendingSeries = cache.pendingSeries;
 
   const lines = [];
   lines.push(`# 図書館予約レポート ${date}${dryRun ? "（ドライラン）" : ""}`, "");

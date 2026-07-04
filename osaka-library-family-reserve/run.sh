@@ -62,8 +62,19 @@ if [ -z "${OML_CHROMIUM_PATH:-}" ] && [ -z "${PLAYWRIGHT_BROWSERS_PATH:-}" ]; th
 fi
 
 # ---- 4. .env の確認（--plan-only はサイトアクセスなしなので不要）----
+# 環境変数に認証情報があれば .env を自動生成する（Claude Code環境のスケジュール実行用）
+if [ ! -f .env ] && [ -n "${OML_CARD_MOM:-}" ]; then
+  log ".env を環境変数から自動生成します"
+  {
+    for v in OML_CARD_MOM OML_PASS_MOM OML_CARD_CHOJO OML_PASS_CHOJO \
+             OML_CARD_CHONAN OML_PASS_CHONAN OML_CARD_JINAN OML_PASS_JINAN; do
+      eval "echo \"$v=\${$v:-}\""
+    done
+  } > .env
+  chmod 600 .env
+fi
 if [ ! -f .env ] && [[ " ${ARGS[*]} " != *" --plan-only "* ]]; then
-  log "ERROR: .env がありません。.env.example をコピーして記入してください。"
+  log "ERROR: .env がありません。.env.example をコピーして記入するか、OML_* 環境変数を設定してください。"
   exit 1
 fi
 

@@ -9,3 +9,4 @@ data/suisen.pdf
 # 刻み実行の一時ファイル（Cookieセッション・進行中ジョブ）
 state/_session_*.json
 state/_job.json
+reports/.cache-*.json
