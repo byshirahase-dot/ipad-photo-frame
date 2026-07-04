@@ -9,6 +9,7 @@ cd "$(dirname "$0")"
 
 ARGS=()
 HAS_TARGET=0
+TICK=0
 for a in "$@"; do
   case "$a" in
     --all) ARGS+=("--all"); HAS_TARGET=1 ;;
@@ -16,11 +17,13 @@ for a in "$@"; do
     --dry-run) ARGS+=("--dry-run") ;;
     --plan-only) ARGS+=("--plan-only") ;;
     --limit=*) ARGS+=("$a") ;;
+    --tick) TICK=1 ;;
+    --reset) ARGS+=("--reset") ;;
     *) echo "不明なオプション: $a" >&2; exit 1 ;;
   esac
 done
-# 対象指定がなければ --all
-[ "$HAS_TARGET" = 1 ] || ARGS+=("--all")
+# 対象指定がなければ --all（tickモードでは不要）
+if [ "$TICK" = 0 ] && [ "$HAS_TARGET" = 0 ]; then ARGS+=("--all"); fi
 
 log() { echo "[run.sh] $*"; }
 
@@ -65,5 +68,12 @@ if [ ! -f .env ] && [[ " ${ARGS[*]} " != *" --plan-only "* ]]; then
 fi
 
 # ---- 5. 実行 ----
-log "予約処理を開始: ${ARGS[*]}"
-node src/index.js "${ARGS[@]}"
+if [ "$TICK" = 1 ]; then
+  # 刻み実行モード: 1回で小さな1ステップだけ進めて終了（約45秒制限の環境向け）
+  # TICK:DONE が出るまで繰り返し呼び出すこと
+  log "刻み実行: ${ARGS[*]}"
+  node src/tick.js "${ARGS[@]}"
+else
+  log "予約処理を開始: ${ARGS[*]}"
+  node src/index.js "${ARGS[@]}"
+fi

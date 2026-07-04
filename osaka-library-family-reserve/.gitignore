@@ -5,3 +5,7 @@ node_modules/
 logs/
 data/suisen.pdf
 *.png
+
+# 刻み実行の一時ファイル（Cookieセッション・進行中ジョブ）
+state/_session_*.json
+state/_job.json

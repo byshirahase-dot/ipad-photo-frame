@@ -1,0 +1,12 @@
+{
+  "books": [
+    {
+      "title": "藍を継ぐ海",
+      "author": "伊与原新",
+      "status": "reserved",
+      "note": "",
+      "source": "mom-queue",
+      "date": "2026-07-04"
+    }
+  ]
+}

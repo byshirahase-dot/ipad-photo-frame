@@ -1,7 +1,8 @@
 {
   "name": "ノラネコぐんだん",
-  "totalVolumes": 12,
-  "note": "確認済みの巻のみ。最終巻までの続きは Cowork の Claude が Web 検索で追記し complete を true にする",
+  "totalVolumes": 15,
+  "complete": true,
+  "note": "刊行順・全15冊（2026時点）",
   "volumes": [
     {
       "order": 1,
@@ -33,8 +34,35 @@
     },
     {
       "order": 8,
+      "title": "ノラネコぐんだんケーキをたべる"
+    },
+    {
+      "order": 9,
       "title": "ノラネコぐんだんラーメンやさん"
+    },
+    {
+      "order": 10,
+      "title": "ノラネコぐんだんうみのたび"
+    },
+    {
+      "order": 11,
+      "title": "ノラネコぐんだんと海の果ての怪物"
+    },
+    {
+      "order": 12,
+      "title": "ノラネコぐんだんと金色の魔法使い"
+    },
+    {
+      "order": 13,
+      "title": "ノラネコぐんだんぺこぺこキャンプ"
+    },
+    {
+      "order": 14,
+      "title": "ノラネコぐんだんピザをやく"
+    },
+    {
+      "order": 15,
+      "title": "ノラネコぐんだんこんにちは"
     }
-  ],
-  "complete": false
+  ]
 }

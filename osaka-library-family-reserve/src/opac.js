@@ -12,12 +12,13 @@ import { ensureDir } from "./config.js";
  * 失敗時は logs/ にスクリーンショットと HTML を保存する。
  */
 export class Opac {
-  constructor({ baseUrl, intervalMs = 5000, logDir, dryRun = false, headless = true }) {
+  constructor({ baseUrl, intervalMs = 5000, logDir, dryRun = false, headless = true, storageStatePath = null }) {
     this.baseUrl = baseUrl.replace(/\/$/, "");
     this.intervalMs = intervalMs;
     this.logDir = ensureDir(logDir);
     this.dryRun = dryRun;
     this.headless = headless;
+    this.storageStatePath = storageStatePath;
     this.shotCount = 0;
   }
 
@@ -34,7 +35,12 @@ export class Opac {
       pageOpts.ignoreHTTPSErrors = true; // プロキシのMITM CAを許容（プロキシ利用時のみ）
     }
     this.browser = await chromium.launch(opts);
-    this.page = await this.browser.newPage(pageOpts);
+    // storageStatePath があれば前回のログインセッション（Cookie）を引き継ぐ
+    if (this.storageStatePath && fs.existsSync(this.storageStatePath)) {
+      pageOpts.storageState = this.storageStatePath;
+    }
+    this.context = await this.browser.newContext(pageOpts);
+    this.page = await this.context.newPage();
     this.page.setDefaultTimeout(20000);
     // confirm/alert ダイアログは受け入れる（LICSは確認にJSダイアログを使うことがある）
     this.page.on("dialog", (d) => d.accept().catch(() => {}));
@@ -53,7 +59,23 @@ export class Opac {
   }
 
   async close() {
+    try {
+      if (this.storageStatePath && this.context) {
+        await this.context.storageState({ path: this.storageStatePath });
+      }
+    } catch {
+      /* セッション保存失敗は無視 */
+    }
     await this.browser?.close();
+  }
+
+  /** トップページを開いてログイン済みか判定する（Cookieセッション引き継ぎ確認用） */
+  async isLoggedIn() {
+    await this.politeWait();
+    await this.page.goto(`${this.baseUrl}/WOpacSmtMnuTopAction.do`, { waitUntil: "domcontentloaded" });
+    // ログイン中はメニューのリンクが「ログアウト」になる（バーは画面によって非表示のため使わない）
+    const html = await this.page.content().catch(() => "");
+    return html.includes("ログアウト");
   }
 
   /** サイトへの連続リクエストを避けるための待機 */
@@ -61,11 +83,11 @@ export class Opac {
     await new Promise((r) => setTimeout(r, this.intervalMs));
   }
 
-  async shot(name) {
+  async shot(name, { fullPage = false } = {}) {
     this.shotCount += 1;
     const base = path.join(this.logDir, `${String(this.shotCount).padStart(2, "0")}-${name}`);
     try {
-      await this.page.screenshot({ path: `${base}.png`, fullPage: true });
+      await this.page.screenshot({ path: `${base}.png`, fullPage });
       fs.writeFileSync(`${base}.html`, await this.page.content());
     } catch {
       /* スクショ失敗は本処理を止めない */
@@ -74,7 +96,7 @@ export class Opac {
   }
 
   async fail(step, err) {
-    const base = await this.shot(`ERROR-${step}`);
+    const base = await this.shot(`ERROR-${step}`, { fullPage: true });
     const e = new Error(`[${step}] ${err.message}\n証跡: ${base}.png / ${base}.html`);
     e.step = step;
     throw e;
@@ -119,13 +141,25 @@ export class Opac {
       await this.politeWait();
       await loginLink.click();
       await this.page.waitForLoadState("domcontentloaded");
+      // ログインフォームの描画を待つ（出なければ一度だけクリックし直す）
+      const formReady = await this.page
+        .waitForSelector("#usrcardnumber, input[type='password']", { timeout: 8000 })
+        .catch(() => null);
+      if (!formReady) {
+        // メニューを開き直してからもう一度だけクリック
+        await this.page.locator("#openmenu2").click().catch(() => {});
+        await this.page.waitForTimeout(600);
+        await this.politeWait();
+        await loginLink.click().catch(() => {});
+        await this.page.waitForSelector("#usrcardnumber, input[type='password']", { timeout: 8000 }).catch(() => {});
+      }
       await this.shot("login-form");
       const cardInput = await this.firstVisible(
         [
           "#usrcardnumber",
           'input[name="username"]',
           'input[name*="usercd" i]',
-          'form input[type="text"]',
+          // 注意: 汎用の input[type=text] は検索ボックスを誤爆するため入れない
         ],
         "カード番号入力欄"
       );
@@ -178,19 +212,34 @@ export class Opac {
    */
   async listReservationStates() {
     try {
+      // ヘッダバーが無い画面（起動直後など）ならトップページへ
+      const bar = this.page.locator("#stat-resv");
+      if (!(await bar.isVisible({ timeout: 2000 }).catch(() => false))) {
+        await this.politeWait();
+        await this.page.goto(`${this.baseUrl}/WOpacSmtMnuTopAction.do`, { waitUntil: "domcontentloaded" });
+      }
       await this.politeWait();
-      await this.page.locator("#stat-resv").click();
+      // バーが非表示の画面では JS 関数で直接遷移する
+      if (await bar.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await bar.click();
+      } else {
+        await this.page.evaluate(() => {
+          // eslint-disable-next-line no-undef
+          toUsrRsv(1);
+        });
+      }
       await this.page.waitForLoadState("domcontentloaded");
-      await this.page.waitForTimeout(1000);
+      await this.page.waitForTimeout(600);
       await this.shot("rsv-list");
-      const rows = this.page.locator("a.layer-doc");
+      // 予約状況一覧の行は div.layer-item 単位（有効予約はリンクで包まれないため a.layer-doc は使えない）
+      const rows = this.page.locator("div.layer-item");
       const n = await rows.count();
       const out = [];
       for (let i = 0; i < n; i++) {
         const title = (await rows.nth(i).locator(".title").first().textContent().catch(() => ""))?.trim();
         const text = (await rows.nth(i).textContent().catch(() => "")) || "";
         const m = text.match(/予約状態\s*[:：]?\s*(\S+)/);
-        if (title) out.push({ title, state: m ? m[1].trim() : "" });
+        if (title) out.push({ title: title.replace(/\s+/g, " "), state: m ? m[1].trim() : "" });
       }
       return out;
     } catch {
@@ -263,14 +312,18 @@ export class Opac {
         }
       }
 
-      // 結果行: a.layer-doc の .title がタイトル
+      // 結果行の描画を待つ（並べ替え直後は再読込中のことがある）
+      await this.page.waitForSelector("a.layer-doc", { timeout: 8000 }).catch(() => {});
+      await this.page.waitForLoadState("domcontentloaded").catch(() => {});
+      // 結果行: a.layer-doc の .title がタイトル。href は書誌詳細への直接リンク（GET）
       const rows = this.page.locator("a.layer-doc");
       const n = Math.min(await rows.count(), 10);
       const results = [];
       for (let i = 0; i < n; i++) {
         const t = (await rows.nth(i).locator(".title").first().textContent().catch(() => ""))?.trim();
         const w = (await rows.nth(i).locator(".writer").first().textContent().catch(() => ""))?.trim();
-        if (t) results.push({ index: i, title: t, author: w });
+        const href = (await rows.nth(i).getAttribute("href").catch(() => "")) || "";
+        if (t) results.push({ index: i, title: t, author: w, href });
       }
       return results;
     } catch (err) {
@@ -326,8 +379,47 @@ export class Opac {
       if (this.dryRun) {
         return { ok: true, dryRun: true, message: "【ドライラン】予約可能を確認（カート投入前で停止）" };
       }
+      return await this.#cartFlow({ pickupBranch, contactMethod });
+    } catch (err) {
+      await this.fail(`reserve`, err);
+    }
+  }
 
+  /**
+   * 書誌詳細URLへ直接遷移して予約する（刻み実行モード用）。
+   * 返り値は reserveCurrent と同じ。
+   */
+  async reserveAtUrl(url, { pickupBranch, contactMethod }) {
+    try {
+      await this.politeWait();
+      await this.page.goto(url, { waitUntil: "domcontentloaded" });
+      await this.shot("bib-detail");
+      const body = (await this.page.textContent("body")) || "";
+      if (/この書誌は予約できません/.test(body)) {
+        return { ok: false, notReservable: true, message: "予約不可の版（大型絵本・禁帯出等）" };
+      }
+      const addBtn = this.page
+        .locator('input[value*="カートに入れる"], input[onclick*="inYoyCart"], button:has-text("カートに入れる")')
+        .first();
+      if (!(await addBtn.isVisible({ timeout: 4000 }).catch(() => false))) {
+        return { ok: false, notReservable: true, message: "カートに入れるボタンが見つからない版" };
+      }
+      if (this.dryRun) {
+        return { ok: true, dryRun: true, message: "【ドライラン】予約可能を確認（カート投入前で停止）" };
+      }
+      return await this.#cartFlow({ pickupBranch, contactMethod });
+    } catch (err) {
+      await this.fail(`reserveAtUrl`, err);
+    }
+  }
+
+  /** 詳細ページの「カートに入れる」から予約確定までの共通フロー */
+  async #cartFlow({ pickupBranch, contactMethod }) {
+    {
       const countBefore = await this.currentReserveCount();
+      const addBtn = this.page
+        .locator('input[value*="カートに入れる"], input[onclick*="inYoyCart"], button:has-text("カートに入れる")')
+        .first();
 
       // カートに入れる
       await this.politeWait();
@@ -419,6 +511,10 @@ export class Opac {
         }
       }
 
+      if (/ログイン認証/.test(done)) {
+        // 予約確定の途中でログインを求められた＝セッション切れ。再ログイン後にやり直す
+        throw new Error("セッション切れ（予約確定前にログイン画面が表示された）");
+      }
       if (/受付|完了|予約しました|予約を受け付け/.test(done)) {
         return { ok: true, message: "予約完了" };
       }
@@ -431,8 +527,6 @@ export class Opac {
         return { ok: false, message: `予約失敗: ${done.match(/.{0,50}(上限|できません|エラー).{0,50}/)?.[0]?.trim() ?? "画面参照"}` };
       }
       return { ok: false, message: "予約結果を確認できませんでした（スクリーンショット参照）" };
-    } catch (err) {
-      await this.fail(`reserve`, err);
     }
   }
 
