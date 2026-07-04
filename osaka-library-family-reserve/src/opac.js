@@ -413,6 +413,13 @@ export class Opac {
     }
   }
 
+  /** ログイン画面へ転落していたらセッション切れとして専用エラーを投げる */
+  #assertNotLoginPage(body) {
+    if (/ログイン認証/.test(body || "")) {
+      throw new Error("セッション切れ（予約フローの途中でログイン画面が表示された）");
+    }
+  }
+
   /** 詳細ページの「カートに入れる」から予約確定までの共通フロー */
   async #cartFlow({ pickupBranch, contactMethod }) {
     {
@@ -427,6 +434,7 @@ export class Opac {
       await this.page.waitForLoadState("domcontentloaded");
       await this.page.waitForTimeout(1000);
       await this.shot("cart-added");
+      this.#assertNotLoginPage(await this.page.textContent("body"));
 
       // カート（予約候補）画面へ
       if (!/カート\s*（?予約候補/.test((await this.page.textContent("body")) || "")) {
@@ -438,6 +446,7 @@ export class Opac {
       await this.shot("cart");
 
       const cartBody = (await this.page.textContent("body")) || "";
+      this.#assertNotLoginPage(cartBody);
       if (/カートに\s*0\s*件/.test(cartBody)) {
         return { ok: false, message: "カート投入に失敗（カートが0件のまま）" };
       }
@@ -464,6 +473,8 @@ export class Opac {
           }
         }
       } else {
+        // 受取館セレクトが無い＝ログイン画面へ戻された可能性を先に確認
+        this.#assertNotLoginPage(await this.page.textContent("body"));
         return { ok: false, message: `受取館セレクトが見つかりません（${pickupBranch}）` };
       }
 

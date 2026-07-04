@@ -251,6 +251,7 @@ async function main() {
         }
       }
       acct.phase = "reserve";
+      acct.loginAt = Date.now();
       saveJob(job);
       console.log(`TICK:CONTINUE ${id}-login-reconcile-ok (予約中${acct.reserveCount}件)`);
       return;
@@ -262,6 +263,14 @@ async function main() {
       acct.phase = "done";
       saveJob(job);
       console.log(`TICK:CONTINUE ${id}-account-done`);
+      return;
+    }
+
+    // ログインが古い場合は先回りして再ログイン（サーバー側セッションタイムアウト対策）
+    if (!job.dryRun && (!acct.loginAt || Date.now() - acct.loginAt > 8 * 60 * 1000)) {
+      acct.phase = "login";
+      saveJob(job);
+      console.log(`TICK:CONTINUE ${id}-session-refresh`);
       return;
     }
 
@@ -287,10 +296,28 @@ async function main() {
     while (pick.candIdx < (pick.candidates?.length ?? 0)) {
       const cand = pick.candidates[pick.candIdx];
       const url = cand.href.startsWith("http") ? cand.href : `${cfg.opac.baseUrl}/${cand.href.replace(/^\//, "")}`;
-      res = await opac.reserveAtUrl(url, {
-        pickupBranch: account.pickupBranch,
-        contactMethod: account.contactMethod ?? cfg.opac.contactMethod,
-      });
+      try {
+        res = await opac.reserveAtUrl(url, {
+          pickupBranch: account.pickupBranch,
+          contactMethod: account.contactMethod ?? cfg.opac.contactMethod,
+        });
+      } catch (err) {
+        if (/セッション切れ|ログイン認証/.test(err.message)) {
+          // 予約フロー中にログイン画面へ戻された → 次のtickで再ログイン＋照合してからやり直す
+          pick.sessionRetries = (pick.sessionRetries ?? 0) + 1;
+          if (pick.sessionRetries >= 3) {
+            settlePick({ job, id, account, pick, status: "failed", note: "セッション切れが繰り返し発生（logs/のスクショ要確認）" });
+            saveJob(job);
+            console.log(`TICK:CONTINUE ${id}-session-lost-giveup「${pick.title}」`);
+            return;
+          }
+          acct.phase = "login";
+          saveJob(job);
+          console.log(`TICK:CONTINUE ${id}-session-lost-relogin「${pick.title}」(${pick.sessionRetries}回目)`);
+          return;
+        }
+        throw err;
+      }
       if (res.notReservable) {
         pick.candIdx += 1;
         saveJob(job);
@@ -309,6 +336,7 @@ async function main() {
       if (!res.dryRun) {
         acct.reserveCount = (acct.reserveCount ?? 0) + 1;
         acct.activeKeys.push(key(pick.title));
+        acct.loginAt = Date.now(); // 予約成功＝サーバー側セッションも更新されている
       }
     } else {
       settlePick({ job, id, account, pick, status: "failed", note: res.message });
