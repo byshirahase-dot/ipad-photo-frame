@@ -7,6 +7,22 @@
       "note": "",
       "source": "mom-queue",
       "date": "2026-07-04"
+    },
+    {
+      "title": "地雷グリコ",
+      "author": "青崎有吾",
+      "status": "reserved",
+      "note": "予約一覧で成立確認（バッチ確定後の一覧照合はトップ遷移でログアウトするため実行時は未確認だった分を訂正）",
+      "source": "mom-queue",
+      "date": "2026-07-05"
+    },
+    {
+      "title": "イン・ザ・メガチャーチ",
+      "author": "朝井リョウ",
+      "status": "reserved",
+      "note": "予約一覧で既に[待ち]を確認（別途予約済み）。重複提案防止のため記録",
+      "source": "mom-queue",
+      "date": "2026-07-05"
     }
   ]
 }

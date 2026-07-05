@@ -1,0 +1,36 @@
+{
+  "books": [
+    {
+      "title": "11ぴきのねこ",
+      "author": "馬場のぼる",
+      "status": "reserved",
+      "note": "",
+      "source": "series:11ぴきのねこ",
+      "date": "2026-07-05"
+    },
+    {
+      "title": "11ぴきのねことあほうどり",
+      "author": "馬場のぼる",
+      "status": "reserved",
+      "note": "",
+      "source": "series:11ぴきのねこ",
+      "date": "2026-07-05"
+    },
+    {
+      "title": "どうぞのいす",
+      "author": "香山美子 柿本幸造・絵",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-07-05"
+    },
+    {
+      "title": "マフィンおばさんのぱんや",
+      "author": "竹林亜紀 河本祥子・絵",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-07-05"
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 {
   "name": "パンどろぼう",
-  "totalVolumes": 5,
-  "note": "確認済みの巻のみ。最終巻までの続きは Cowork の Claude が Web 検索で追記し complete を true にする",
+  "totalVolumes": 7,
+  "note": "2025年刊の第7巻まで追記（柴田ケイコ／KADOKAWA）。2026/07にボードブック版などの派生あり。最新巻はOPAC表記の確認が済むまで complete は false のまま。",
   "volumes": [
     {
       "order": 1,
@@ -22,6 +22,14 @@
     {
       "order": 5,
       "title": "パンどろぼうとほっかほっカー"
+    },
+    {
+      "order": 6,
+      "title": "パンどろぼうとりんごかめん"
+    },
+    {
+      "order": 7,
+      "title": "パンどろぼうとスイーツおうじ"
     }
   ],
   "complete": false

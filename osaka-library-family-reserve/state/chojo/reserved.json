@@ -1,0 +1,36 @@
+{
+  "books": [
+    {
+      "title": "注文の多い料理店",
+      "author": "宮沢賢治 太田大八・絵",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-07-05"
+    },
+    {
+      "title": "空気がなくなる日",
+      "author": "岩倉政治 二俣英五郎・絵",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-07-05"
+    },
+    {
+      "title": "ヘンダワネのタネの物語",
+      "author": "新藤悦子 丹地陽子・絵",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-07-05"
+    },
+    {
+      "title": "鬼が出た",
+      "author": "大西廣 梶山俊夫ほか・絵",
+      "status": "reserved",
+      "note": "予約一覧で成立確認（予約中カウント不安定による見送り誤判定を訂正）",
+      "source": "list",
+      "date": "2026-07-05"
+    }
+  ]
+}
