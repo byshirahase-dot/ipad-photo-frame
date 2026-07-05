@@ -179,10 +179,31 @@ npm test                          # ロジックの単体テスト
   queue から外し『ライオンのおやつ』(小川糸)に差替。
 - シリーズ整備: パンどろぼうを第7巻まで追記（最新巻のOPAC表記未確認のため complete は false 継続）。
 
+### 2026-07-06 セッション3（Claude Code スケジュール実行・chonan/jinan のみ）
+
+- ユーザー指示で**母・長女はスキップ**、長男・次男のみ実行。
+- **⚠️ 予約確定ステップが両アカウントで不成立（新規予約0冊）**。--plan-only は正常（重複なし）だが、
+  本番のカート確定 submit が予約を作れない:
+  - chonan: `[reserveCart] page.evaluate: Execution context was destroyed, most likely because of a navigation`
+    （確定 submit で例外。再実行1回でも同一箇所で再現＝計2回失敗）。
+  - jinan: 例外は出ないが「予約中 7→7 冊で増加なし（未成立）」で3冊とも見送り（わたしは正当な所蔵なし）。
+  - read-only `verify-reservations.mjs chonan` で実測: 有効予約は先週の4件のまま（新規0）を確認。
+- **根本原因の疑い**: 2026-07-05 に作り直した確定フロー（selectyoyrak 遷移 →
+  `WOpacSmtYoyCartExecAction.do` を page.evaluate で直接 submit）が実地では予約を作れていない。
+  「連絡方法=メール」対応の実地検証が未了だった箇所。サイト仕様変更 or コードのリグレッションが疑わしい。
+  **運用ルールに従いコード修正はせず報告のみ**。証跡: `logs/2026-07-06/chonan/*-ERROR-reserveCart.html`（カート画面）。
+- **失敗時の state 破損に注意（今回巻き戻し済み）**: 確定失敗にもかかわらず chonan/queue.json が空に
+  ドレインされ、jinan/progress が 3A-8→3A-11 へ誤進行、jinan/reserved に わたし(所蔵なし) が追記されていた。
+  実サーバ状態＝コミット済み state と一致（新規予約0）なので `git checkout -- state/` で全て巻き戻した。
+  → **確定フロー修正時、失敗パスで queue/progress/reserved を進めてしまうバグも併せて要修正**。
+
 ### 次のセッションでやること（優先度順）
 
-1. `git pull` で本ブランチを最新化（母の queue.json・各 progress/reserved を引き継ぐ）。認証は環境変数から。
-2. **連絡方法=メールが実際に反映されるか本番で確認**（今回コード修正のみで実地未検証）。反映されていなければ
-   logs の contact-select-missing / reserve-branch-set ショットで連絡方法セレクトの状態を確認。
-3. 今週作成済み予約（電話１連絡）の連絡方法を一括でメールに変更する機能の要否をユーザーに確認。
-4. 通常の週次運用（SCHEDULE_PROMPT.md 手順0〜7）。
+1. `git pull` で本ブランチを最新化（各 progress/reserved/queue を引き継ぐ）。認証は環境変数から。
+2. **【最優先・ブロッカー】予約確定 submit の不具合を調査・修正**（上記 2026-07-06 参照）。
+   `logs/2026-07-06/chonan/30-ERROR-reserveCart.html` のカート画面（受取館・連絡方法フォーム）を起点に、
+   `WOpacSmtYoyCartExecAction.do` の submit が予約を成立させるか確認。修正後 --dry-run→本番1冊で実地検証。
+   併せて「失敗時に queue/progress を進めない」ガードを確認・修正。
+3. 修正確認後、通常の週次運用（SCHEDULE_PROMPT.md 手順0〜7）。今週未予約分（chonan 11ぴきのねこ続き・
+   ともだちや・こんとあき / jinan きつねとねずみ・こいぬがうまれるよ・わたしのワンピース）を予約。
+4. （保留）今週作成済み予約の連絡方法を一括でメールに変更する機能の要否をユーザーに確認。
