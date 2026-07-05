@@ -485,6 +485,33 @@ export class Opac {
         return { ok: false, message: "カートが0件（予約対象なし）", countBefore, countAfter: countBefore, delta: 0 };
       }
 
+      // 連絡方法（メール等）を最初に確定する。
+      // 連絡方法セレクト（name="contact" id="receiveWay"）の onchange="selectyoyrak(this.value)" は
+      // 「contactweb=値; action=WOpacSmtYoyPopupRecWebAction.do?webrak=1; フォームsubmit」を行い、
+      // カートを再描画して戻る（別ダイアログや確認ボタンは無い。実測で戻り後に連絡方法=メール・
+      // contactweb=4 を確認）。この遷移でカートが再読込され全選択・受取館選択がリセットされるため、
+      // 連絡方法を最初に確定してから全選択・受取館・予約実行を行う。
+      // ※アカウントにメールアドレスが登録済みであることが前提（未登録だと既定の電話に戻る）。
+      if (contactMethod) {
+        const cSel = this.page.locator('#receiveWay, select[name="contact"]').first();
+        if ((await cSel.count()) > 0) {
+          const cur = await cSel
+            .evaluate((s) => (s.options[s.selectedIndex]?.textContent || "").trim())
+            .catch(() => "");
+          if (!cur.includes(contactMethod)) {
+            await this.politeWait();
+            // selectOption は change を発火し、selectyoyrak によるカート再描画（遷移）を起こす
+            await cSel.selectOption({ label: contactMethod }).catch(() => {});
+            await this.page.waitForLoadState("domcontentloaded").catch(() => {});
+            await this.page.waitForTimeout(1500);
+            await this.#openCart(); // 遷移後、確実にカート画面へ戻す
+          }
+        } else {
+          await this.shot("contact-select-missing");
+        }
+        await this.shot("contact-set");
+      }
+
       // 対象を選択（全選択チェックボックス）
       const selectAll = this.page.locator('input[type="checkbox"]').first();
       if (await selectAll.isVisible({ timeout: 2000 }).catch(() => false)) {
@@ -511,36 +538,7 @@ export class Opac {
         this.#assertNotLoginPage(await this.page.textContent("body"));
         return { ok: false, message: `受取館セレクトが見つかりません（${pickupBranch}）`, countBefore, countAfter: countBefore, delta: 0 };
       }
-
-      // 受取館選択（selectloccod）がフォーム再送信・再描画を伴う場合があるので落ち着くまで待つ
-      await this.page.waitForLoadState("domcontentloaded").catch(() => {});
-      await this.page.waitForTimeout(800);
-
-      // 連絡方法の選択（メール等）。
-      // 連絡方法セレクト（name="contact" id="receiveWay"）の onchange="selectyoyrak(this.value)" は
-      // 「document.LBForm.contactweb.value=値; action=WOpacSmtYoyPopupRecWebAction.do?webrak=1; submit」
-      // を行い、メール連絡先の確認ポップアップへ遷移する。
-      // 【未解決 2026-07-05】change を発火させず contact/contactweb を直接設定するだけでは、
-      // サーバ側でメールが受け付けられず既定の「電話１連絡」で予約されることを実測で確認した
-      // （次男「あおくんときいろちゃん」で検証→電話１連絡のまま）。
-      // 正しくメールにするには selectyoyrak の遷移（WOpacSmtYoyPopupRecWebAction）を経てメール連絡先を
-      // 確定するフローが必要で、かつ各アカウントにメールアドレスが登録されていることが前提と思われる。
-      // 下記は暫定（無害だが効果は未確認）。ポップアップフロー実装はユーザーのメール登録状況確認後に行う。
-      if (contactMethod) {
-        const applied = await this.page
-          .evaluate((method) => {
-            const sel = document.querySelector('#receiveWay, select[name="contact"]');
-            if (!sel) return null;
-            const opt = Array.from(sel.options).find((o) => (o.textContent || "").trim().includes(method));
-            if (!opt) return null;
-            sel.value = opt.value;
-            const cw = document.querySelector('input[name="contactweb"]');
-            if (cw) cw.value = opt.value;
-            return { text: (opt.textContent || "").trim(), value: opt.value };
-          }, contactMethod)
-          .catch(() => null);
-        if (!applied) await this.shot("contact-select-missing");
-      }
+      await this.page.waitForTimeout(500);
       await this.shot("reserve-branch-set");
 
       // 予約する（exec()＝カート内をまとめて予約確定）

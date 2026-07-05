@@ -153,10 +153,18 @@ npm test                          # ロジックの単体テスト
   長男=11ぴきのねこ/あほうどり/どうぞのいす/マフィンおばさんのぱんや、
   次男=はらぺこあおむし/バスでおでかけ/どうぶつはやくちあいうえお/ちいさなたまねぎさん。全冊成立。
   ※開発中の版で長女の鬼が出た・次男のちいさなたまねぎさんを一時「見送り」誤判定 → 台帳・進度を訂正済み。
-- **連絡方法バグ（修正・要実地確認）**: 全予約が既定「電話１連絡」になっていた。連絡方法セレクト
-  （#receiveWay / name="contact"、メール=value4）は幅狭で `isVisible=false` になりスキップされていた。
-  → 可視性に依存せず `page.evaluate` で value を直接設定し change 発火する方式に変更。accounts.json は "メール"。
-  **今週作成済みの予約は電話１連絡のまま**（マイページ変更 or 次回一括変更対応が必要）。
+- **連絡方法＝メール（解決済み・実地検証OK）**: 全予約が既定「電話１連絡」になっていた。原因は
+  連絡方法セレクト（#receiveWay / name="contact"、メール=value4）の onchange="selectyoyrak" が
+  `contactweb=値; action=WOpacSmtYoyPopupRecWebAction.do?webrak=1; submit` でカートを再描画する仕様で、
+  値を直接セットするだけ（change非発火）ではサーバがメールを受け付けず電話に戻っていた点。
+  → **連絡方法セレクトを selectOption でメールにして change を発火させ、selectyoyrak の遷移（カート
+  再描画）を待つ**と、戻ったカートで連絡方法=メール・contactweb=4 になる（別ダイアログ/確認ボタンは無い）。
+  この遷移で受取館・全選択がリセットされるため、**連絡方法を最初に確定→その後で全選択・受取館・予約実行**
+  の順に reserveCartContents を組み替えた。※アカウントにメール登録が前提（ユーザー確認済み：登録済み）。
+  実地検証: 次男「まほうのコップ」を予約→予約実行直前ショット（reserve-branch-set.html）で
+  連絡方法=メール・contactweb=4 を確認。探索用 scripts/explore-mail-popup.mjs（予約せず遷移先を調べる）を追加。
+  **今週すでに作成済みの予約（電話１連絡）はユーザーがマイページで手動変更する運用**
+  （scripts/change-contact.mjs の --apply は更新POSTがログイン画面に飛び未完成。読み取りは可）。
 - **母は同名なら文庫優先（ユーザー指定）**: `rankResults(..., preferBunko)` で文庫版に加点。母(recommend)のみ有効。
 - ユーザーフィードバック反映: 『そして、バトンは渡された』(瀬尾まいこ)は既読★3 → history.csv/preferences.md に記録し
   queue から外し『ライオンのおやつ』(小川糸)に差替。
