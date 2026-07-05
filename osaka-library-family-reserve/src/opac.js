@@ -140,7 +140,7 @@ export class Opac {
       );
       await this.politeWait();
       await loginLink.click();
-      await this.page.waitForLoadState("domcontentloaded");
+      await this.page.waitForLoadState("domcontentloaded").catch(() => {});
       // ログインフォームの描画を待つ（出なければ一度だけクリックし直す）
       const formReady = await this.page
         .waitForSelector("#usrcardnumber, input[type='password']", { timeout: 8000 })
@@ -178,7 +178,7 @@ export class Opac {
         "ログインボタン"
       );
       await loginBtn.click();
-      await this.page.waitForLoadState("domcontentloaded");
+      await this.page.waitForLoadState("domcontentloaded").catch(() => {});
       const body = await this.page.textContent("body");
       if (/(パスワード|カード).*(誤り|正しく|一致しません)|認証に失敗/.test(body || "")) {
         throw new Error("ログイン失敗（カード番号またはパスワードが違う）");
@@ -228,7 +228,7 @@ export class Opac {
           toUsrRsv(1);
         });
       }
-      await this.page.waitForLoadState("domcontentloaded");
+      await this.page.waitForLoadState("domcontentloaded").catch(() => {});
       await this.page.waitForTimeout(600);
       await this.shot("rsv-list");
       // 予約状況一覧の行は div.layer-item 単位（有効予約はリンクで包まれないため a.layer-doc は使えない）
@@ -277,7 +277,7 @@ export class Opac {
         "検索ボタン"
       );
       await btn.click();
-      await this.page.waitForLoadState("domcontentloaded");
+      await this.page.waitForLoadState("domcontentloaded").catch(() => {});
       await this.shot(`search-${title.slice(0, 12)}`);
 
       if (await this.#noHits()) return [];
@@ -293,7 +293,7 @@ export class Opac {
           // eslint-disable-next-line no-undef
           submitNarrow();
         });
-        await this.page.waitForLoadState("domcontentloaded");
+        await this.page.waitForLoadState("domcontentloaded").catch(() => {});
         await this.shot(`narrow-${title.slice(0, 12)}`);
         if (await this.#noHits()) return [];
       }
@@ -307,7 +307,7 @@ export class Opac {
           const value = await sortSel.locator("option").nth(idx).getAttribute("value");
           await this.politeWait();
           await sortSel.selectOption(value);
-          await this.page.waitForLoadState("domcontentloaded");
+          await this.page.waitForLoadState("domcontentloaded").catch(() => {});
           await this.shot(`sorted-${title.slice(0, 12)}`);
         }
       }
@@ -344,7 +344,7 @@ export class Opac {
     const rows = this.page.locator("a.layer-doc");
     await this.politeWait();
     await rows.nth(index).click();
-    await this.page.waitForLoadState("domcontentloaded");
+    await this.page.waitForLoadState("domcontentloaded").catch(() => {});
     await this.shot("bib-detail");
   }
 
@@ -385,7 +385,7 @@ export class Opac {
       }
       await this.politeWait();
       await addBtn.click();
-      await this.page.waitForLoadState("domcontentloaded");
+      await this.page.waitForLoadState("domcontentloaded").catch(() => {});
       await this.page.waitForTimeout(1000);
       await this.shot("cart-added");
       const after = (await this.page.textContent("body")) || "";
@@ -436,7 +436,7 @@ export class Opac {
       const cartLink = this.page.locator('#stat-cart, #usr-cart, a[onclick*="yoycart"]').first();
       await this.politeWait();
       await cartLink.click();
-      await this.page.waitForLoadState("domcontentloaded");
+      await this.page.waitForLoadState("domcontentloaded").catch(() => {});
     }
     await this.shot("cart");
   }
@@ -512,29 +512,34 @@ export class Opac {
         return { ok: false, message: `受取館セレクトが見つかりません（${pickupBranch}）`, countBefore, countAfter: countBefore, delta: 0 };
       }
 
+      // 受取館選択（selectloccod）がフォーム再送信・再描画を伴う場合があるので落ち着くまで待つ
+      await this.page.waitForLoadState("domcontentloaded").catch(() => {});
+      await this.page.waitForTimeout(800);
+
       // 連絡方法の選択（メール等）。
-      // 連絡方法セレクト（#receiveWay / name="contact"）は幅が狭く isVisible が false になり
-      // やすいため、可視性に依存せず DOM 上で直接 value を設定して change を発火させる
-      // （onchange="selectyoyrak(...)" を確実に走らせる）。カート内の全候補に適用する。
+      // 連絡方法セレクト（name="contact" id="receiveWay"）の onchange="selectyoyrak(this.value)" は
+      // 「document.LBForm.contactweb.value=値; action=WOpacSmtYoyPopupRecWebAction.do?webrak=1; submit」
+      // を行い、メール連絡先の確認ポップアップへ遷移する。
+      // 【未解決 2026-07-05】change を発火させず contact/contactweb を直接設定するだけでは、
+      // サーバ側でメールが受け付けられず既定の「電話１連絡」で予約されることを実測で確認した
+      // （次男「あおくんときいろちゃん」で検証→電話１連絡のまま）。
+      // 正しくメールにするには selectyoyrak の遷移（WOpacSmtYoyPopupRecWebAction）を経てメール連絡先を
+      // 確定するフローが必要で、かつ各アカウントにメールアドレスが登録されていることが前提と思われる。
+      // 下記は暫定（無害だが効果は未確認）。ポップアップフロー実装はユーザーのメール登録状況確認後に行う。
       if (contactMethod) {
-        const applied = await this.page.evaluate((method) => {
-          const results = [];
-          const sels = document.querySelectorAll('#receiveWay, select[name="contact"], select[id^="receiveWay"]');
-          for (const sel of sels) {
+        const applied = await this.page
+          .evaluate((method) => {
+            const sel = document.querySelector('#receiveWay, select[name="contact"]');
+            if (!sel) return null;
             const opt = Array.from(sel.options).find((o) => (o.textContent || "").trim().includes(method));
-            if (!opt) continue;
+            if (!opt) return null;
             sel.value = opt.value;
-            sel.dispatchEvent(new Event("change", { bubbles: true }));
-            results.push((opt.textContent || "").trim());
-          }
-          return results;
-        }, contactMethod);
-        // selectyoyrak の反映（サーバ更新の場合あり）を待つ
-        await this.page.waitForTimeout(1000);
-        if (!applied.length) {
-          // セレクト自体が見つからない＝画面構造変化の可能性。ログに残す
-          await this.shot("contact-select-missing");
-        }
+            const cw = document.querySelector('input[name="contactweb"]');
+            if (cw) cw.value = opt.value;
+            return { text: (opt.textContent || "").trim(), value: opt.value };
+          }, contactMethod)
+          .catch(() => null);
+        if (!applied) await this.shot("contact-select-missing");
       }
       await this.shot("reserve-branch-set");
 

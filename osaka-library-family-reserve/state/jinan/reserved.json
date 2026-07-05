@@ -36,7 +36,15 @@
       "title": "ちいさなたまねぎさん",
       "author": "せなけいこ",
       "status": "reserved",
-      "note": "予約一覧で成立確認（予約中カウント不安定による見送り誤判定を訂正）",
+      "note": "予約一覧で[待ち]を確認（取消版との照合ミスによる誤expiredを訂正）",
+      "source": "list",
+      "date": "2026-07-05"
+    },
+    {
+      "title": "あおくんときいろちゃん",
+      "author": "レオーニ 藤田圭雄・訳",
+      "status": "reserved",
+      "note": "",
       "source": "list",
       "date": "2026-07-05"
     }

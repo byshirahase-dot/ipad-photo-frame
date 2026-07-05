@@ -122,13 +122,19 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, pendingSe
     // サイト仕様: 取り置き期限切れ・延滞ペナルティによる無効化は「取消」と表示されて一覧に残る。
     // 利用者が手動で取り消したものは一覧から消えるため、残っている「取消」は借りられなかった本。
     section.requeued = [];
-    // 同じ本に有効な予約（待ち・用意等）がある場合、その「取消」行は過去の再予約済みの残骸なので無視
-    const activeKeys = new Set(activeStates.map((s) => Ledger.key(s.title)));
     for (const s of states) {
       if (!cancelledRe.test(s.state)) continue;
-      if (activeKeys.has(Ledger.key(s.title))) continue;
       const entry = ledger.findActiveReserved(s.title);
       if (!entry) continue; // 台帳に無い（このシステムの予約でない・処理済み）ものは無視
+      // 同じ本の有効な予約（待ち・用意等）が一覧に残っていれば、その「取消」行は再予約済みの
+      // 残骸なので無視する。版の違い（例:「ちいさなたまねぎさん こどものくに傑作絵本 19」と
+      // 「〜傑作絵本」）で完全一致しないことがあるため、台帳エントリ名を軸に部分一致で判定する。
+      const entryKey = Ledger.key(entry.title);
+      const stillActive = activeStates.some((a) => {
+        const ak = Ledger.key(a.title);
+        return ak === entryKey || ak.includes(entryKey) || entryKey.includes(ak);
+      });
+      if (stillActive) continue;
       section.requeued.push({ title: entry.title, state: s.state });
       if (!dryRun) {
         ledger.markExpired(entry, `予約${s.state}（期限切れ・延滞ペナルティ等）のため再予約対象に戻した`);
