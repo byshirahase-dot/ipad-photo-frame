@@ -512,12 +512,6 @@ export class Opac {
         await this.shot("contact-set");
       }
 
-      // 対象を選択（全選択チェックボックス）
-      const selectAll = this.page.locator('input[type="checkbox"]').first();
-      if (await selectAll.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await selectAll.check().catch(() => {});
-      }
-
       // 受取館の選択（阿倍野などを含む select。カレンダー切替と区別するため受取館の近傍を優先）
       const branchSelect = this.page
         .locator("select")
@@ -538,16 +532,40 @@ export class Opac {
         this.#assertNotLoginPage(await this.page.textContent("body"));
         return { ok: false, message: `受取館セレクトが見つかりません（${pickupBranch}）`, countBefore, countAfter: countBefore, delta: 0 };
       }
-      await this.page.waitForTimeout(500);
+
+      // 予約候補にチェックを入れる。チェックボックス（name="list_chkbox"）は絶対配置で actionable
+      // でなく Playwright の .check() が効かないため、DOM 上で checked=true を直接セットする。
+      const selInfo = await this.page.evaluate(() => {
+        const boxes = document.querySelectorAll('input[name="list_chkbox"][type="checkbox"]');
+        boxes.forEach((b) => {
+          b.checked = true;
+          b.dispatchEvent(new Event("change", { bubbles: true }));
+        });
+        return { count: boxes.length };
+      });
+      this.reservedItemCount = Math.max(selInfo?.count ?? 0, 1); // 期待成立冊数（後段の照合に使う）
+      await this.page.waitForTimeout(300);
       await this.shot("reserve-branch-set");
 
-      // 予約する（exec()＝カート内をまとめて予約確定）
-      const reserveBtn = await this.firstVisible(
-        ['input[value*="予約する"], button:has-text("予約する")', 'input[value*="予約"]'],
-        "予約するボタン"
-      );
+      // 予約確定。「予約する」ボタンの onclick=exec() は「if(submitFlg){...}」で守られており、
+      // 連絡方法の選択（selectyoyrak）でカートが再描画されると返却ページは submitFlg=false のため、
+      // ボタンを押しても何も起きない（空振り）。そこでボタンに頼らず、exec() の実体
+      // （checkFlag → action=WOpacSmtYoyCartExecAction.do → submit）を JS で直接実行して確定する。
       await this.politeWait();
-      await reserveBtn.click();
+      await this.page
+        .evaluate(() => {
+          try {
+            // eslint-disable-next-line no-undef
+            if (typeof checkFlag === "function") checkFlag();
+          } catch (e) {
+            /* ignore */
+          }
+          document.LBForm.action = "WOpacSmtYoyCartExecAction.do";
+          document.LBForm.submit();
+        })
+        .catch(() => {
+          /* submit によるナビゲーションで context 破棄されることがある。下の待機で受ける */
+        });
       await this.page.waitForLoadState("domcontentloaded").catch(() => {});
       await this.page.waitForTimeout(1000);
       await this.shot("reserve-confirm");
@@ -573,23 +591,29 @@ export class Opac {
         throw new Error("セッション切れ（予約確定前にログイン画面が表示された）");
       }
 
-      // 成立判定について:
-      // - ヘッダの予約中カウント（#stat-resv）は画面により取得できず null になり不安定。
-      // - 予約直後に予約状況一覧を開こうとすると、#stat-resv が無い画面ではトップページへ
-      //   遷移し、トップページはログイン状態をリセットするため一覧が空になり誤判定する
-      //   （CLAUDE.md「トップページを開くとログイン状態がリセットされる」）。
-      // そこで、予約枠内（＝事前に available で冊数制限済み）のバッチは必ず成立するという
-      // サイト挙動に基づき、明示的な失敗文言が無ければ成立とみなす。成立冊数の最終確認は
-      // 別途 scripts/verify-reservations.mjs（新規ログインでの一覧照合）で行う。
-      const countAfter = await this.currentReserveCount();
-      const delta = countBefore != null && countAfter != null ? countAfter - countBefore : null;
+      // 成立判定:
+      // 予約実行（WOpacSmtYoyCartExecAction）の結果ページ本文に「予約中 N 件予約されています」が
+      // 表示されるので、予約前の冊数（countBefore＝ログイン時に予約一覧から算出）と比べ、増えていれば
+      // 成立とする。これがこのサイトで最も確実。
+      //   - #stat-resv の数値は取れず null になり不安定。
+      //   - 予約直後に予約状況一覧を開くと #stat-resv の無い画面ではトップ遷移でログアウトし空になる。
+      //   - カートの残件数は成立後も対象が表示に残ることがあり誤判定するため使わない（実測）。
       const textOk = /受付|完了|予約しました|予約を受け付け/.test(done);
       const hasError = /予約の?上限|これ以上予約|予約できません|受け付けられません|エラーが/.test(done);
-      if (hasError && !textOk && !(delta != null && delta > 0)) {
-        const m = done.match(/.{0,50}(上限|予約できません|受け付けられません|エラー).{0,50}/)?.[0]?.trim() ?? "画面参照";
-        return { ok: false, message: `予約失敗: ${m}`, countBefore, countAfter, delta };
+      const afterMatch = done.match(/予約中\s*(\d+)\s*件/);
+      const countAfter = afterMatch ? Number(afterMatch[1]) : null;
+      const delta = countBefore != null && countAfter != null ? countAfter - countBefore : null;
+      await this.shot("reserve-verify");
+      const ok = (delta != null && delta > 0) || (delta == null && textOk);
+      if (!ok) {
+        const detail = hasError
+          ? done.match(/.{0,40}(上限|予約できません|受け付けられません|エラー).{0,20}/)?.[0]?.trim() ?? "画面参照"
+          : delta != null
+          ? `予約中 ${countBefore}→${countAfter} 冊で増加なし（未成立）`
+          : "成立を確認できず（スクショ参照）";
+        return { ok: false, message: `予約が成立しませんでした: ${detail}`, countBefore, countAfter, delta };
       }
-      return { ok: true, message: "予約完了", countBefore, countAfter, delta };
+      return { ok: true, message: `予約完了（予約中 ${countBefore ?? "?"}→${countAfter ?? "?"} 冊）`, countBefore, countAfter, delta };
     } catch (err) {
       await this.fail(`reserveCart`, err);
     }

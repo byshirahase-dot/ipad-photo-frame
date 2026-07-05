@@ -157,14 +157,23 @@ npm test                          # ロジックの単体テスト
   連絡方法セレクト（#receiveWay / name="contact"、メール=value4）の onchange="selectyoyrak" が
   `contactweb=値; action=WOpacSmtYoyPopupRecWebAction.do?webrak=1; submit` でカートを再描画する仕様で、
   値を直接セットするだけ（change非発火）ではサーバがメールを受け付けず電話に戻っていた点。
-  → **連絡方法セレクトを selectOption でメールにして change を発火させ、selectyoyrak の遷移（カート
-  再描画）を待つ**と、戻ったカートで連絡方法=メール・contactweb=4 になる（別ダイアログ/確認ボタンは無い）。
-  この遷移で受取館・全選択がリセットされるため、**連絡方法を最初に確定→その後で全選択・受取館・予約実行**
-  の順に reserveCartContents を組み替えた。※アカウントにメール登録が前提（ユーザー確認済み：登録済み）。
-  実地検証: 次男「まほうのコップ」を予約→予約実行直前ショット（reserve-branch-set.html）で
-  連絡方法=メール・contactweb=4 を確認。探索用 scripts/explore-mail-popup.mjs（予約せず遷移先を調べる）を追加。
-  **今週すでに作成済みの予約（電話１連絡）はユーザーがマイページで手動変更する運用**
-  （scripts/change-contact.mjs の --apply は更新POSTがログイン画面に飛び未完成。読み取りは可）。
+  → 最終的な正しい実装（reserveCartContents の順序と手段が重要）:
+  ① **連絡方法を最初に確定**: 連絡方法セレクトを selectOption でメールにして change を発火→ selectyoyrak が
+     WOpacSmtYoyPopupRecWebAction へ遷移しカートを再描画→戻ったカートで連絡方法=メール・contactweb=4 になる
+     （別ダイアログ/確認ボタンは無い）。この遷移で受取館・全選択がリセットされるので連絡方法を先に確定する。
+  ② **予約候補チェックは JS で直接**: list_chkbox は絶対配置で actionable でなく Playwright の .check() が
+     効かないため `b.checked=true` を直接セットする。
+  ③ **予約確定はボタンに頼らず exec() 実体を直接実行**: 「予約する」ボタンの onclick=exec() は
+     `if(submitFlg){…}` で守られ、①のカート再描画後は **submitFlg=false** のためボタンでは空振りする。
+     そこで `checkFlag(); document.LBForm.action="WOpacSmtYoyCartExecAction.do"; document.LBForm.submit()` を
+     page.evaluate で直接実行して確定する。
+  ④ **成立判定は exec 結果ページ本文の「予約中 N 件」の増分**で見る（#stat-resv は null、予約一覧はトップ
+     遷移でログアウト、カート残件数は成立後も残るため、いずれも不可）。※途中、緩い判定が空振りを誤って
+     「OK」表示→次男まほうのコップを飛ばす誤りが起きたため、この確実判定に修正。
+  実地検証: 次男「まほうのコップ」を予約→読み取りツール（change-contact.mjs 読み取りモード）で
+  連絡方法=メールを確認済み。※アカウントにメール登録が前提（ユーザー確認済み：登録済み）。
+  探索用 scripts/explore-mail-popup.mjs（予約せず遷移先を調べる）を追加。
+  既存予約の一括変更（scripts/change-contact.mjs --apply）は更新POSTがログイン画面に飛び未完成（読み取りは可）。
 - **母は同名なら文庫優先（ユーザー指定）**: `rankResults(..., preferBunko)` で文庫版に加点。母(recommend)のみ有効。
 - ユーザーフィードバック反映: 『そして、バトンは渡された』(瀬尾まいこ)は既読★3 → history.csv/preferences.md に記録し
   queue から外し『ライオンのおやつ』(小川糸)に差替。
