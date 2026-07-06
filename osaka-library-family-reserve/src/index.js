@@ -51,7 +51,12 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, pendingSe
   if (account.mode === "kumon") {
     const flat = flatten(loadKumonList(), cfg.levelOrder);
     progress = new Progress(id, account.startProgress);
-    queue = new Queue(id, { persist: !dryRun });
+    // 消化（shift）や展開（push）は計画段階で起きるが、予約が実際に成立するまで
+    // ファイルへ確定させない（persist:false=メモリ内のみ）。確定は本番実行の最後に
+    // batchOk（＝予約バッチ成立）を確認してから queue.save() で行う。
+    // 過去、planWeek の shift が即ファイル書き込みされ、予約失敗時にキューが空になり
+    // シリーズ続巻が失われる不具合があったため。
+    queue = new Queue(id, { persist: false });
     const resolver = makeSeriesResolver({ pendingSeries, persist: !dryRun });
     plan = planWeek({
       flat, progress, queue, ledger, quota,
@@ -99,6 +104,10 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, pendingSe
 
   // 進度カーソル: 「実際に処理し終えた本」の分だけ進める（中断時に本を取りこぼさない）
   let cursor = null;
+  // batchOk: 予約バッチが成立し、進度・キューの消化を確定してよいか。
+  // 予約失敗や実行中断（例外）では false のままにし、進度・キューを一切進めない
+  // （所蔵なし等で台帳に記録済みの本は ledger.has で翌週スキップされるので取りこぼさない）。
+  let batchOk = false;
 
   try {
     await opac.start();
@@ -197,28 +206,51 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, pendingSe
     }
 
     // ---- フェーズ2: カート内をまとめて予約確定する ----
+    // カート投入対象が無ければ（全て所蔵なし等・台帳記録済み）進度は確定してよい。
+    if (inCart.length === 0) batchOk = true;
     if (!dryRun && inCart.length > 0) {
       const rres = await opac.reserveCartContents({
         pickupBranch: account.pickupBranch,
         contactMethod: account.contactMethod ?? cfg.opac.contactMethod,
-        countBefore: count,
+        countBefore: activeStates.length,
       });
-      // 予約枠内のバッチはサイト仕様上まとめて成立する。rres.ok（明示的な失敗文言が無い）なら
-      // カート投入した全冊を成立として台帳へ記録する。成立冊数の最終確認は
-      // scripts/verify-reservations.mjs（新規ログインでの予約一覧照合）で別途行う。
+      // 成立の確定（唯一の確実判定）: exec 直後のページは stale なカートで信頼できず、その場で
+      // 予約一覧を開くとログアウトするため、**新規ログインし直して**予約状況一覧を取得し、投入
+      // タイトルが実際に有効予約として載ったかを冊単位で照合する（verify-reservations.mjs と同じ方法）。
+      let activeTitlesAfter = [];
+      try {
+        await opac.login(creds.card, creds.pass);
+        const afterStates = await opac.listReservationStates();
+        activeTitlesAfter = afterStates
+          .filter((s) => s.state && !cancelledRe.test(s.state))
+          .map((s) => s.title);
+      } catch {
+        /* 照合ログインに失敗したときのみ結果ページ文言（resultPageOk）にフォールバック */
+      }
+      const activeKeys = activeTitlesAfter.map((t) => Ledger.key(t));
+      const isReserved = (title) => {
+        if (activeTitlesAfter.length === 0) return !!rres.resultPageOk;
+        const k = Ledger.key(title);
+        return activeKeys.some((ak) => ak === k || ak.includes(k) || k.includes(ak));
+      };
+      let reservedCount = 0;
       for (const pick of inCart) {
-        if (rres.ok) {
-          section.reserved.push({ title: pick.title, note: rres.message });
+        if (isReserved(pick.title)) {
+          reservedCount += 1;
+          section.reserved.push({ title: pick.title, note: "予約完了（予約一覧で確認）" });
           ledger.add({ title: pick.title, author: pick.author ?? "", status: "reserved", source: pick.from });
           if (pick.advanceTo) cursor = pick.advanceTo;
           if (account.mode === "recommend") {
             recordMomRecommended({ title: pick.title, author: pick.author ?? "" });
           }
         } else {
-          // 確定に失敗（上限到達等）した場合は台帳・カーソルを動かさず翌週へ持ち越す
+          // 未成立分は台帳・カーソルを動かさず翌週へ持ち越す
           section.failed.push({ title: pick.title, note: `予約確定できず見送り（${rres.message}）` });
         }
       }
+      // 全冊成立したときだけ進度・キューの消化を確定する（部分成立時は進めず翌週再試行＝
+      // 成立済みは台帳の ledger.has で自動スキップされるので二重予約にならない）。
+      batchOk = reservedCount === inCart.length;
     }
 
     await opac.logout();
@@ -228,13 +260,22 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, pendingSe
     await opac.close();
   }
 
-  // ---- 実行後の状態更新（本番のみ・処理し終えた本の分だけカーソルを進める）----
+  // ---- 実行後の状態更新（本番のみ・予約バッチ成立時のみ確定する）----
+  // batchOk でないとき（予約失敗・実行中断）は進度もキューも一切書き換えない。対象の本は
+  // 翌週そのまま再試行される（台帳記録済みの所蔵なし等は ledger.has で自動スキップ）。
   if (!dryRun) {
-    if (account.mode === "kumon" && cursor) {
-      progress.set(cursor.level, cursor.position);
-      section.next = cursor;
+    if (account.mode === "kumon") {
+      if (batchOk) {
+        if (cursor) progress.set(cursor.level, cursor.position);
+        // --limit は planWeek が消化した一部の pick だけを処理するため、キュー消化を確定すると
+        // 未処理の pick を取りこぼす。テスト用途の --limit ではキューを確定しない（台帳で自己回復する）。
+        if (!(limit > 0)) queue.save(); // シリーズ消化・展開の結果をここで初めてファイルへ確定
+        section.next = cursor ?? progress.get();
+      } else {
+        section.next = progress.get(); // 未確定：次回は同じ位置から再開
+      }
     }
-    if (account.mode === "recommend" && section.momQueue) {
+    if (batchOk && account.mode === "recommend" && section.momQueue) {
       const reservedTitles = new Set(section.reserved.map((b) => b.title));
       section.momQueue.items = section.momQueue.items.filter((b) => !reservedTitles.has(b.title));
       writeMomQueue(section.momQueueFile, section.momQueue);

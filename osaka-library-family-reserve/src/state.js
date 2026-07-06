@@ -86,6 +86,11 @@ export class Queue {
   #save() {
     if (this.persist) writeJson(this.file, this.data);
   }
+  /** 現在のキュー内容を明示的にファイルへ書き出す（persist=false でも書く）。
+   *  予約が実際に成立した後にだけ消化結果を確定させたいときに使う。 */
+  save() {
+    writeJson(this.file, this.data);
+  }
   peek() {
     return this.data.items[0];
   }

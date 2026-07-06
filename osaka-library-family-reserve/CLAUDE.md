@@ -197,13 +197,41 @@ npm test                          # ロジックの単体テスト
   実サーバ状態＝コミット済み state と一致（新規予約0）なので `git checkout -- state/` で全て巻き戻した。
   → **確定フロー修正時、失敗パスで queue/progress/reserved を進めてしまうバグも併せて要修正**。
 
+### 2026-07-06 セッション3-続き（不具合の調査・修正・実地検証まで完了）
+
+**上記の「予約確定が不成立」は原因を特定して修正・実地検証済み。実は予約は部分的に成立していた（検出バグ）。**
+
+- **真因は2つ**（実HTML `logs/2026-07-06/chonan/30-ERROR-reserveCart.html` の解析で判明）:
+  1. **受取館セレクト（name="receivename"）の onchange="selectloccod" が遷移を伴い、それを await して
+     いなかった** → 直後の `page.evaluate` が「Execution context destroyed」で落ちていた（chonan の例外）。
+  2. **予約対象は hidden `list_chk_paging`（カンマ区切り資料ID）＋ `schkflg='check'` でサーバへ伝わる**。
+     旧コードは `list_chkbox` に checked=true と **change** を送っていたが、実際の選択更新は
+     onclick="list_chkClick" が list_chk_paging を書き換える仕組みで change では発火せず不十分だった。
+- **さらに成立判定（検出）が誤り**: exec 直後の返却ページは「予約カート」の再描画で、ヘッダの
+  「予約中 N 件」は **stale**（実際は成立しても古い件数）。その場で予約一覧を開くとトップ経由で
+  **ログアウト**して空になる。→ 旧コードは「N→N 増加なし」で **成立しているのに未成立と誤判定**していた。
+  jinan の 7/6 pre-fix 実行は実は きつね/こいぬ/わたしのワンピース を予約できていた（誤って未成立と報告）。
+- **修正（src/opac.js `reserveCartContents`）**: ①連絡方法（selectyoyrak）と exec の submit を
+  `Promise.all([waitForNavigation, ...])` で確実に待つ。②受取館は selectOption せず、最終 submit の
+  evaluate で `receivename`/`returnValue` に value を直接セット。③選択は `list_chk_paging`＝全資料ID、
+  `schkflg/allschkflg='check'` を直接セット（selectAll 相当）。④成立判定は exec 直後ページに頼らず、
+  **呼び出し側（index.js）が新規ログインし直して予約一覧を取得し、投入タイトルが載ったか冊単位で照合**する
+  （verify-reservations.mjs と同じ確実な方法）。
+- **state 破損の修正（src/index.js・state.js）**: Queue を `persist:false`（計画中はメモリのみ）にし、
+  **予約バッチ成立（batchOk）を確認してから `queue.save()` で消化を確定**。進度・キュー・母queueも
+  batchOk のときだけ書き換える（失敗・中断時は一切進めず翌週再試行。成立済みは ledger.has で二重予約回避）。
+  ※ `--limit` はテスト専用（planWeek が消化した一部だけ処理するためキュー消化を確定しない）。
+- **実地検証OK（本番）**: jinan「ぼくとおとうさん」「ぼくとおかあさん」、chonan「11ぴきのねことぶた」を
+  予約→ verify-reservations で [待ち] を確認。検出も進度・キュー確定も正しく動作。
+- **state を実サイトに整合済み**: 7/6 に実際は成立していた jinan きつね/こいぬ/わたしのワンピース＋
+  検証で予約した ぼくとおとうさん/ぼくとおかあさん を台帳へ記録し progress=3A-14。chonan は とぶた を記録、
+  queue=[ふくろのなか, へんなねこ, どろんこ]。両アカウントとも台帳＝サイト一致（chonan 5件 / jinan 12件）。
+
 ### 次のセッションでやること（優先度順）
 
 1. `git pull` で本ブランチを最新化（各 progress/reserved/queue を引き継ぐ）。認証は環境変数から。
-2. **【最優先・ブロッカー】予約確定 submit の不具合を調査・修正**（上記 2026-07-06 参照）。
-   `logs/2026-07-06/chonan/30-ERROR-reserveCart.html` のカート画面（受取館・連絡方法フォーム）を起点に、
-   `WOpacSmtYoyCartExecAction.do` の submit が予約を成立させるか確認。修正後 --dry-run→本番1冊で実地検証。
-   併せて「失敗時に queue/progress を進めない」ガードを確認・修正。
-3. 修正確認後、通常の週次運用（SCHEDULE_PROMPT.md 手順0〜7）。今週未予約分（chonan 11ぴきのねこ続き・
-   ともだちや・こんとあき / jinan きつねとねずみ・こいぬがうまれるよ・わたしのワンピース）を予約。
-4. （保留）今週作成済み予約の連絡方法を一括でメールに変更する機能の要否をユーザーに確認。
+2. 通常の週次運用（SCHEDULE_PROMPT.md 手順0〜7）。予約確定・検出は修正・実地検証済みなので通常どおり
+   `./run.sh --account=xxx` を4アカウント実行してよい（--limit は付けない）。
+3. 今回スキップした**母・長女**は次回通常実行に含める（母の queue.json は前回の4冊が入ったまま）。
+4. （保留）連絡方法=メールは reserveCartContents で毎回設定している。既存の電話予約を一括変更する機能の
+   要否はユーザー確認待ち。

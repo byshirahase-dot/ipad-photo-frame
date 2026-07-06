@@ -485,13 +485,13 @@ export class Opac {
         return { ok: false, message: "カートが0件（予約対象なし）", countBefore, countAfter: countBefore, delta: 0 };
       }
 
-      // 連絡方法（メール等）を最初に確定する。
+      // (1) 連絡方法（メール等）を最初に確定する。
       // 連絡方法セレクト（name="contact" id="receiveWay"）の onchange="selectyoyrak(this.value)" は
       // 「contactweb=値; action=WOpacSmtYoyPopupRecWebAction.do?webrak=1; フォームsubmit」を行い、
-      // カートを再描画して戻る（別ダイアログや確認ボタンは無い。実測で戻り後に連絡方法=メール・
-      // contactweb=4 を確認）。この遷移でカートが再読込され全選択・受取館選択がリセットされるため、
-      // 連絡方法を最初に確定してから全選択・受取館・予約実行を行う。
+      // カートを再描画して戻る。この遷移でサーバ側に contactweb（メール=4）が登録される。値を直接
+      // セットするだけではサーバに登録されず既定の電話に戻るため、必ず change 経由で遷移させる。
       // ※アカウントにメールアドレスが登録済みであることが前提（未登録だと既定の電話に戻る）。
+      // 遷移は待って受ける（awaitしないと後続の evaluate が「context破棄」で落ちる＝過去の不具合）。
       if (contactMethod) {
         const cSel = this.page.locator('#receiveWay, select[name="contact"]').first();
         if ((await cSel.count()) > 0) {
@@ -500,10 +500,11 @@ export class Opac {
             .catch(() => "");
           if (!cur.includes(contactMethod)) {
             await this.politeWait();
-            // selectOption は change を発火し、selectyoyrak によるカート再描画（遷移）を起こす
-            await cSel.selectOption({ label: contactMethod }).catch(() => {});
-            await this.page.waitForLoadState("domcontentloaded").catch(() => {});
-            await this.page.waitForTimeout(1500);
+            await Promise.all([
+              this.page.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 15000 }).catch(() => {}),
+              cSel.selectOption({ label: contactMethod }).catch(() => {}),
+            ]);
+            await this.page.waitForTimeout(800);
             await this.#openCart(); // 遷移後、確実にカート画面へ戻す
           }
         } else {
@@ -512,61 +513,68 @@ export class Opac {
         await this.shot("contact-set");
       }
 
-      // 受取館の選択（阿倍野などを含む select。カレンダー切替と区別するため受取館の近傍を優先）
-      const branchSelect = this.page
-        .locator("select")
-        .filter({ has: this.page.locator(`option:has-text("${pickupBranch}")`) })
-        .first();
-      if ((await branchSelect.count()) > 0) {
-        const opts = branchSelect.locator("option");
-        const n = await opts.count();
-        for (let i = 0; i < n; i++) {
-          const t = (await opts.nth(i).textContent())?.trim() ?? "";
-          if (t.includes(pickupBranch)) {
-            await branchSelect.selectOption({ index: i });
-            break;
+      // (2) 受取館の option value を解決する。受取館セレクト（name="receivename"）の
+      // onchange="selectloccod" も遷移を伴うため、ここでは selectOption しない（過去、これを
+      // await せず後続の evaluate が「context破棄」で落ちていた）。value は最終 submit で直接セットする。
+      const branchVal = await this.page.evaluate((branchName) => {
+        for (const s of document.querySelectorAll("select")) {
+          for (const o of s.options) {
+            if ((o.textContent || "").trim().includes(branchName)) return o.value;
           }
         }
-      } else {
+        return null;
+      }, pickupBranch);
+      if (!branchVal) {
         // 受取館セレクトが無い＝ログイン画面へ戻された可能性を先に確認
         this.#assertNotLoginPage(await this.page.textContent("body"));
+        await this.shot("branch-not-found");
         return { ok: false, message: `受取館セレクトが見つかりません（${pickupBranch}）`, countBefore, countAfter: countBefore, delta: 0 };
       }
 
-      // 予約候補にチェックを入れる。チェックボックス（name="list_chkbox"）は絶対配置で actionable
-      // でなく Playwright の .check() が効かないため、DOM 上で checked=true を直接セットする。
-      const selInfo = await this.page.evaluate(() => {
-        const boxes = document.querySelectorAll('input[name="list_chkbox"][type="checkbox"]');
-        boxes.forEach((b) => {
+      // (3) 予約対象の選択と受取館を、サイトの機構どおりに hidden フィールドへ直接セットする。
+      // サイト仕様（実HTML解析で判明）:
+      //   - 予約対象はチェックボックス（name="list_chkbox"）の checked ではなく、hidden の
+      //     list_chk_paging（カンマ区切りの資料ID）＋ schkflg='check' でサーバへ伝わる。
+      //     以前は list_chkbox に checked=true と change イベントを送っていたが、実際の選択更新は
+      //     onclick="list_chkClick" が list_chk_paging を書き換える仕組みで、change では発火せず、
+      //     結果として schkflg が未設定のまま送られ「予約中 N→N で増加なし」になっていた（今回の不具合）。
+      //   - 受取館は select(receivename) と hidden returnValue に value をセットする（returnValue が正）。
+      // ここでは selectAll() 相当を JS で行い、submitFlg ガードのある exec() を介さず直接 submit する。
+      const expected = await this.page.evaluate((bv) => {
+        const f = document.LBForm;
+        const boxes = Array.from(document.querySelectorAll('input[name="list_chkbox"][type="checkbox"]'));
+        const ids = boxes.map((b) => {
           b.checked = true;
-          b.dispatchEvent(new Event("change", { bubbles: true }));
+          return b.value;
         });
-        return { count: boxes.length };
-      });
-      this.reservedItemCount = Math.max(selInfo?.count ?? 0, 1); // 期待成立冊数（後段の照合に使う）
-      await this.page.waitForTimeout(300);
+        if (f.list_chk_paging) f.list_chk_paging.value = ids.join(",");
+        if (f.schkflg) f.schkflg.value = "check";
+        if (f.allschkflg) f.allschkflg.value = "check";
+        const all = document.getElementById("all_chk");
+        if (all) all.checked = true;
+        if (f.receivename) f.receivename.value = bv;
+        if (f.returnValue) f.returnValue.value = bv;
+        return ids.length;
+      }, branchVal);
+      this.reservedItemCount = Math.max(expected ?? 0, 1); // 期待成立冊数（後段の照合に使う）
       await this.shot("reserve-branch-set");
 
-      // 予約確定。「予約する」ボタンの onclick=exec() は「if(submitFlg){...}」で守られており、
-      // 連絡方法の選択（selectyoyrak）でカートが再描画されると返却ページは submitFlg=false のため、
-      // ボタンを押しても何も起きない（空振り）。そこでボタンに頼らず、exec() の実体
-      // （checkFlag → action=WOpacSmtYoyCartExecAction.do → submit）を JS で直接実行して確定する。
+      // (4) 予約確定。「予約する」ボタンの onclick=exec() は「if(submitFlg){...}」で守られており、
+      // 連絡方法の選択（selectyoyrak）でカートが再描画されると submitFlg=false のため空振りする。
+      // そこでボタンに頼らず、exec() の実体（action=WOpacSmtYoyCartExecAction.do → submit）を
+      // 直接実行し、その遷移を待って結果ページを受ける。
       await this.politeWait();
-      await this.page
-        .evaluate(() => {
-          try {
-            // eslint-disable-next-line no-undef
-            if (typeof checkFlag === "function") checkFlag();
-          } catch (e) {
-            /* ignore */
-          }
-          document.LBForm.action = "WOpacSmtYoyCartExecAction.do";
-          document.LBForm.submit();
-        })
-        .catch(() => {
-          /* submit によるナビゲーションで context 破棄されることがある。下の待機で受ける */
-        });
-      await this.page.waitForLoadState("domcontentloaded").catch(() => {});
+      await Promise.all([
+        this.page.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 20000 }).catch(() => {}),
+        this.page
+          .evaluate(() => {
+            document.LBForm.action = "WOpacSmtYoyCartExecAction.do";
+            document.LBForm.submit();
+          })
+          .catch(() => {
+            /* submit によるナビゲーションで context 破棄されることがある。上の待機で受ける */
+          }),
+      ]);
       await this.page.waitForTimeout(1000);
       await this.shot("reserve-confirm");
 
@@ -579,8 +587,10 @@ export class Opac {
         if (await finalBtn.isVisible({ timeout: 4000 }).catch(() => false)) {
           await this.politeWait();
           // 確定ボタンのクリックは遷移中タイムアウトで全体を中断させない（増分判定にフォールバック）
-          await finalBtn.click({ timeout: 8000 }).catch(() => {});
-          await this.page.waitForLoadState("domcontentloaded").catch(() => {});
+          await Promise.all([
+            this.page.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 15000 }).catch(() => {}),
+            finalBtn.click({ timeout: 8000 }).catch(() => {}),
+          ]);
           await this.page.waitForTimeout(1000);
           await this.shot("reserve-done");
           done = (await this.page.textContent("body")) || "";
@@ -591,29 +601,20 @@ export class Opac {
         throw new Error("セッション切れ（予約確定前にログイン画面が表示された）");
       }
 
-      // 成立判定:
-      // 予約実行（WOpacSmtYoyCartExecAction）の結果ページ本文に「予約中 N 件予約されています」が
-      // 表示されるので、予約前の冊数（countBefore＝ログイン時に予約一覧から算出）と比べ、増えていれば
-      // 成立とする。これがこのサイトで最も確実。
-      //   - #stat-resv の数値は取れず null になり不安定。
-      //   - 予約直後に予約状況一覧を開くと #stat-resv の無い画面ではトップ遷移でログアウトし空になる。
-      //   - カートの残件数は成立後も対象が表示に残ることがあり誤判定するため使わない（実測）。
+      // 成立判定（最重要・過去に誤判定でトラブル多発）:
+      // exec 直後の返却ページは「予約カート」の再描画で、ヘッダの「予約中 N 件」は stale な値を返す
+      // （実測: 実際は成立しているのに古い件数のまま）。また予約状況一覧へ遷移すると（トップ経由で）
+      // ログアウトし空になる。したがって exec 直後のページでは成立を確実に判定できない。
+      // → ここでは submit の実行と結果ページの文言だけを返し、成立の確定は呼び出し側が
+      //   「新規ログインでの予約一覧照合」で冊単位に行う（scripts/verify-reservations.mjs と同じ確実な方法）。
       const textOk = /受付|完了|予約しました|予約を受け付け/.test(done);
-      const hasError = /予約の?上限|これ以上予約|予約できません|受け付けられません|エラーが/.test(done);
-      const afterMatch = done.match(/予約中\s*(\d+)\s*件/);
-      const countAfter = afterMatch ? Number(afterMatch[1]) : null;
-      const delta = countBefore != null && countAfter != null ? countAfter - countBefore : null;
+      const hasError = /予約の?上限|これ以上予約|予約できません|受け付けられません/.test(done);
       await this.shot("reserve-verify");
-      const ok = (delta != null && delta > 0) || (delta == null && textOk);
-      if (!ok) {
-        const detail = hasError
-          ? done.match(/.{0,40}(上限|予約できません|受け付けられません|エラー).{0,20}/)?.[0]?.trim() ?? "画面参照"
-          : delta != null
-          ? `予約中 ${countBefore}→${countAfter} 冊で増加なし（未成立）`
-          : "成立を確認できず（スクショ参照）";
-        return { ok: false, message: `予約が成立しませんでした: ${detail}`, countBefore, countAfter, delta };
-      }
-      return { ok: true, message: `予約完了（予約中 ${countBefore ?? "?"}→${countAfter ?? "?"} 冊）`, countBefore, countAfter, delta };
+      const resultPageOk = textOk && !hasError;
+      const message = hasError
+        ? `結果ページにエラー文言: ${done.match(/.{0,40}(上限|予約できません|受け付けられません).{0,20}/)?.[0]?.trim() ?? "上限等"}`
+        : "予約申し込みを送信（成立は新規ログインの予約一覧照合で確定）";
+      return { ok: resultPageOk, message, resultPageOk, hasError, expected: this.reservedItemCount };
     } catch (err) {
       await this.fail(`reserveCart`, err);
     }

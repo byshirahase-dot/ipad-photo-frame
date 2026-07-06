@@ -55,6 +55,54 @@
       "note": "連絡方法メールで予約（検証OK）",
       "source": "list",
       "date": "2026-07-05"
+    },
+    {
+      "title": "きつねとねずみ",
+      "author": "ビアンキ 山田三郎・絵",
+      "status": "reserved",
+      "note": "実サイトで[待ち]確認済み（7/6の予約は実際は成立していたが検出バグで未記録だった分を訂正）",
+      "source": "list",
+      "date": "2026-07-06"
+    },
+    {
+      "title": "こいぬがうまれるよ",
+      "author": "コール ウェクスラー・写真",
+      "status": "reserved",
+      "note": "実サイトで[待ち]確認済み（検出バグ分の訂正）",
+      "source": "list",
+      "date": "2026-07-06"
+    },
+    {
+      "title": "わたし",
+      "author": "谷川俊太郎 長新太・絵",
+      "status": "failed",
+      "note": "所蔵なし",
+      "source": "list",
+      "date": "2026-07-06"
+    },
+    {
+      "title": "わたしのワンピース",
+      "author": "にしまきかやこ",
+      "status": "reserved",
+      "note": "実サイトで[待ち]確認済み（検出バグ分の訂正）",
+      "source": "list",
+      "date": "2026-07-06"
+    },
+    {
+      "title": "ぼくとおとうさん",
+      "author": "宮本忠夫",
+      "status": "reserved",
+      "note": "検出修正の検証中に予約成立（実サイトで[待ち]確認済み）",
+      "source": "list",
+      "date": "2026-07-06"
+    },
+    {
+      "title": "ぼくとおかあさん",
+      "author": "宮本忠夫",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-07-06"
     }
   ]
 }
