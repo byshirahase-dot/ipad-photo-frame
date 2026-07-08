@@ -19,6 +19,7 @@ for a in "$@"; do
     --limit=*) ARGS+=("$a") ;;
     --tick) TICK=1 ;;
     --reset) ARGS+=("--reset") ;;
+    --title=*|--author=*) ARGS+=("$a") ;;
     *) echo "不明なオプション: $a" >&2; exit 1 ;;
   esac
 done

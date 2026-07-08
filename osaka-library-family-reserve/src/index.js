@@ -19,11 +19,13 @@ function parseArgs(argv) {
     else if (a === "--plan-only") { args.planOnly = true; args.dryRun = true; }
     else if (a.startsWith("--account=")) args.accounts.push(a.split("=")[1]);
     else if (a.startsWith("--limit=")) args.limit = Number(a.split("=")[1]);
+    else if (a.startsWith("--title=")) args.title = a.slice("--title=".length);
+    else if (a.startsWith("--author=")) args.author = a.slice("--author=".length);
   }
   return args;
 }
 
-async function runAccount({ id, account, cfg, dryRun, planOnly, limit, pendingSeries, logRoot }) {
+async function runAccount({ id, account, cfg, dryRun, planOnly, limit, adhoc, pendingSeries, logRoot }) {
   const section = {
     accountId: id,
     name: account.name,
@@ -48,7 +50,14 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, pendingSe
   let queue = null;
   let plan = null;
 
-  if (account.mode === "kumon") {
+  if (adhoc) {
+    // 単発予約モード: 「この本を◯◯のアカウントで予約して」用。進度・キューには触れない
+    if (ledger.has(adhoc.title)) {
+      section.skippedReason = `「${adhoc.title}」は台帳に記録済み（予約済み・処理済み）です`;
+      return section;
+    }
+    picks = [{ title: adhoc.title, author: adhoc.author ?? "", from: "adhoc" }];
+  } else if (account.mode === "kumon") {
     const flat = flatten(loadKumonList(), cfg.levelOrder);
     progress = new Progress(id, account.startProgress);
     // 消化（shift）や展開（push）は計画段階で起きるが、予約が実際に成立するまで
@@ -147,7 +156,7 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, pendingSe
       section.requeued.push({ title: entry.title, state: s.state });
       if (!dryRun) {
         ledger.markExpired(entry, `予約${s.state}（期限切れ・延滞ペナルティ等）のため再予約対象に戻した`);
-        if (account.mode === "kumon") {
+        if (account.mode === "kumon" && queue) {
           queue.unshift({ title: entry.title, author: entry.author ?? "", from: "requeue:予約取消" });
         } else if (section.momQueue) {
           section.momQueue.items.unshift({ title: entry.title, author: entry.author ?? "", reason: "予約取消の再予約" });
@@ -175,7 +184,8 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, pendingSe
         : [];
       if (!candidates.length) {
         section.failed.push({ title: pick.title, note: "所蔵なし・検索ヒットなし" });
-        if (!dryRun) {
+        // 単発予約(adhoc)の失敗は台帳に残さない（タイトルを直して再依頼できるように）
+        if (!dryRun && pick.from !== "adhoc") {
           ledger.add({ title: pick.title, author: pick.author ?? "", status: "failed", note: "所蔵なし", source: pick.from });
           if (pick.advanceTo) cursor = pick.advanceTo;
         }
@@ -264,7 +274,7 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, pendingSe
   // batchOk でないとき（予約失敗・実行中断）は進度もキューも一切書き換えない。対象の本は
   // 翌週そのまま再試行される（台帳記録済みの所蔵なし等は ledger.has で自動スキップ）。
   if (!dryRun) {
-    if (account.mode === "kumon") {
+    if (account.mode === "kumon" && !adhoc) {
       if (batchOk) {
         if (cursor) progress.set(cursor.level, cursor.position);
         // --limit は planWeek が消化した一部の pick だけを処理するため、キュー消化を確定すると
@@ -299,6 +309,10 @@ async function main() {
       process.exit(1);
     }
   }
+  if (args.title && ids.length !== 1) {
+    console.error("--title の単発予約は --account=xxx でアカウントを1つ指定してください");
+    process.exit(1);
+  }
 
   const logRoot = path.join(ROOT, "logs", todayStr());
   const pendingSeries = [];
@@ -314,6 +328,7 @@ async function main() {
       dryRun: args.dryRun,
       planOnly: args.planOnly,
       limit: args.limit ?? 0,
+      adhoc: args.title ? { title: args.title, author: args.author } : null,
       pendingSeries,
       logRoot,
     });
