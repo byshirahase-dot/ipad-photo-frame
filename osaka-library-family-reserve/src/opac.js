@@ -322,8 +322,9 @@ export class Opac {
       for (let i = 0; i < n; i++) {
         const t = (await rows.nth(i).locator(".title").first().textContent().catch(() => ""))?.trim();
         const w = (await rows.nth(i).locator(".writer").first().textContent().catch(() => ""))?.trim();
+        const p = (await rows.nth(i).locator(".publisher").first().textContent().catch(() => ""))?.trim();
         const href = (await rows.nth(i).getAttribute("href").catch(() => "")) || "";
-        if (t) results.push({ index: i, title: t, author: w, href });
+        if (t) results.push({ index: i, title: t, author: w, publisher: p, href });
       }
       return results;
     } catch (err) {
@@ -637,7 +638,16 @@ export class Opac {
  * 検索結果を予約候補順に並べる。
  * 完全一致 > 前方一致 > 部分一致。特殊版らしきもの（大型絵本・紙芝居等）は後回し。
  */
-export function rankResults(results, wantedTitle, limit = 3, preferBunko = false) {
+/** 出版社名の表記ゆれを吸収して比較する（NFKC正規化・空白除去・部分一致） */
+export function publisherMatches(rowPublisher, expected) {
+  const norm = (s) => String(s ?? "").normalize("NFKC").replace(/[\s　・]/g, "").toLowerCase();
+  const a = norm(rowPublisher);
+  const b = norm(expected);
+  if (!a || !b) return false;
+  return a === b || a.includes(b) || b.includes(a);
+}
+
+export function rankResults(results, wantedTitle, limit = 3, preferBunko = false, expectedPublisher = null) {
   const norm = (s) => String(s).replace(/[\s　]/g, "").toLowerCase();
   const w = norm(wantedTitle);
   const special = /大型|紙芝居|点字|デイジー|カセット|大活字|DVD|CD/;
@@ -653,6 +663,13 @@ export function rankResults(results, wantedTitle, limit = 3, preferBunko = false
     // 母は同名書籍で文庫版があれば文庫を優先（単行本の完全一致より上に来るよう加点）
     if (preferBunko && /文庫/.test(`${r.title} ${r.writer ?? ""}`)) score += 50;
     scored.push({ ...r, score });
+  }
+  // 出版社指定あり（公文リスト＝正）: 一致する候補があればそれだけを使う。
+  // 一致ゼロなら空を返す（別の版を勝手に予約しない。呼び出し側が理由つきで見送る）
+  if (expectedPublisher) {
+    const matched = scored.filter((r) => publisherMatches(r.publisher, expectedPublisher));
+    matched.sort((a, b) => b.score - a.score || a.index - b.index);
+    return matched.slice(0, limit);
   }
   scored.sort((a, b) => b.score - a.score || a.index - b.index);
   return scored.slice(0, limit);

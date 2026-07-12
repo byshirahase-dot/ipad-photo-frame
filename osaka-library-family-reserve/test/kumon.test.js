@@ -173,6 +173,19 @@ test("週4冊 = シリーズ2冊＋リスト2冊（シリーズ枠は週2冊ま�
   );
 });
 
+test("出版社指定: 一致する版だけが候補になり、無ければ空（別版を予約しない）", async () => {
+  const { rankResults } = await import("../src/opac.js");
+  const results = [
+    { index: 0, title: "注文の多い料理店", publisher: "ミキハウス", href: "a" },      // 絵本版
+    { index: 1, title: "注文の多い料理店", publisher: "講談社", href: "b" },          // リスト指定版
+    { index: 2, title: "注文の多い料理店 大型絵本", publisher: "講談社", href: "c" },
+  ];
+  const cands = rankResults(results, "注文の多い料理店", 3, false, "講談社");
+  assert.deepEqual(cands.map((c) => c.index), [1, 2]); // 講談社のみ・完全一致が先
+  const none = rankResults(results, "注文の多い料理店", 3, false, "岩波書店");
+  assert.equal(none.length, 0);
+});
+
 test("advanceTo: 各pickは自分の次のリスト位置を指す（中断時の取りこぼし防止）", () => {
   const { picks } = planWeek({
     flat: sampleFlat(),

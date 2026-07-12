@@ -178,14 +178,22 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, adhoc, pe
         continue;
       }
       const results = await opac.searchTitle(pick.title);
-      // 母（recommend）は同名なら文庫版を優先して予約する（ユーザー指定）
+      // 母（recommend）は同名なら文庫版を優先して予約する（ユーザー指定）。
+      // 公文リストの本は出版社もリストと一致する版だけを予約する（ユーザー指定・リスト＝正）
       const candidates = results?.length
-        ? rankResults(results, pick.title, 3, account.mode === "recommend")
+        ? rankResults(results, pick.title, 3, account.mode === "recommend", pick.publisher || null)
         : [];
       if (!candidates.length) {
-        section.failed.push({ title: pick.title, note: "所蔵なし・検索ヒットなし" });
-        // 単発予約(adhoc)の失敗は台帳に残さない（タイトルを直して再依頼できるように）
-        if (!dryRun && pick.from !== "adhoc") {
+        const pubMismatch = !!(results?.length && pick.publisher);
+        const note = pubMismatch
+          ? `リスト指定の出版社（${pick.publisher}）の版が見つからない（CSVの出版社表記を要確認）`
+          : "所蔵なし・検索ヒットなし";
+        section.failed.push({ title: pick.title, note });
+        // 台帳に記録するのは真の所蔵なしのみ。
+        // - adhoc の失敗は記録しない（タイトルを直して再依頼できるように）
+        // - 出版社不一致は表記ゆれの可能性があるため記録せず、翌週自動リトライ
+        //   （CSV側の表記を直せば解消する。毎週レポートに出るので放置されない）
+        if (!dryRun && pick.from !== "adhoc" && !pubMismatch) {
           ledger.add({ title: pick.title, author: pick.author ?? "", status: "failed", note: "所蔵なし", source: pick.from });
           if (pick.advanceTo) cursor = pick.advanceTo;
         }

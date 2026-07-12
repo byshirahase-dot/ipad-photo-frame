@@ -3,10 +3,11 @@
     {
       "title": "注文の多い料理店",
       "author": "宮沢賢治 太田大八・絵",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "版違い（別出版社の絵本版）を予約していたため、講談社版を再予約する",
       "source": "list",
-      "date": "2026-07-05"
+      "date": "2026-07-05",
+      "expiredDate": "2026-07-12"
     },
     {
       "title": "空気がなくなる日",

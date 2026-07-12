@@ -3,10 +3,29 @@ import path from "node:path";
 import { ROOT } from "./config.js";
 import { Ledger } from "./state.js";
 
+/** ダブルクォート対応の簡易CSV行パーサ */
+function parseCsvLine(line) {
+  const out = [];
+  let cur = "";
+  let inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQ) {
+      if (ch === '"') {
+        if (line[i + 1] === '"') { cur += '"'; i++; } else inQ = false;
+      } else cur += ch;
+    } else if (ch === '"') inQ = true;
+    else if (ch === ",") { out.push(cur); cur = ""; }
+    else cur += ch;
+  }
+  out.push(cur);
+  return out;
+}
+
 /**
  * data/kumon_list.csv を読む。
- * 形式: level,order,title,author  （ヘッダ行あり、UTF-8）
- * 掲載順 order は各レベル内で 1〜50。
+ * 形式: level,order,title,author,publisher  （ヘッダ行あり、UTF-8）
+ * 掲載順 order は各レベル内で 1〜50。publisher は予約する版の特定に使う（リスト＝正）。
  */
 export function loadKumonList(file = path.join(ROOT, "data", "kumon_list.csv")) {
   if (!fs.existsSync(file)) {
@@ -15,16 +34,14 @@ export function loadKumonList(file = path.join(ROOT, "data", "kumon_list.csv")) 
   const rows = [];
   const lines = fs.readFileSync(file, "utf8").split("\n").filter((l) => l.trim());
   for (const line of lines.slice(1)) {
-    // タイトルにカンマを含む場合に備え、先頭2列と末尾1列を固定で分割
-    const first = line.indexOf(",");
-    const second = line.indexOf(",", first + 1);
-    const last = line.lastIndexOf(",");
-    if (first < 0 || second < 0 || last <= second) continue;
+    const c = parseCsvLine(line.replace(/\r$/, ""));
+    if (c.length < 4) continue;
     rows.push({
-      level: line.slice(0, first).trim(),
-      order: Number(line.slice(first + 1, second).trim()),
-      title: line.slice(second + 1, last).trim().replace(/^"|"$/g, ""),
-      author: line.slice(last + 1).trim(),
+      level: c[0].trim(),
+      order: Number(c[1].trim()),
+      title: c[2].trim(),
+      author: (c[3] ?? "").trim(),
+      publisher: (c[4] ?? "").trim(),
     });
   }
   return rows;
@@ -88,10 +105,10 @@ export function planWeek({ flat, progress, queue, ledger, quota, seriesResolver,
       for (const v of series.volumes) {
         if (ledger.has(v.title)) continue;
         if (seriesTaken < seriesQuota && picks.length < quota) {
-          picks.push({ title: v.title, author: row.author, from: `series:${series.name}`, advanceTo });
+          picks.push({ title: v.title, author: row.author, publisher: row.publisher, from: `series:${series.name}`, advanceTo });
           seriesTaken += 1;
         } else {
-          rest.push({ title: v.title, author: row.author, from: `series:${series.name}` });
+          rest.push({ title: v.title, author: row.author, publisher: row.publisher, from: `series:${series.name}` });
         }
       }
       if (rest.length) queue.push(...rest);
