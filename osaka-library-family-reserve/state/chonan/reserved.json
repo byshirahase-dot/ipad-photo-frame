@@ -19,18 +19,20 @@
     {
       "title": "どうぞのいす",
       "author": "香山美子 柿本幸造・絵",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "list",
-      "date": "2026-07-05"
+      "date": "2026-07-05",
+      "expiredDate": "2026-07-13"
     },
     {
       "title": "マフィンおばさんのぱんや",
       "author": "竹林亜紀 河本祥子・絵",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "list",
-      "date": "2026-07-05"
+      "date": "2026-07-05",
+      "expiredDate": "2026-07-13"
     },
     {
       "title": "11ぴきのねことぶた",
@@ -39,6 +41,38 @@
       "note": "",
       "source": "series:11ぴきのねこ",
       "date": "2026-07-06"
+    },
+    {
+      "title": "11ぴきのねこふくろのなか",
+      "author": "馬場のぼる",
+      "status": "reserved",
+      "note": "",
+      "source": "series:11ぴきのねこ",
+      "date": "2026-07-13"
+    },
+    {
+      "title": "11ぴきのねことへんなねこ",
+      "author": "馬場のぼる",
+      "status": "reserved",
+      "note": "",
+      "source": "series:11ぴきのねこ",
+      "date": "2026-07-13"
+    },
+    {
+      "title": "ともだちや",
+      "author": "内田麟太郎 降矢なな・絵",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-07-13"
+    },
+    {
+      "title": "こんとあき",
+      "author": "林明子",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-07-13"
     }
   ]
 }

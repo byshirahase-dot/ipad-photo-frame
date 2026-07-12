@@ -19,34 +19,38 @@
     {
       "title": "バスでおでかけ",
       "author": "間瀬なおかた",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "list",
-      "date": "2026-07-05"
+      "date": "2026-07-05",
+      "expiredDate": "2026-07-13"
     },
     {
       "title": "どうぶつはやくちあいうえお",
       "author": "きしだえりこ かたやまけん・絵",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "list",
-      "date": "2026-07-05"
+      "date": "2026-07-05",
+      "expiredDate": "2026-07-13"
     },
     {
       "title": "ちいさなたまねぎさん",
       "author": "せなけいこ",
-      "status": "reserved",
-      "note": "予約一覧で[待ち]を確認（取消版との照合ミスによる誤expiredを訂正）",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "list",
-      "date": "2026-07-05"
+      "date": "2026-07-05",
+      "expiredDate": "2026-07-13"
     },
     {
       "title": "あおくんときいろちゃん",
       "author": "レオーニ 藤田圭雄・訳",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "list",
-      "date": "2026-07-05"
+      "date": "2026-07-05",
+      "expiredDate": "2026-07-13"
     },
     {
       "title": "まほうのコップ",
@@ -103,6 +107,38 @@
       "note": "",
       "source": "list",
       "date": "2026-07-06"
+    },
+    {
+      "title": "あいうえおばけだぞ",
+      "author": "五味太郎",
+      "status": "failed",
+      "note": "所蔵なし",
+      "source": "list",
+      "date": "2026-07-13"
+    },
+    {
+      "title": "ぼちぼちいこか",
+      "author": "セイラー グロスマン・絵",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-07-13"
+    },
+    {
+      "title": "ちびゴリラのちびちび",
+      "author": "ボーンスタイン いわたみみ・訳",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-07-13"
+    },
+    {
+      "title": "しろくまのパンツ",
+      "author": "tupera tupera",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-07-13"
     }
   ]
 }

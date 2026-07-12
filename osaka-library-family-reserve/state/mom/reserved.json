@@ -23,6 +23,22 @@
       "note": "予約一覧で既に[待ち]を確認（別途予約済み）。重複提案防止のため記録",
       "source": "mom-queue",
       "date": "2026-07-05"
+    },
+    {
+      "title": "パラ・スター Side 百花",
+      "author": "阿部暁子",
+      "status": "reserved",
+      "note": "",
+      "source": "mom-queue",
+      "date": "2026-07-13"
+    },
+    {
+      "title": "居るのはつらいよ",
+      "author": "東畑開人",
+      "status": "reserved",
+      "note": "",
+      "source": "mom-queue",
+      "date": "2026-07-13"
     }
   ]
 }
