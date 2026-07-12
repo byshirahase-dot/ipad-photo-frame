@@ -186,6 +186,15 @@ test("出版社指定: 一致する版だけが候補になり、無ければ空
   assert.equal(none.length, 0);
 });
 
+test("特殊資料のみの書誌を検出（点字付のみ→スキップ、図書あり→予約可）", async () => {
+  const { specialFormatOnly } = await import("../src/opac.js");
+  assert.equal(specialFormatOnly("所蔵館 中央 資料種別 点字付 帯出区分 禁帯出"), "点字付");
+  assert.equal(specialFormatOnly("資料種別 大型絵本 ... 資料種別 大型絵本"), "大型絵本");
+  assert.equal(specialFormatOnly("資料種別 図書 ... 資料種別 点字付"), null); // 混在は通常版があるのでOK
+  assert.equal(specialFormatOnly("資料種別 図書"), null);
+  assert.equal(specialFormatOnly("資料種別の記載なし"), null);
+});
+
 test("advanceTo: 各pickは自分の次のリスト位置を指す（中断時の取りこぼし防止）", () => {
   const { picks } = planWeek({
     flat: sampleFlat(),

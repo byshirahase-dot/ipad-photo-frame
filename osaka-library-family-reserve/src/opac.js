@@ -374,6 +374,12 @@ export class Opac {
       if (/この書誌は予約できません/.test(body)) {
         return { ok: false, notReservable: true, message: "予約不可の版（大型絵本・禁帯出等）" };
       }
+      // 点字・デイジー・大型絵本など特殊資料のみの書誌は予約しない（次の候補へ）。
+      // 例: 「こいぬがうまれるよ」は同じ福音館書店で点字付の書誌が別レコードで存在する
+      const special = specialFormatOnly(body);
+      if (special) {
+        return { ok: false, notReservable: true, message: `特殊資料のみの版（${special}）` };
+      }
       // 詳細ページの「カートに入れる」ボタン（inYoyCart）
       const addBtn = this.page
         .locator('input[value*="カートに入れる"], input[onclick*="inYoyCart"], button:has-text("カートに入れる")')
@@ -638,6 +644,18 @@ export class Opac {
  * 検索結果を予約候補順に並べる。
  * 完全一致 > 前方一致 > 部分一致。特殊版らしきもの（大型絵本・紙芝居等）は後回し。
  */
+/**
+ * 書誌詳細ページの本文から資料種別を調べ、所蔵が特殊資料（点字・デイジー・大型絵本・
+ * 紙芝居・大活字・AV資料等）**のみ**の場合はその種別名を返す（通常の図書があれば null）。
+ */
+export function specialFormatOnly(bodyText) {
+  const kinds = [...String(bodyText ?? "").matchAll(/資料種別\s*[:：]?\s*([^\s、]+)/g)].map((m) => m[1]);
+  if (!kinds.length) return null;
+  const special = /点字|デイジー|大型|紙芝居|大活字|カセット|マルチメディア|DVD|VHS|CD|布の絵本|電子/;
+  if (kinds.every((k) => special.test(k))) return [...new Set(kinds)].join("・");
+  return null;
+}
+
 /** 出版社名の表記ゆれを吸収して比較する（NFKC正規化・空白除去・部分一致） */
 export function publisherMatches(rowPublisher, expected) {
   const norm = (s) => String(s ?? "").normalize("NFKC").replace(/[\s　・]/g, "").toLowerCase();
