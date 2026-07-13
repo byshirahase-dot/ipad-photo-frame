@@ -346,7 +346,9 @@ async function main() {
     sections.push(section);
   }
 
-  const file = writeReport({ dryRun: args.dryRun, sections, pendingSeries });
+  // 単発予約は週次レポート（reports/日付.md）を上書きしないよう別ファイルに書く
+  const slug = args.title ? `adhoc-${todayStr()}` : null;
+  const file = writeReport({ dryRun: args.dryRun, sections, pendingSeries, slug });
   console.log(`\nレポート: ${path.relative(process.cwd(), file)}`);
 }
 

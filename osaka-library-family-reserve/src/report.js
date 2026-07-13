@@ -6,13 +6,17 @@ import { ROOT, ensureDir, todayStr } from "./config.js";
  * 実行結果を reports/YYYY-MM-DD.md に出力する。
  * アカウント別に分割実行しても1つのレポートにまとまるよう、同日のセクションは
  * キャッシュ（reports/.cache-日付.json）にマージしてから全体を再生成する。
+ *
+ * slug を渡すと reports/{slug}.md に書く（単発予約は "adhoc-日付" を渡し、
+ * 週次レポート reports/日付.md を上書きしないようにする）。
  */
-export function writeReport({ dryRun, sections, pendingSeries }) {
+export function writeReport({ dryRun, sections, pendingSeries, slug = null }) {
   const date = todayStr();
   ensureDir(path.join(ROOT, "reports"));
-  const file = path.join(ROOT, "reports", `${date}.md`);
+  const name = slug || date;
+  const file = path.join(ROOT, "reports", `${name}.md`);
 
-  const cacheFile = path.join(ROOT, "reports", `.cache-${date}.json`);
+  const cacheFile = path.join(ROOT, "reports", `.cache-${name}.json`);
   const cache = fs.existsSync(cacheFile)
     ? JSON.parse(fs.readFileSync(cacheFile, "utf8"))
     : { sections: {}, pendingSeries: [] };
@@ -25,7 +29,8 @@ export function writeReport({ dryRun, sections, pendingSeries }) {
   pendingSeries = cache.pendingSeries;
 
   const lines = [];
-  lines.push(`# 図書館予約レポート ${date}${dryRun ? "（ドライラン）" : ""}`, "");
+  const heading = slug ? `図書館 単発予約レポート ${date}` : `図書館予約レポート ${date}`;
+  lines.push(`# ${heading}${dryRun ? "（ドライラン）" : ""}`, "");
 
   for (const s of sections) {
     lines.push(`## ${s.name}（${s.accountId} / ${s.mode}）`, "");
