@@ -15,7 +15,8 @@
       "weeklyQuota": 4,
       "envCard": "OML_CARD_CHOJO",
       "envPass": "OML_PASS_CHOJO",
-      "startProgress": { "level": "E", "position": 1 }
+      "startProgress": { "level": "E", "position": 1 },
+      "ehonnaviAge": "6"
     },
     "chonan": {
       "name": "長男",
@@ -24,7 +25,8 @@
       "weeklyQuota": 4,
       "envCard": "OML_CARD_CHONAN",
       "envPass": "OML_PASS_CHONAN",
-      "startProgress": { "level": "A", "position": 11 }
+      "startProgress": { "level": "A", "position": 11 },
+      "ehonnaviAge": "5"
     },
     "jinan": {
       "name": "次男",
@@ -33,11 +35,13 @@
       "weeklyQuota": 4,
       "envCard": "OML_CARD_JINAN",
       "envPass": "OML_PASS_JINAN",
-      "startProgress": { "level": "3A", "position": 1 }
+      "startProgress": { "level": "3A", "position": 1 },
+      "ehonnaviAge": "3"
     }
   },
   "levelOrder": ["5A", "4A", "3A", "2A", "A", "B", "C", "D", "E", "F", "G", "H", "I"],
   "seriesPerWeek": 2,
+  "ehonnaviPerWeek": 1,
   "opac": {
     "baseUrl": "https://www.oml.city.osaka.lg.jp/licsxp-opac",
     "requestIntervalMs": 5000,

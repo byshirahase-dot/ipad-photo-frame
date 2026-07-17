@@ -1,7 +1,7 @@
 import path from "node:path";
 import { ROOT, loadDotEnv, loadAccountsConfig, credentialsFor, todayStr, ensureDir } from "./config.js";
 import { Ledger, Progress, Queue, readMomQueue, writeMomQueue, recordMomRecommended } from "./state.js";
-import { loadKumonList, flatten, planWeek } from "./kumon.js";
+import { loadKumonList, flatten, planWeek, loadEhonnaviList } from "./kumon.js";
 import { makeSeriesResolver } from "./series.js";
 import { Opac, rankResults } from "./opac.js";
 import { writeReport } from "./report.js";
@@ -67,10 +67,14 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, adhoc, pe
     // シリーズ続巻が失われる不具合があったため。
     queue = new Queue(id, { persist: false });
     const resolver = makeSeriesResolver({ pendingSeries, persist: !dryRun });
+    // 絵本ナビ枠（年齢帯で絞ったリスト）。account.ehonnaviAge が無ければ枠なし
+    const ehonnaviList = account.ehonnaviAge != null ? loadEhonnaviList(account.ehonnaviAge) : [];
     plan = planWeek({
       flat, progress, queue, ledger, quota,
       seriesResolver: resolver,
       seriesPerWeek: cfg.seriesPerWeek ?? 2,
+      ehonnaviList,
+      ehonnaviPerWeek: account.ehonnaviPerWeek ?? cfg.ehonnaviPerWeek ?? 0,
     });
     picks = plan.picks;
   } else {

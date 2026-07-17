@@ -47,6 +47,30 @@ export function loadKumonList(file = path.join(ROOT, "data", "kumon_list.csv")) 
   return rows;
 }
 
+/**
+ * data/ehonnavi_list.csv を読む。形式: age,order,title,author,publisher（ヘッダあり）。
+ * age は年齢帯（"0"〜"6"、"小学" 等の文字列）。ageBand を渡すと該当帯だけを order 順で返す。
+ * ファイルが無ければ空配列（＝絵本ナビ枠なしで通常運用）。
+ */
+export function loadEhonnaviList(ageBand = null, file = path.join(ROOT, "data", "ehonnavi_list.csv")) {
+  if (!fs.existsSync(file)) return [];
+  const rows = [];
+  const lines = fs.readFileSync(file, "utf8").split("\n").filter((l) => l.trim());
+  for (const line of lines.slice(1)) {
+    const c = parseCsvLine(line.replace(/\r$/, ""));
+    if (c.length < 3) continue;
+    rows.push({
+      age: c[0].trim(),
+      order: Number(c[1].trim()) || 0,
+      title: c[2].trim(),
+      author: (c[3] ?? "").trim(),
+      publisher: (c[4] ?? "").trim(),
+    });
+  }
+  const filtered = ageBand == null ? rows : rows.filter((r) => r.age === String(ageBand));
+  return filtered.sort((a, b) => a.order - b.order);
+}
+
 /** リストをレベル順・掲載順に一次元化し、(level, position) から線形に辿れるようにする */
 export function flatten(rows, levelOrder) {
   const sorted = [...rows].sort((a, b) => {
@@ -67,11 +91,25 @@ export function indexOfProgress(flat, { level, position }) {
  * 残りの枠はリストの現在位置から埋める（同じシリーズばかりにならないように）。
  * 台帳(Ledger)にある本はスキップ。返り値の nextProgress はリスト消化後の新カーソル。
  */
-export function planWeek({ flat, progress, queue, ledger, quota, seriesResolver, seriesPerWeek = 2 }) {
+export function planWeek({
+  flat, progress, queue, ledger, quota, seriesResolver, seriesPerWeek = 2,
+  ehonnaviList = [], ehonnaviPerWeek = 0,
+}) {
   const picks = [];
   const skipped = [];
   const seriesQuota = Math.min(seriesPerWeek, quota);
   let seriesTaken = 0;
+
+  // 0) 絵本ナビ枠（週 ehonnaviPerWeek 冊まで。年齢帯で絞ったリストを先頭から、台帳にない本を取る）
+  //    絵本ナビは進度カーソルを持たない: 予約/処理済みは台帳(ledger)で自動的にスキップされるため、
+  //    毎週「まだ手をつけていない次の本」が自然に選ばれる。くもんと重複する本も台帳で二重予約を防ぐ。
+  let ehonnaviTaken = 0;
+  for (const b of ehonnaviList) {
+    if (ehonnaviTaken >= ehonnaviPerWeek || picks.length >= quota) break;
+    if (ledger.has(b.title)) continue;
+    picks.push({ title: b.title, author: b.author ?? "", publisher: b.publisher ?? "", from: "ehonnavi" });
+    ehonnaviTaken += 1;
+  }
 
   // 1) 持ち越しキュー（シリーズの続巻）からシリーズ枠ぶんだけ
   while (seriesTaken < seriesQuota && queue.length > 0) {

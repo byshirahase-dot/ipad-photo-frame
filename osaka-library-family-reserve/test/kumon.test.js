@@ -186,6 +186,47 @@ test("出版社指定: 一致する版だけが候補になり、無ければ空
   assert.equal(none.length, 0);
 });
 
+test("絵本ナビ枠: 週1冊が先頭に入り、残りはくもん/シリーズで埋まる（合計quota）", () => {
+  const ehonnaviList = [
+    { title: "絵本ナビ本A", author: "著者A", publisher: "出版A" },
+    { title: "絵本ナビ本B", author: "著者B", publisher: "出版B" },
+  ];
+  const { picks } = planWeek({
+    flat: sampleFlat(),
+    progress: fakeProgress("3A", 1),
+    queue: fakeQueue(),
+    ledger: fakeLedger(),
+    quota: 4,
+    seriesResolver: null,
+    ehonnaviList,
+    ehonnaviPerWeek: 1,
+  });
+  assert.equal(picks.length, 4);
+  assert.equal(picks[0].from, "ehonnavi");
+  assert.equal(picks[0].title, "絵本ナビ本A");
+  // 残り3冊はくもんリスト（サンプル3Aの先頭3冊）から
+  assert.equal(picks.filter((p) => p.from === "ehonnavi").length, 1);
+  assert.equal(picks.filter((p) => p.from === "list").length, 3);
+});
+
+test("絵本ナビ: 予約済み(台帳)の本はスキップして次の絵本ナビ本を選ぶ", () => {
+  const ehonnaviList = [
+    { title: "絵本ナビ本A", publisher: "出版A" },
+    { title: "絵本ナビ本B", publisher: "出版B" },
+  ];
+  const { picks } = planWeek({
+    flat: sampleFlat(),
+    progress: fakeProgress("3A", 1),
+    queue: fakeQueue(),
+    ledger: fakeLedger(["絵本ナビ本A"]),
+    quota: 4,
+    seriesResolver: null,
+    ehonnaviList,
+    ehonnaviPerWeek: 1,
+  });
+  assert.equal(picks[0].title, "絵本ナビ本B");
+});
+
 test("特殊資料のみの書誌を検出（点字付のみ→スキップ、図書あり→予約可）", async () => {
   const { specialFormatOnly } = await import("../src/opac.js");
   assert.equal(specialFormatOnly("所蔵館 中央 資料種別 点字付 帯出区分 禁帯出"), "点字付");
