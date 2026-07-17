@@ -16,7 +16,7 @@
       "envCard": "OML_CARD_CHOJO",
       "envPass": "OML_PASS_CHOJO",
       "startProgress": { "level": "E", "position": 1 },
-      "ehonnaviAge": "6"
+      "ehonnaviAge": "10"
     },
     "chonan": {
       "name": "長男",
@@ -26,7 +26,7 @@
       "envCard": "OML_CARD_CHONAN",
       "envPass": "OML_PASS_CHONAN",
       "startProgress": { "level": "A", "position": 11 },
-      "ehonnaviAge": "5"
+      "ehonnaviAge": "6"
     },
     "jinan": {
       "name": "次男",
