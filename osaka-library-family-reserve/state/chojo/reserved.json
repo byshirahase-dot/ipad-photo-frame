@@ -32,6 +32,46 @@
       "note": "予約一覧で成立確認（予約中カウント不安定による見送り誤判定を訂正）",
       "source": "list",
       "date": "2026-07-05"
+    },
+    {
+      "title": "ふしぎな木の実の料理法",
+      "author": "岡田淳",
+      "status": "reserved",
+      "note": "",
+      "source": "adhoc",
+      "date": "2026-07-19"
+    },
+    {
+      "title": "ユメミザクラの木の下で",
+      "author": "岡田淳",
+      "status": "reserved",
+      "note": "",
+      "source": "adhoc",
+      "date": "2026-07-19"
+    },
+    {
+      "title": "まよなかの魔女の秘密",
+      "author": "岡田淳",
+      "status": "reserved",
+      "note": "",
+      "source": "kosoado-batch",
+      "date": "2026-07-19"
+    },
+    {
+      "title": "森のなかの海賊船",
+      "author": "岡田淳",
+      "status": "reserved",
+      "note": "",
+      "source": "kosoado-batch",
+      "date": "2026-07-19"
+    },
+    {
+      "title": "あかりの木の魔法",
+      "author": "岡田淳",
+      "status": "reserved",
+      "note": "",
+      "source": "kosoado-batch",
+      "date": "2026-07-19"
     }
   ]
 }
