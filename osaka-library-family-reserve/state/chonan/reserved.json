@@ -19,20 +19,22 @@
     {
       "title": "どうぞのいす",
       "author": "香山美子 柿本幸造・絵",
-      "status": "expired",
-      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
+      "status": "borrowed",
+      "note": "受取済み・貸出中（借用済み）。取消復帰の誤判定を修正（2026-07-20）",
       "source": "list",
       "date": "2026-07-05",
-      "expiredDate": "2026-07-13"
+      "expiredDate": "2026-07-13",
+      "borrowedDate": "2026-07-20"
     },
     {
       "title": "マフィンおばさんのぱんや",
       "author": "竹林亜紀 河本祥子・絵",
-      "status": "expired",
-      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
+      "status": "borrowed",
+      "note": "受取済み・貸出中（借用済み）。取消復帰の誤判定を修正（2026-07-20）",
       "source": "list",
       "date": "2026-07-05",
-      "expiredDate": "2026-07-13"
+      "expiredDate": "2026-07-13",
+      "borrowedDate": "2026-07-20"
     },
     {
       "title": "11ぴきのねことぶた",
@@ -73,6 +75,38 @@
       "note": "",
       "source": "list",
       "date": "2026-07-13"
+    },
+    {
+      "title": "おこだでませんように",
+      "author": "くすのきしげのり",
+      "status": "reserved",
+      "note": "",
+      "source": "ehonnavi",
+      "date": "2026-07-20"
+    },
+    {
+      "title": "11ぴきのねこどろんこ",
+      "author": "馬場のぼる",
+      "status": "reserved",
+      "note": "",
+      "source": "series:11ぴきのねこ",
+      "date": "2026-07-20"
+    },
+    {
+      "title": "くまさぶろう",
+      "author": "もりひさし ユノセイイチ・絵",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-07-20"
+    },
+    {
+      "title": "おおはくちょうのそら",
+      "author": "手島圭三郎",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-07-20"
     }
   ]
 }

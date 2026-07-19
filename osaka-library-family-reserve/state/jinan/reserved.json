@@ -19,38 +19,42 @@
     {
       "title": "バスでおでかけ",
       "author": "間瀬なおかた",
-      "status": "expired",
-      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
+      "status": "borrowed",
+      "note": "受取済み・貸出中（借用済み）。取消復帰の誤判定を修正（2026-07-20）",
       "source": "list",
       "date": "2026-07-05",
-      "expiredDate": "2026-07-13"
+      "expiredDate": "2026-07-13",
+      "borrowedDate": "2026-07-20"
     },
     {
       "title": "どうぶつはやくちあいうえお",
       "author": "きしだえりこ かたやまけん・絵",
-      "status": "expired",
-      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
+      "status": "borrowed",
+      "note": "受取済み・貸出中（借用済み）。取消復帰の誤判定を修正（2026-07-20）",
       "source": "list",
       "date": "2026-07-05",
-      "expiredDate": "2026-07-13"
+      "expiredDate": "2026-07-13",
+      "borrowedDate": "2026-07-20"
     },
     {
       "title": "ちいさなたまねぎさん",
       "author": "せなけいこ",
-      "status": "expired",
-      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
+      "status": "borrowed",
+      "note": "受取済み・貸出中（借用済み）。取消復帰の誤判定を修正（2026-07-20）",
       "source": "list",
       "date": "2026-07-05",
-      "expiredDate": "2026-07-13"
+      "expiredDate": "2026-07-13",
+      "borrowedDate": "2026-07-20"
     },
     {
       "title": "あおくんときいろちゃん",
       "author": "レオーニ 藤田圭雄・訳",
-      "status": "expired",
-      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
+      "status": "borrowed",
+      "note": "受取済み・貸出中（借用済み）。取消復帰の誤判定を修正（2026-07-20）",
       "source": "list",
       "date": "2026-07-05",
-      "expiredDate": "2026-07-13"
+      "expiredDate": "2026-07-13",
+      "borrowedDate": "2026-07-20"
     },
     {
       "title": "まほうのコップ",
@@ -139,6 +143,38 @@
       "note": "",
       "source": "list",
       "date": "2026-07-13"
+    },
+    {
+      "title": "パンダ銭湯",
+      "author": "tupera tupera",
+      "status": "reserved",
+      "note": "",
+      "source": "ehonnavi",
+      "date": "2026-07-20"
+    },
+    {
+      "title": "ティッチ",
+      "author": "ハッチンス いしいももこ・訳",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-07-20"
+    },
+    {
+      "title": "14ひきのひっこし",
+      "author": "いわむらかずお",
+      "status": "reserved",
+      "note": "",
+      "source": "series:14ひきシリーズ",
+      "date": "2026-07-20"
+    },
+    {
+      "title": "14ひきのあさごはん",
+      "author": "いわむらかずお",
+      "status": "reserved",
+      "note": "",
+      "source": "series:14ひきシリーズ",
+      "date": "2026-07-20"
     }
   ]
 }

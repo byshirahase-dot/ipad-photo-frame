@@ -279,3 +279,23 @@ test("期限切れ予約は台帳から外れて再予約可能になる", async
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("借用済み(borrowed)は終端: 再予約もされず、取消復帰の対象にもならない", async () => {
+  const fs = await import("node:fs");
+  const dir = path.join(ROOT, "state", "_test_borrowed");
+  fs.rmSync(dir, { recursive: true, force: true });
+  try {
+    const led = new Ledger("_test_borrowed");
+    led.add({ title: "マフィンおばさんのぱんや", author: "竹林亜紀", status: "reserved" });
+    // 受取して借用中になった → borrowed（終了扱い）にする
+    const entry = led.findActiveReserved("マフィンおばさんのぱんや こどものとも");
+    assert.ok(entry);
+    led.markBorrowed(entry);
+    // has() は「済み」とみなす＝再予約しない（expired と違ってブロックが解除されない）
+    assert.ok(led.has("マフィンおばさんのぱんや"));
+    // findActiveReserved は reserved のみ対象＝borrowed は取消復帰で拾われない
+    assert.strictEqual(led.findActiveReserved("マフィンおばさんのぱんや こどものとも"), undefined);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

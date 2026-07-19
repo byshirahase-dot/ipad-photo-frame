@@ -140,23 +140,38 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, adhoc, pe
     let available = cfg.opac.reserveLimit - count;
     if (available < 0) available = 0;
 
-    // 取消された予約（＝借りられなかった本）を検出し、予約対象リストに戻す。
+    // 取消された予約を検出し、（借りられなかった本だけを）予約対象リストに戻す。
     // サイト仕様: 取り置き期限切れ・延滞ペナルティによる無効化は「取消」と表示されて一覧に残る。
-    // 利用者が手動で取り消したものは一覧から消えるため、残っている「取消」は借りられなかった本。
+    // 利用者が手動で取り消したものは一覧から消える。
+    // ★重要（2026-07-20修正）: 予約を受け取って**借りた**本も一覧では「取消」表示になり、
+    //   active な予約行も残らない。旧実装はこれを「借りられなかった本」と誤判定して再予約対象に
+    //   戻し、翌週「既に貸出中の書誌です。予約できません。」でカート全体を巻き添えにしていた。
+    //   → 貸出中一覧（listLoanTitles）と照合し、借用中の本は borrowed（終了扱い）にして戻さない。
+    const loanTitles = await opac.listLoanTitles();
+    const loanKeys = loanTitles.map((t) => Ledger.key(t));
     section.requeued = [];
+    section.fulfilled = [];
     for (const s of states) {
       if (!cancelledRe.test(s.state)) continue;
       const entry = ledger.findActiveReserved(s.title);
       if (!entry) continue; // 台帳に無い（このシステムの予約でない・処理済み）ものは無視
+      const entryKey = Ledger.key(entry.title);
       // 同じ本の有効な予約（待ち・用意等）が一覧に残っていれば、その「取消」行は再予約済みの
       // 残骸なので無視する。版の違い（例:「ちいさなたまねぎさん こどものくに傑作絵本 19」と
       // 「〜傑作絵本」）で完全一致しないことがあるため、台帳エントリ名を軸に部分一致で判定する。
-      const entryKey = Ledger.key(entry.title);
       const stillActive = activeStates.some((a) => {
         const ak = Ledger.key(a.title);
         return ak === entryKey || ak.includes(entryKey) || entryKey.includes(ak);
       });
       if (stillActive) continue;
+      // 借用中（受取済み）なら予約は成就している。再予約せず終了扱いにする。
+      const onLoan = loanKeys.some((lk) => lk === entryKey || lk.includes(entryKey) || entryKey.includes(lk));
+      if (onLoan) {
+        section.fulfilled.push({ title: entry.title });
+        if (!dryRun) ledger.markBorrowed(entry);
+        continue;
+      }
+      // 借用中でない「取消」＝取り置き期限切れ等で借りられなかった本 → 再予約対象へ戻す。
       section.requeued.push({ title: entry.title, state: s.state });
       if (!dryRun) {
         ledger.markExpired(entry, `予約${s.state}（期限切れ・延滞ペナルティ等）のため再予約対象に戻した`);
@@ -179,6 +194,18 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, adhoc, pe
     for (const pick of picks) {
       if (inCart.length >= available) {
         section.failed.push({ title: pick.title, note: "予約上限に達するため見送り" });
+        continue;
+      }
+      // 既に借りている本はカートに入れない（入れると「既に貸出中の書誌です」でカート全体が
+      // 巻き添えで確定失敗する）。借用中＝予約の必要なし。台帳に借用済みとして記録して進める。
+      const pk = Ledger.key(pick.title);
+      const alreadyOnLoan = loanKeys.some((lk) => lk === pk || lk.includes(pk) || pk.includes(lk));
+      if (alreadyOnLoan) {
+        section.fulfilled.push({ title: pick.title, note: "既に借用中のためスキップ" });
+        if (!dryRun && pick.from !== "adhoc" && !ledger.has(pick.title)) {
+          ledger.add({ title: pick.title, author: pick.author ?? "", status: "borrowed", note: "既に貸出中のためスキップ", source: pick.from });
+        }
+        if (pick.advanceTo) cursor = pick.advanceTo;
         continue;
       }
       const results = await opac.searchTitle(pick.title);

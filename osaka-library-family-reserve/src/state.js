@@ -56,6 +56,18 @@ export class Ledger {
     entry.expiredDate = todayStr();
     writeJson(this.file, this.data);
   }
+  /**
+   * 予約が受取済み（借用中）になった → 終了扱い（borrowed）にする。
+   * has() は borrowed を「済み」とみなす（再予約しない）が、findActiveReserved は
+   * reserved のみ対象なので取消復帰の対象からも外れる。
+   * サイト上で予約が「取消」表示でも実際は借りている本を二重予約しないための終端状態。
+   */
+  markBorrowed(entry, note = "受取済み・貸出中（借用済み）のため終了扱い") {
+    entry.status = "borrowed";
+    entry.note = note;
+    entry.borrowedDate = todayStr();
+    writeJson(this.file, this.data);
+  }
 }
 
 /** 公文リスト上の現在位置（レベル・何冊目か） */

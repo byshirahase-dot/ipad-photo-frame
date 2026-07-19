@@ -247,6 +247,44 @@ export class Opac {
     }
   }
 
+  /**
+   * 貸出中一覧のタイトル配列を取得（ログイン済み前提）。
+   * 予約が「取消」表示になっていても実は受取済み（借用中）だと、取消復帰で二重予約されるため、
+   * 借用中の本を判別するのに使う。予約一覧（listReservationStates）と同じUI構造で、
+   * ヘッダの貸出バー #stat-lent から遷移する。取得失敗は空配列（保守的に「借用中なし」扱い）。
+   */
+  async listLoanTitles() {
+    try {
+      const bar = this.page.locator("#stat-lent");
+      if (!(await bar.isVisible({ timeout: 2000 }).catch(() => false))) {
+        await this.politeWait();
+        await this.page.goto(`${this.baseUrl}/WOpacSmtMnuTopAction.do`, { waitUntil: "domcontentloaded" });
+      }
+      await this.politeWait();
+      if (await bar.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await bar.click();
+      } else {
+        await this.page.evaluate(() => {
+          // eslint-disable-next-line no-undef
+          toUsrLend(1);
+        });
+      }
+      await this.page.waitForLoadState("domcontentloaded").catch(() => {});
+      await this.page.waitForTimeout(600);
+      await this.shot("lent-list");
+      const rows = this.page.locator("div.layer-item");
+      const n = await rows.count();
+      const out = [];
+      for (let i = 0; i < n; i++) {
+        const title = (await rows.nth(i).locator(".title").first().textContent().catch(() => ""))?.trim();
+        if (title) out.push(title.replace(/\s+/g, " "));
+      }
+      return out;
+    } catch {
+      return [];
+    }
+  }
+
   // ---------- 検索 ----------
 
   /** 書名検索して結果一覧を返す: [{ index, title, author }] */

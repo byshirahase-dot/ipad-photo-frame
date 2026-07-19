@@ -1,24 +1,64 @@
 {
   "items": [
     {
-      "title": "あおくんときいろちゃん",
-      "author": "レオーニ 藤田圭雄・訳",
-      "from": "requeue:予約取消"
+      "title": "14ひきのやまいも",
+      "author": "いわむらかずお",
+      "publisher": "童心社",
+      "from": "series:14ひきシリーズ"
     },
     {
-      "title": "ちいさなたまねぎさん",
-      "author": "せなけいこ",
-      "from": "requeue:予約取消"
+      "title": "14ひきのさむいふゆ",
+      "author": "いわむらかずお",
+      "publisher": "童心社",
+      "from": "series:14ひきシリーズ"
     },
     {
-      "title": "どうぶつはやくちあいうえお",
-      "author": "きしだえりこ かたやまけん・絵",
-      "from": "requeue:予約取消"
+      "title": "14ひきのぴくにっく",
+      "author": "いわむらかずお",
+      "publisher": "童心社",
+      "from": "series:14ひきシリーズ"
     },
     {
-      "title": "バスでおでかけ",
-      "author": "間瀬なおかた",
-      "from": "requeue:予約取消"
+      "title": "14ひきのおつきみ",
+      "author": "いわむらかずお",
+      "publisher": "童心社",
+      "from": "series:14ひきシリーズ"
+    },
+    {
+      "title": "14ひきのせんたく",
+      "author": "いわむらかずお",
+      "publisher": "童心社",
+      "from": "series:14ひきシリーズ"
+    },
+    {
+      "title": "14ひきのあきまつり",
+      "author": "いわむらかずお",
+      "publisher": "童心社",
+      "from": "series:14ひきシリーズ"
+    },
+    {
+      "title": "14ひきのこもりうた",
+      "author": "いわむらかずお",
+      "publisher": "童心社",
+      "from": "series:14ひきシリーズ"
+    },
+    {
+      "title": "14ひきのかぼちゃ",
+      "author": "いわむらかずお",
+      "publisher": "童心社",
+      "from": "series:14ひきシリーズ"
+    },
+    {
+      "title": "14ひきのとんぼいけ",
+      "author": "いわむらかずお",
+      "publisher": "童心社",
+      "from": "series:14ひきシリーズ"
+    },
+    {
+      "title": "14ひきのもちつき",
+      "author": "いわむらかずお",
+      "publisher": "童心社",
+      "from": "series:14ひきシリーズ"
     }
   ]
 }
