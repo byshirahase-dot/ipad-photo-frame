@@ -75,10 +75,11 @@
     {
       "title": "こいぬがうまれるよ",
       "author": "コール ウェクスラー・写真",
-      "status": "reserved",
-      "note": "実サイトで[待ち]確認済み（検出バグ分の訂正）",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "list",
-      "date": "2026-07-06"
+      "date": "2026-07-06",
+      "expiredDate": "2026-07-27"
     },
     {
       "title": "わたし",
@@ -123,26 +124,29 @@
     {
       "title": "ぼちぼちいこか",
       "author": "セイラー グロスマン・絵",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "list",
-      "date": "2026-07-13"
+      "date": "2026-07-13",
+      "expiredDate": "2026-07-27"
     },
     {
       "title": "ちびゴリラのちびちび",
       "author": "ボーンスタイン いわたみみ・訳",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "list",
-      "date": "2026-07-13"
+      "date": "2026-07-13",
+      "expiredDate": "2026-07-27"
     },
     {
       "title": "しろくまのパンツ",
       "author": "tupera tupera",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "list",
-      "date": "2026-07-13"
+      "date": "2026-07-13",
+      "expiredDate": "2026-07-27"
     },
     {
       "title": "パンダ銭湯",
@@ -175,6 +179,38 @@
       "note": "",
       "source": "series:14ひきシリーズ",
       "date": "2026-07-20"
+    },
+    {
+      "title": "ぜったいにおしちゃダメ?",
+      "author": "ビル・コッター",
+      "status": "reserved",
+      "note": "",
+      "source": "ehonnavi",
+      "date": "2026-07-27"
+    },
+    {
+      "title": "14ひきのやまいも",
+      "author": "いわむらかずお",
+      "status": "reserved",
+      "note": "",
+      "source": "series:14ひきシリーズ",
+      "date": "2026-07-27"
+    },
+    {
+      "title": "14ひきのさむいふゆ",
+      "author": "いわむらかずお",
+      "status": "reserved",
+      "note": "",
+      "source": "series:14ひきシリーズ",
+      "date": "2026-07-27"
+    },
+    {
+      "title": "14ひきのおつきみ",
+      "author": "いわむらかずお",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-07-27"
     }
   ]
 }

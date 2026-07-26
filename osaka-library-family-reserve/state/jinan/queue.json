@@ -1,16 +1,24 @@
 {
   "items": [
     {
-      "title": "14ひきのやまいも",
-      "author": "いわむらかずお",
-      "publisher": "童心社",
-      "from": "series:14ひきシリーズ"
+      "title": "しろくまのパンツ",
+      "author": "tupera tupera",
+      "from": "requeue:予約取消"
     },
     {
-      "title": "14ひきのさむいふゆ",
-      "author": "いわむらかずお",
-      "publisher": "童心社",
-      "from": "series:14ひきシリーズ"
+      "title": "ちびゴリラのちびちび",
+      "author": "ボーンスタイン いわたみみ・訳",
+      "from": "requeue:予約取消"
+    },
+    {
+      "title": "ぼちぼちいこか",
+      "author": "セイラー グロスマン・絵",
+      "from": "requeue:予約取消"
+    },
+    {
+      "title": "こいぬがうまれるよ",
+      "author": "コール ウェクスラー・写真",
+      "from": "requeue:予約取消"
     },
     {
       "title": "14ひきのぴくにっく",

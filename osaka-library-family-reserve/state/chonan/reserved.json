@@ -47,34 +47,38 @@
     {
       "title": "11ぴきのねこふくろのなか",
       "author": "馬場のぼる",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "series:11ぴきのねこ",
-      "date": "2026-07-13"
+      "date": "2026-07-13",
+      "expiredDate": "2026-07-27"
     },
     {
       "title": "11ぴきのねことへんなねこ",
       "author": "馬場のぼる",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "series:11ぴきのねこ",
-      "date": "2026-07-13"
+      "date": "2026-07-13",
+      "expiredDate": "2026-07-27"
     },
     {
       "title": "ともだちや",
       "author": "内田麟太郎 降矢なな・絵",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "list",
-      "date": "2026-07-13"
+      "date": "2026-07-13",
+      "expiredDate": "2026-07-27"
     },
     {
       "title": "こんとあき",
       "author": "林明子",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "list",
-      "date": "2026-07-13"
+      "date": "2026-07-13",
+      "expiredDate": "2026-07-27"
     },
     {
       "title": "おこだでませんように",
@@ -107,6 +111,30 @@
       "note": "",
       "source": "list",
       "date": "2026-07-20"
+    },
+    {
+      "title": "しずくのぼうけん",
+      "author": "テルリコフスカ ブテンコ・絵",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-07-27"
+    },
+    {
+      "title": "おたまじゃくしの101ちゃん",
+      "author": "かこさとし",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-07-27"
+    },
+    {
+      "title": "みどりいろのたね",
+      "author": "たかどのほうこ 太田大八・絵",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-07-27"
     }
   ]
 }
