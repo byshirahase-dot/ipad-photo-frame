@@ -10,3 +10,7 @@ data/suisen.pdf
 state/_session_*.json
 state/_job.json
 reports/.cache-*.json
+
+# 単発予約（--title）の一時レポート。本当の記録は state/ の台帳＝コミット対象。
+# 失敗時の内容は古くなりやすいのでGit管理しない。
+reports/adhoc-*.md
