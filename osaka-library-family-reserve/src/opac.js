@@ -364,9 +364,57 @@ export class Opac {
         const href = (await rows.nth(i).getAttribute("href").catch(() => "")) || "";
         if (t) results.push({ index: i, title: t, author: w, publisher: p, href });
       }
+      // 検索が1件だけヒットするとOPACは結果一覧を出さず書誌詳細へ直行する（例: リトルバンパイア等、
+      // 巻タイトルがユニークな多巻もの）。一覧行(layer-doc)が0でも、開いている書誌詳細が予約可能なら
+      // それを単一ヒットとして返す（詳細で openResult を飛ばして直接カート投入させる）。
+      if (results.length === 0) {
+        const single = await this.#detailAsSingleResult(title);
+        if (single) results.push(single);
+      }
       return results;
     } catch (err) {
       await this.fail(`search:${title}`, err);
+    }
+  }
+
+  /**
+   * 検索が書誌詳細へ直行したときに、その詳細を単一ヒット {index:-1, onDetail:true, ...} として返す。
+   * 版の正しさは呼び出し側 rankResults の expectedPublisher（詳細から抽出した出版社）で担保し、
+   * 予約不可・特殊資料のみは addToCart 側でも弾かれる。title は検索語をそのまま採用する（OPACが
+   * 既にこの語で1件に絞り込んでいるため。詳細の表示名はシリーズ名等が混ざり rankResults の
+   * 部分一致を外すことがある）。判定できないときは null を返し、従来どおり「所蔵なし」で見送る（安全側）。
+   */
+  async #detailAsSingleResult(wantedTitle) {
+    try {
+      // 書誌詳細の指標: h2.title があり、かつ予約可能（inYoyCart のカートボタンがある）
+      const hasTitle = await this.page
+        .locator("h2.title")
+        .first()
+        .isVisible({ timeout: 2000 })
+        .catch(() => false);
+      if (!hasTitle) return null;
+      const body = (await this.page.textContent("body")) || "";
+      if (/この書誌は予約できません/.test(body)) return null;
+      const hasCart = await this.page
+        .locator('input[onclick*="inYoyCart"], input[value*="カートに入れる"], button:has-text("カートに入れる")')
+        .first()
+        .isVisible({ timeout: 2000 })
+        .catch(() => false);
+      if (!hasCart) return null;
+      // 出版社は書誌詳細の出版事項（dl.form.writer dd 内の出版者リンク）から取る。
+      // 取れなければ空にする（publisher 指定のある本は rankResults で除外され、安全側に倒れる）。
+      let publisher = (await this.page
+        .locator("dl.form.writer dd a")
+        .first()
+        .textContent()
+        .catch(() => ""))?.trim() || "";
+      if (!publisher) {
+        const ddText = (await this.page.locator("dl.form.writer dd").first().textContent().catch(() => "")) || "";
+        publisher = ddText.split(/[\s　]/).filter(Boolean)[0] || "";
+      }
+      return { index: -1, onDetail: true, title: wantedTitle, author: "", publisher, href: this.page.url() };
+    } catch {
+      return null;
     }
   }
 

@@ -233,7 +233,8 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, adhoc, pe
       // 予約不可の版（大型絵本等）は次の候補へフォールバック
       let add = null;
       for (let ci = 0; ci < candidates.length; ci++) {
-        await opac.openResult(candidates[ci].index);
+        // 検索が書誌詳細へ直行した単一ヒット（onDetail）は既に詳細を開いているので openResult を飛ばす
+        if (!candidates[ci].onDetail) await opac.openResult(candidates[ci].index);
         add = await opac.addToCart();
         if (!add || add.ok || !add.notReservable) break;
         if (ci < candidates.length - 1) await opac.backToResults();

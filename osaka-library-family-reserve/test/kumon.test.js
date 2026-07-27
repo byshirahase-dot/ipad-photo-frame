@@ -299,3 +299,19 @@ test("借用済み(borrowed)は終端: 再予約もされず、取消復帰の�
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// --- rankResults: 書誌詳細への直行(単一ヒット)フラグの通過を保証する ---
+// searchTitle が index:-1, onDetail:true の合成結果を返したとき、rankResults がそのフラグと
+// index を保持して返すこと（index.js が openResult を飛ばす判定に使う）を確認する。
+test("rankResults preserves onDetail single-hit flag and index", async () => {
+  const { rankResults } = await import("../src/opac.js");
+  const single = [{ index: -1, onDetail: true, title: "リトルバンパイア 1 リュディガーとアントン", author: "", publisher: "くもん出版", href: "http://x/detail" }];
+  // 出版社一致（くもん出版）→ 採用され、フラグ・index が保持される
+  const ok = rankResults(single, "リトルバンパイア 1 リュディガーとアントン", 3, false, "くもん出版");
+  assert.equal(ok.length, 1);
+  assert.equal(ok[0].onDetail, true);
+  assert.equal(ok[0].index, -1);
+  // 出版社不一致（別の版）→ 除外され安全側に倒れる（誤った版を予約しない）
+  const ng = rankResults(single, "リトルバンパイア 1 リュディガーとアントン", 3, false, "岩波書店");
+  assert.equal(ng.length, 0);
+});
