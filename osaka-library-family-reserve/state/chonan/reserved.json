@@ -3,10 +3,11 @@
     {
       "title": "11ぴきのねこ",
       "author": "馬場のぼる",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "series:11ぴきのねこ",
-      "date": "2026-07-05"
+      "date": "2026-07-05",
+      "expiredDate": "2026-08-03"
     },
     {
       "title": "11ぴきのねことあほうどり",
@@ -83,18 +84,20 @@
     {
       "title": "おこだでませんように",
       "author": "くすのきしげのり",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "ehonnavi",
-      "date": "2026-07-20"
+      "date": "2026-07-20",
+      "expiredDate": "2026-08-03"
     },
     {
       "title": "11ぴきのねこどろんこ",
       "author": "馬場のぼる",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "series:11ぴきのねこ",
-      "date": "2026-07-20"
+      "date": "2026-07-20",
+      "expiredDate": "2026-08-03"
     },
     {
       "title": "くまさぶろう",
@@ -107,10 +110,11 @@
     {
       "title": "おおはくちょうのそら",
       "author": "手島圭三郎",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "list",
-      "date": "2026-07-20"
+      "date": "2026-07-20",
+      "expiredDate": "2026-08-03"
     },
     {
       "title": "しずくのぼうけん",
@@ -135,6 +139,30 @@
       "note": "",
       "source": "list",
       "date": "2026-07-27"
+    },
+    {
+      "title": "こんとあき",
+      "author": "林明子",
+      "status": "reserved",
+      "note": "",
+      "source": "requeue:予約取消",
+      "date": "2026-08-03"
+    },
+    {
+      "title": "11ぴきのねことへんなねこ",
+      "author": "馬場のぼる",
+      "status": "reserved",
+      "note": "",
+      "source": "requeue:予約取消",
+      "date": "2026-08-03"
+    },
+    {
+      "title": "おじさんのかさ",
+      "author": "佐野洋子",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-08-03"
     }
   ]
 }

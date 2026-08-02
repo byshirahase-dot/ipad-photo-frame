@@ -1,13 +1,23 @@
 {
   "items": [
     {
-      "title": "しろくまのパンツ",
-      "author": "tupera tupera",
+      "title": "14ひきのあさごはん",
+      "author": "いわむらかずお",
       "from": "requeue:予約取消"
     },
     {
-      "title": "ちびゴリラのちびちび",
-      "author": "ボーンスタイン いわたみみ・訳",
+      "title": "14ひきのひっこし",
+      "author": "いわむらかずお",
+      "from": "requeue:予約取消"
+    },
+    {
+      "title": "ティッチ",
+      "author": "ハッチンス いしいももこ・訳",
+      "from": "requeue:予約取消"
+    },
+    {
+      "title": "パンダ銭湯",
+      "author": "tupera tupera",
       "from": "requeue:予約取消"
     },
     {

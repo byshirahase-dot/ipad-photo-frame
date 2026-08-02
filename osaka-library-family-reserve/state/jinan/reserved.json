@@ -151,34 +151,38 @@
     {
       "title": "パンダ銭湯",
       "author": "tupera tupera",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "ehonnavi",
-      "date": "2026-07-20"
+      "date": "2026-07-20",
+      "expiredDate": "2026-08-03"
     },
     {
       "title": "ティッチ",
       "author": "ハッチンス いしいももこ・訳",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "list",
-      "date": "2026-07-20"
+      "date": "2026-07-20",
+      "expiredDate": "2026-08-03"
     },
     {
       "title": "14ひきのひっこし",
       "author": "いわむらかずお",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "series:14ひきシリーズ",
-      "date": "2026-07-20"
+      "date": "2026-07-20",
+      "expiredDate": "2026-08-03"
     },
     {
       "title": "14ひきのあさごはん",
       "author": "いわむらかずお",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "series:14ひきシリーズ",
-      "date": "2026-07-20"
+      "date": "2026-07-20",
+      "expiredDate": "2026-08-03"
     },
     {
       "title": "ぜったいにおしちゃダメ?",
@@ -211,6 +215,38 @@
       "note": "",
       "source": "list",
       "date": "2026-07-27"
+    },
+    {
+      "title": "くだものだもの",
+      "author": "石津ちひろ",
+      "status": "reserved",
+      "note": "",
+      "source": "ehonnavi",
+      "date": "2026-08-03"
+    },
+    {
+      "title": "しろくまのパンツ",
+      "author": "tupera tupera",
+      "status": "reserved",
+      "note": "",
+      "source": "requeue:予約取消",
+      "date": "2026-08-03"
+    },
+    {
+      "title": "ちびゴリラのちびちび",
+      "author": "ボーンスタイン いわたみみ・訳",
+      "status": "reserved",
+      "note": "",
+      "source": "requeue:予約取消",
+      "date": "2026-08-03"
+    },
+    {
+      "title": "はけたよはけたよ",
+      "author": "かんざわとしこ にしまきかやこ・絵",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-08-03"
     }
   ]
 }
