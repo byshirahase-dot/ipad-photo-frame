@@ -163,6 +163,38 @@
       "note": "",
       "source": "list",
       "date": "2026-08-03"
+    },
+    {
+      "title": "おこだでませんように",
+      "author": "くすのきしげのり",
+      "status": "reserved",
+      "note": "",
+      "source": "ehonnavi",
+      "date": "2026-08-10"
+    },
+    {
+      "title": "おおはくちょうのそら",
+      "author": "手島圭三郎",
+      "status": "reserved",
+      "note": "",
+      "source": "requeue:予約取消",
+      "date": "2026-08-10"
+    },
+    {
+      "title": "11ぴきのねこどろんこ",
+      "author": "馬場のぼる",
+      "status": "reserved",
+      "note": "",
+      "source": "requeue:予約取消",
+      "date": "2026-08-10"
+    },
+    {
+      "title": "ずーっとずっとだいすきだよ",
+      "author": "ウィルヘルム 久山太市・訳",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-08-10"
     }
   ]
 }
