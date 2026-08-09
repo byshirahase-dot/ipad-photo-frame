@@ -19,10 +19,11 @@
     {
       "title": "イン・ザ・メガチャーチ",
       "author": "朝井リョウ",
-      "status": "reserved",
-      "note": "予約一覧で既に[待ち]を確認（別途予約済み）。重複提案防止のため記録",
+      "status": "expired",
+      "note": "サピエンス全史のため一旦キャンセル。約1年後に再予約予定(wishlist notBefore 2027-08-01)",
       "source": "mom-queue",
-      "date": "2026-07-05"
+      "date": "2026-07-05",
+      "expiredDate": "2026-08-01"
     },
     {
       "title": "パラ・スター Side 百花",
