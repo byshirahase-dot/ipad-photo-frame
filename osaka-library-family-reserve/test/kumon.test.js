@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadKumonList, flatten, planWeek } from "../src/kumon.js";
+import { loadKumonList, flatten, planWeek, orderPicksForCart } from "../src/kumon.js";
 import { Ledger } from "../src/state.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -314,4 +314,45 @@ test("rankResults preserves onDetail single-hit flag and index", async () => {
   // 出版社不一致（別の版）→ 除外され安全側に倒れる（誤った版を予約しない）
   const ng = rankResults(single, "リトルバンパイア 1 リュディガーとアントン", 3, false, "岩波書店");
   assert.equal(ng.length, 0);
+});
+
+// --- orderPicksForCart: カート投入順の最適化（2026-08-09） ---
+// 版スキップしやすい本（list/ehonnavi/series）を先に、確実にカートへ入る取消復帰本（requeue）を
+// 後に処理し、最後の操作が addToCart（カート画面に留まる）になるようにする。安定ソートで群内順は保つ。
+test("orderPicksForCart moves requeue picks to the end (jinan 2026-08-10 の再現)", () => {
+  // jinan 08-10 の実際の picks 相当: 先頭に requeue、末尾に版ガードの公文リスト本
+  const picks = [
+    { title: "パンダ銭湯", from: "requeue:予約取消" },
+    { title: "14ひきのあさごはん", from: "requeue:予約取消" },
+    { title: "14ひきのひっこし", from: "requeue:予約取消" },
+    { title: "まよなかのだいどころ", from: "list", publisher: "冨山房" },
+  ];
+  const ordered = orderPicksForCart(picks);
+  // 版ガードで見送りになりうる list 本が先頭に来る
+  assert.equal(ordered[0].title, "まよなかのだいどころ");
+  // 確実にカートへ入る requeue 本が末尾（＝最後の操作が addToCart になる）
+  assert.equal(ordered[ordered.length - 1].from.startsWith("requeue"), true);
+});
+
+test("orderPicksForCart is a stable partition (群内の順序は保つ)", () => {
+  const picks = [
+    { title: "A", from: "list" },
+    { title: "B", from: "requeue:x" },
+    { title: "C", from: "series:S" },
+    { title: "D", from: "requeue:y" },
+    { title: "E", from: "ehonnavi" },
+  ];
+  const ordered = orderPicksForCart(picks).map((p) => p.title).join("");
+  // 非requeue（A,C,E）を元順で、続けて requeue（B,D）を元順で
+  assert.equal(ordered, "ACEBD");
+});
+
+test("orderPicksForCart: 全て requeue でも全て非requeue でも壊れない", () => {
+  const allReq = [{ title: "A", from: "requeue:1" }, { title: "B", from: "requeue:2" }];
+  assert.deepEqual(orderPicksForCart(allReq).map((p) => p.title), ["A", "B"]);
+  const noReq = [{ title: "A", from: "list" }, { title: "B", from: "series:S" }];
+  assert.deepEqual(orderPicksForCart(noReq).map((p) => p.title), ["A", "B"]);
+  // from が無い pick も落とさない（非requeue 扱い）
+  const noFrom = [{ title: "A" }, { title: "B", from: "requeue:1" }];
+  assert.deepEqual(orderPicksForCart(noFrom).map((p) => p.title), ["A", "B"]);
 });

@@ -172,3 +172,24 @@ export function planWeek({
 
   return { picks, skipped, nextProgress };
 }
+
+/**
+ * カート投入フェーズの処理順を最適化する（2026-08-09 追加）。
+ *
+ * 背景: 予約は「各本をカートに入れる → 最後にカートを一括確定」という二段構え。確定は
+ * 「今カート画面に居る」前提で動くが、バッチ最後の本が版スキップ（所蔵/指定版なし）だと
+ * その本の検索でブラウザがカート画面から離れ、確定フェーズがカートへ戻れず、投入済みの本まで
+ * 巻き添えで全滅する事故があった（jinan 2026-08-10「まよなかのだいどころ」）。
+ *
+ * 対策: 版ガードで見送りになりやすい本（公文リスト/絵本ナビ/シリーズ続巻＝未予約で版未確認）を
+ * 先に、確実にカートへ入る本（requeue＝以前実際に予約できた版が存在する取消復帰本）を後に処理し、
+ * 最後の操作が addToCart（＝カート画面に留まる）になりやすくする。安定ソートで各群内の順序は保つ。
+ *
+ * これは best-effort の予防策。最後の本がたまたま skip でも確実に復旧できるよう、確定側
+ * （opac.reserveCartContents の #openCart）が「新しく開いた書誌詳細を経由してカートを再確立する」
+ * 恒久対策を持つ（そちらが正の担保）。
+ */
+export function orderPicksForCart(picks) {
+  const reliablyAddable = (p) => typeof p?.from === "string" && p.from.startsWith("requeue");
+  return [...picks.filter((p) => !reliablyAddable(p)), ...picks.filter(reliablyAddable)];
+}

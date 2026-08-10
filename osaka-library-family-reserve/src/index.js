@@ -1,7 +1,7 @@
 import path from "node:path";
 import { ROOT, loadDotEnv, loadAccountsConfig, credentialsFor, todayStr, ensureDir } from "./config.js";
 import { Ledger, Progress, Queue, readMomQueue, writeMomQueue, recordMomRecommended } from "./state.js";
-import { loadKumonList, flatten, planWeek, loadEhonnaviList } from "./kumon.js";
+import { loadKumonList, flatten, planWeek, loadEhonnaviList, orderPicksForCart } from "./kumon.js";
 import { makeSeriesResolver } from "./series.js";
 import { Opac, rankResults } from "./opac.js";
 import { writeReport } from "./report.js";
@@ -190,6 +190,10 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, adhoc, pe
 
     // ---- フェーズ1: 枠の分だけ書名を検索してカートに投入する ----
     // サイト仕様上、予約確定はカート内をまとめて1回で行う（1冊ずつ確定を繰り返すと中断する）。
+    // 処理順の最適化（2026-08-09）: 版スキップしやすい本を先に、確実にカートへ入る取消復帰本を
+    // 後に処理し、最後の操作が addToCart（カート画面に留まる）になるようにする。母（recommend）は
+    // queue 順が上限カットの優先度そのものなので並べ替えない（kumon のみ）。
+    if (account.mode === "kumon") picks = orderPicksForCart(picks);
     const inCart = []; // カート投入に成功した pick（確定対象）
     for (const pick of picks) {
       if (inCart.length >= available) {

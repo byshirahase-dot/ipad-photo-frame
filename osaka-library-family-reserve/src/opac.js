@@ -458,6 +458,10 @@ export class Opac {
    */
   async addToCart() {
     try {
+      // この時点ではまだ書誌詳細ページに居る（クリックでカートへ遷移する前）。詳細URLを控えておくと、
+      // 後でカートから離れてしまったとき（バッチ最後の本が版スキップ等）に、この詳細を開き直して
+      // カートを再確立できる（#openCart 参照。新しく開いた詳細は submitFlg=true でカートリンクが効く）。
+      const detailUrl = this.page.url();
       const body = (await this.page.textContent("body")) || "";
       if (/この書誌は予約できません/.test(body)) {
         return { ok: false, notReservable: true, message: "予約不可の版（大型絵本・禁帯出等）" };
@@ -485,6 +489,8 @@ export class Opac {
       await this.shot("cart-added");
       const after = (await this.page.textContent("body")) || "";
       this.#assertNotLoginPage(after);
+      // カート投入に成功した本の詳細URLを控える（確定フェーズでカート再確立に使う）
+      if (detailUrl && /Detail|detail/.test(detailUrl)) this.lastCartDetailUrl = detailUrl;
       // 「カートに入れる」ボタンがまだ有効なままなら投入に失敗している可能性
       return { ok: true, message: "カート投入" };
     } catch (err) {
@@ -527,12 +533,29 @@ export class Opac {
 
   /** カート（予約候補）画面へ遷移する */
   async #openCart() {
-    if (!/カート\s*（?予約候補/.test((await this.page.textContent("body")) || "")) {
-      const cartLink = this.page.locator('#stat-cart, #usr-cart, a[onclick*="yoycart"]').first();
-      await this.politeWait();
-      await cartLink.click();
-      await this.page.waitForLoadState("domcontentloaded").catch(() => {});
+    // 既にカート画面なら何もしない（ここで遷移するとカートから離れてしまう）。
+    if (/カート\s*（?予約候補/.test((await this.page.textContent("body")) || "")) {
+      await this.shot("cart");
+      return;
     }
+    // カート画面に居ない。ヘッダのカートリンク（onclick=yoycart）は、そのページの submitFlg が
+    // true のときだけ遷移する。バッチ最後の本が版スキップ等でフォーム submit 済みだと
+    // submitFlg=false になり、リンクが空振りして検索結果一覧に取り残される（jinan 2026-08-10 の全滅）。
+    // → 直近にカート投入した本の書誌詳細を開き直す（新規ロードで submitFlg=true）と、その詳細の
+    //    カートリンクは正常に効く。カートはサーバ側セッション状態なので、そこから開けば投入済みの
+    //    本がすべて表示される。詳細URLが無い（emptyCart 初回等）ときは現ページから素直にクリックする。
+    if (this.lastCartDetailUrl) {
+      await this.politeWait();
+      await this.page
+        .goto(this.lastCartDetailUrl, { waitUntil: "domcontentloaded" })
+        .catch(() => {});
+    }
+    const cartLink = this.page.locator('#stat-cart, #usr-cart, a[onclick*="yoycart"]').first();
+    await this.politeWait();
+    await Promise.all([
+      this.page.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 15000 }).catch(() => {}),
+      cartLink.click().catch(() => {}),
+    ]);
     await this.shot("cart");
   }
 
