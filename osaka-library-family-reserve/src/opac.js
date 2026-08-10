@@ -336,11 +336,13 @@ export class Opac {
         if (await this.#noHits()) return [];
       }
 
-      // 出版年昇順に並べ替え（原典が先頭に、最新の雑誌・特殊版は後ろに）
+      // 出版年降順に並べ替え（新しい版を優先＝古くて傷んだ本を避ける。ユーザー指定 2026-08）。
+      // 版の取り違えは rankResults の出版社一致＋特殊資料除外ガードで防ぐ。
       const sortSel = this.page.locator("#AssistSortSelect");
       if (await sortSel.isVisible({ timeout: 3000 }).catch(() => false)) {
         const opts = await sortSel.locator("option").allTextContents();
-        const idx = opts.findIndex((t) => /出版年順/.test(t) && !/逆順/.test(t));
+        let idx = opts.findIndex((t) => /出版年/.test(t) && /逆順|降順/.test(t));
+        if (idx < 0) idx = opts.findIndex((t) => /出版年順/.test(t) && !/逆順/.test(t)); // 降順が無ければ昇順
         if (idx >= 0) {
           const value = await sortSel.locator("option").nth(idx).getAttribute("value");
           await this.politeWait();
@@ -755,6 +757,7 @@ export function rankResults(results, wantedTitle, limit = 3, preferBunko = false
   const norm = (s) => String(s).replace(/[\s　]/g, "").toLowerCase();
   const w = norm(wantedTitle);
   const special = /大型|紙芝居|点字|デイジー|カセット|大活字|DVD|CD/;
+  const isBunko = (r) => /文庫/.test(`${r.title} ${r.writer ?? ""} ${r.publisher ?? ""}`);
   const scored = [];
   for (const r of results) {
     const t = norm(r.title);
@@ -764,14 +767,18 @@ export function rankResults(results, wantedTitle, limit = 3, preferBunko = false
     else if (t.includes(w) || w.includes(t)) score = 40;
     if (score < 0) continue;
     if (special.test(r.title)) score -= 30;
-    // 母は同名書籍で文庫版があれば文庫を優先（単行本の完全一致より上に来るよう加点）
-    if (preferBunko && /文庫/.test(`${r.title} ${r.writer ?? ""}`)) score += 50;
+    // 文庫版があれば優先（読みやすく新しい傾向。ユーザー指定でmom・chojoに適用）。
+    // 文庫は同じ作品なので出版社が違っても取り違えの心配がない。
+    if (preferBunko && isBunko(r)) score += 50;
     scored.push({ ...r, score });
   }
-  // 出版社指定あり（公文リスト＝正）: 一致する候補があればそれだけを使う。
+  // 出版社指定あり（公文リスト＝正）: 一致する候補に絞る。
+  // ただし preferBunko 時は同題の文庫（＝同じ作品）も許可し、出版社指定より優先させる。
   // 一致ゼロなら空を返す（別の版を勝手に予約しない。呼び出し側が理由つきで見送る）
   if (expectedPublisher) {
-    const matched = scored.filter((r) => publisherMatches(r.publisher, expectedPublisher));
+    const matched = scored.filter(
+      (r) => publisherMatches(r.publisher, expectedPublisher) || (preferBunko && isBunko(r))
+    );
     matched.sort((a, b) => b.score - a.score || a.index - b.index);
     return matched.slice(0, limit);
   }

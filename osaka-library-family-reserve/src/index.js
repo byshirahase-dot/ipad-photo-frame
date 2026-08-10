@@ -212,7 +212,7 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, adhoc, pe
       // 母（recommend）は同名なら文庫版を優先して予約する（ユーザー指定）。
       // 公文リストの本は出版社もリストと一致する版だけを予約する（ユーザー指定・リスト＝正）
       const candidates = results?.length
-        ? rankResults(results, pick.title, 3, account.mode === "recommend", pick.publisher || null)
+        ? rankResults(results, pick.title, 3, account.preferBunko ?? account.mode === "recommend", pick.publisher || null)
         : [];
       if (!candidates.length) {
         const pubMismatch = !!(results?.length && pick.publisher);

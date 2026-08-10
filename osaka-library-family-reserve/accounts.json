@@ -16,7 +16,8 @@
       "envCard": "OML_CARD_CHOJO",
       "envPass": "OML_PASS_CHOJO",
       "startProgress": { "level": "E", "position": 1 },
-      "ehonnaviAge": "10"
+      "ehonnaviAge": "10",
+      "preferBunko": true
     },
     "chonan": {
       "name": "長男",

@@ -12,10 +12,11 @@
     {
       "title": "空気がなくなる日",
       "author": "岩倉政治 二俣英五郎・絵",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "読み切れず返却→再予約リクエストのため再予約対象に戻す(2026-08)",
       "source": "list",
-      "date": "2026-07-05"
+      "date": "2026-07-05",
+      "expiredDate": "2026-08-10"
     },
     {
       "title": "ヘンダワネのタネの物語",
@@ -44,10 +45,11 @@
     {
       "title": "ユメミザクラの木の下で",
       "author": "岡田淳",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "読み切れず返却→再予約リクエストのため再予約対象に戻す(2026-08)",
       "source": "adhoc",
-      "date": "2026-07-19"
+      "date": "2026-07-19",
+      "expiredDate": "2026-08-10"
     },
     {
       "title": "まよなかの魔女の秘密",
@@ -60,18 +62,20 @@
     {
       "title": "森のなかの海賊船",
       "author": "岡田淳",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "読み切れず返却→再予約リクエストのため再予約対象に戻す(2026-08)",
       "source": "kosoado-batch",
-      "date": "2026-07-19"
+      "date": "2026-07-19",
+      "expiredDate": "2026-08-10"
     },
     {
       "title": "あかりの木の魔法",
       "author": "岡田淳",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "読み切れず返却→再予約リクエストのため再予約対象に戻す(2026-08)",
       "source": "kosoado-batch",
-      "date": "2026-07-19"
+      "date": "2026-07-19",
+      "expiredDate": "2026-08-10"
     },
     {
       "title": "二分間の冒険",
