@@ -21,10 +21,11 @@
     {
       "title": "ヘンダワネのタネの物語",
       "author": "新藤悦子 丹地陽子・絵",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "読み切れず返却→再予約リクエストのため再予約対象に戻す(2026-08)",
       "source": "list",
-      "date": "2026-07-05"
+      "date": "2026-07-05",
+      "expiredDate": "2026-08-10"
     },
     {
       "title": "鬼が出た",
