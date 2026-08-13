@@ -39,21 +39,21 @@
     {
       "title": "ちいさなたまねぎさん",
       "author": "せなけいこ",
-      "status": "borrowed",
-      "note": "受取済み・貸出中（借用済み）。取消復帰の誤判定を修正（2026-07-20）",
+      "status": "expired",
+      "note": "読んでいないかも→再予約リクエスト(2026-08)",
       "source": "list",
       "date": "2026-07-05",
-      "expiredDate": "2026-07-13",
+      "expiredDate": "2026-08-10",
       "borrowedDate": "2026-07-20"
     },
     {
       "title": "あおくんときいろちゃん",
       "author": "レオーニ 藤田圭雄・訳",
-      "status": "borrowed",
-      "note": "受取済み・貸出中（借用済み）。取消復帰の誤判定を修正（2026-07-20）",
+      "status": "expired",
+      "note": "読んでいないかも→再予約リクエスト(2026-08)",
       "source": "list",
       "date": "2026-07-05",
-      "expiredDate": "2026-07-13",
+      "expiredDate": "2026-08-10",
       "borrowedDate": "2026-07-20"
     },
     {

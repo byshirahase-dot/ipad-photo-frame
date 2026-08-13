@@ -135,10 +135,11 @@
     {
       "title": "みどりいろのたね",
       "author": "たかどのほうこ 太田大八・絵",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "読んでいないかも→再予約リクエスト(2026-08)",
       "source": "list",
-      "date": "2026-07-27"
+      "date": "2026-07-27",
+      "expiredDate": "2026-08-10"
     },
     {
       "title": "こんとあき",
