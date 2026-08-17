@@ -144,26 +144,29 @@
     {
       "title": "こんとあき",
       "author": "林明子",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "requeue:予約取消",
-      "date": "2026-08-03"
+      "date": "2026-08-03",
+      "expiredDate": "2026-08-17"
     },
     {
       "title": "11ぴきのねことへんなねこ",
       "author": "馬場のぼる",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "requeue:予約取消",
-      "date": "2026-08-03"
+      "date": "2026-08-03",
+      "expiredDate": "2026-08-17"
     },
     {
       "title": "おじさんのかさ",
       "author": "佐野洋子",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "list",
-      "date": "2026-08-03"
+      "date": "2026-08-03",
+      "expiredDate": "2026-08-17"
     },
     {
       "title": "おこだでませんように",
@@ -196,6 +199,30 @@
       "note": "",
       "source": "list",
       "date": "2026-08-10"
+    },
+    {
+      "title": "おうちくん",
+      "author": "カワダクニコ",
+      "status": "reserved",
+      "note": "",
+      "source": "再予約リクエスト(未読かも→再度借りる)",
+      "date": "2026-08-17"
+    },
+    {
+      "title": "みどりいろのたね",
+      "author": "たかどのほうこ",
+      "status": "reserved",
+      "note": "",
+      "source": "再予約リクエスト(未読かも→再度借りる)",
+      "date": "2026-08-17"
+    },
+    {
+      "title": "こんこんさまにさしあげそうろう",
+      "author": "森はな 梶山俊夫・絵",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-08-17"
     }
   ]
 }

@@ -105,10 +105,43 @@
     {
       "title": "やまなし",
       "author": "宮沢賢治",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
+      "source": "adhoc",
+      "date": "2026-07-26",
+      "expiredDate": "2026-08-17"
+    },
+    {
+      "title": "竜退治の騎士になる方法",
+      "author": "岡田淳",
       "status": "reserved",
       "note": "",
-      "source": "adhoc",
-      "date": "2026-07-26"
+      "source": "ehonnavi",
+      "date": "2026-08-17"
+    },
+    {
+      "title": "ヘンダワネのタネの物語",
+      "author": "新藤悦子",
+      "status": "reserved",
+      "note": "",
+      "source": "再予約リクエスト(読み切れず返却→再度借りる)",
+      "date": "2026-08-17"
+    },
+    {
+      "title": "ひみつの塔の冒険",
+      "author": "マージェリー・シャープ",
+      "status": "reserved",
+      "note": "",
+      "source": "再予約リクエスト(ミス・ビアンカシリーズ)",
+      "date": "2026-08-17"
+    },
+    {
+      "title": "ぼくは、いつでもぼくだった。",
+      "author": "いっこく堂 中村景児・絵",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-08-17"
     }
   ]
 }

@@ -1,16 +1,19 @@
 {
   "items": [
     {
-      "title": "おうちくん",
-      "author": "カワダクニコ",
-      "publisher": "303BOOKS",
-      "from": "再予約リクエスト(未読かも→再度借りる)"
+      "title": "おじさんのかさ",
+      "author": "佐野洋子",
+      "from": "requeue:予約取消"
     },
     {
-      "title": "みどりいろのたね",
-      "author": "たかどのほうこ",
-      "publisher": "福音館書店",
-      "from": "再予約リクエスト(未読かも→再度借りる)"
+      "title": "こんとあき",
+      "author": "林明子",
+      "from": "requeue:予約取消"
+    },
+    {
+      "title": "11ぴきのねことへんなねこ",
+      "author": "馬場のぼる",
+      "from": "requeue:予約取消"
     },
     {
       "title": "おこだでませんように",

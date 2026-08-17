@@ -81,10 +81,11 @@
     {
       "title": "ねらわれた星",
       "author": "星新一",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "mom-queue",
-      "date": "2026-08-03"
+      "date": "2026-08-03",
+      "expiredDate": "2026-08-17"
     },
     {
       "title": "居るのはつらいよ",
@@ -117,6 +118,14 @@
       "note": "",
       "source": "adhoc",
       "date": "2026-08-10"
+    },
+    {
+      "title": "香君 下",
+      "author": "上橋菜穂子",
+      "status": "reserved",
+      "note": "",
+      "source": "mom-queue",
+      "date": "2026-08-17"
     }
   ]
 }
