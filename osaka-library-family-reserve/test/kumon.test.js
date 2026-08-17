@@ -320,45 +320,45 @@ test("rankResults preserves onDetail single-hit flag and index", async () => {
 // 版スキップしやすい本＝publisher 指定のある本（list/ehonnavi/series/版指定の再予約）を先に、
 // 版ガードが無く確実にカートへ入る本＝publisher 指定の無い本（取消復帰など）を後に処理し、
 // 最後の操作が addToCart（カート画面に留まる）になるようにする。安定ソートで群内順は保つ。
-test("orderPicksForCart: publisher 指定の無い本を末尾へ（jinan 2026-08-17 の再現）", () => {
-  // jinan 08-17 の実際の picks 相当: 末尾に版ガードの公文リスト本（publisher=冨山房）。
-  // 旧実装（from が "requeue" 始まりだけを末尾へ）ではこの並びは version-prone な list 本が
-  // 末尾に残り、確定フェーズがカートを見失って全滅していた（本修正の対象）。
+test("orderPicksForCart: 版スキップしやすい出所を先頭へ・再予約本を末尾へ（jinan 2026-08-17 の再現）", () => {
+  // jinan 08-17 の実際の picks 相当。全冊 publisher を持つ（パンダ銭湯は絵本ナビ枠＝出版社:絵本館）ため、
+  // 旧「publisher の有無」判定では並べ替えが起きず、末尾の版スキップ本（まよなかのだいどころ）が
+  // 確定フェーズを巻き添えにして全滅していた。出所（from）で判定するのが正しい。
   const picks = [
-    { title: "パンダ銭湯", from: "requeue:予約取消" }, // publisher 無し＝確実に入る
-    { title: "ちいさなたまねぎさん", from: "再予約リクエスト", publisher: "金の星社" },
-    { title: "あおくんときいろちゃん", from: "再予約リクエスト", publisher: "至光社" },
-    { title: "まよなかのだいどころ", from: "list", publisher: "冨山房" }, // 版スキップの主因
+    { title: "パンダ銭湯", from: "ehonnavi", publisher: "絵本館" },        // 版スキップしうる（先頭側）
+    { title: "ちいさなたまねぎさん", from: "再予約リクエスト", publisher: "金の星社" }, // 確実に入る（末尾側）
+    { title: "あおくんときいろちゃん", from: "再予約リクエスト", publisher: "至光社" }, // 確実に入る（末尾側）
+    { title: "まよなかのだいどころ", from: "list", publisher: "冨山房" },   // 版スキップの主因（先頭側）
   ];
   const ordered = orderPicksForCart(picks);
-  // publisher 指定のある本（版スキップしうる）が先頭側に集まる
-  assert.ok(!!ordered[0].publisher);
-  // 末尾は publisher 指定の無い本＝確実にカートへ入る（＝最後の操作が addToCart になる）
-  assert.equal(ordered[ordered.length - 1].title, "パンダ銭湯");
-  assert.ok(!ordered[ordered.length - 1].publisher);
-  // 版スキップの主因（まよなかのだいどころ）は末尾ではない
-  assert.notEqual(ordered[ordered.length - 1].title, "まよなかのだいどころ");
+  // 末尾は再予約本（以前予約できた版が存在＝確実にカートへ入る）＝最後の操作が addToCart になる
+  const last = ordered[ordered.length - 1];
+  assert.equal(last.from, "再予約リクエスト");
+  // 版スキップの主因（list 本）は末尾ではない
+  assert.notEqual(last.title, "まよなかのだいどころ");
+  // list / ehonnavi は先頭側に集まる
+  assert.deepEqual(ordered.slice(0, 2).map((p) => p.from).sort(), ["ehonnavi", "list"]);
 });
 
 test("orderPicksForCart is a stable partition (群内の順序は保つ)", () => {
   const picks = [
-    { title: "A", from: "list", publisher: "X社" },
-    { title: "B", from: "requeue:x" }, // publisher 無し
-    { title: "C", from: "series:S", publisher: "Y社" },
-    { title: "D", from: "requeue:y" }, // publisher 無し
-    { title: "E", from: "ehonnavi", publisher: "Z社" },
+    { title: "A", from: "list" },
+    { title: "B", from: "requeue:x" },
+    { title: "C", from: "series:S" },
+    { title: "D", from: "再予約リクエスト" },
+    { title: "E", from: "ehonnavi" },
   ];
   const ordered = orderPicksForCart(picks).map((p) => p.title).join("");
-  // publisher 有り（A,C,E）を元順で、続けて publisher 無し（B,D）を元順で
+  // 版スキップしやすい出所（A=list, C=series, E=ehonnavi）を元順で、続けて再予約系（B,D）を元順で
   assert.equal(ordered, "ACEBD");
 });
 
-test("orderPicksForCart: 全て publisher 有り／無しでも壊れない", () => {
-  const allProne = [{ title: "A", publisher: "X" }, { title: "B", publisher: "Y" }];
+test("orderPicksForCart: 全て版スキップ系／全て再予約系でも壊れない", () => {
+  const allProne = [{ title: "A", from: "list" }, { title: "B", from: "series:S" }];
   assert.deepEqual(orderPicksForCart(allProne).map((p) => p.title), ["A", "B"]);
-  const noneProne = [{ title: "A", from: "requeue:1" }, { title: "B", from: "requeue:2" }];
+  const noneProne = [{ title: "A", from: "requeue:1" }, { title: "B", from: "再予約リクエスト" }];
   assert.deepEqual(orderPicksForCart(noneProne).map((p) => p.title), ["A", "B"]);
-  // publisher が空文字/空白のみは「指定なし」扱い（末尾側）
-  const blank = [{ title: "A", publisher: "  " }, { title: "B", publisher: "実在社" }];
-  assert.deepEqual(orderPicksForCart(blank).map((p) => p.title), ["B", "A"]);
+  // from が無い pick は再予約系（末尾側）扱いで落とさない
+  const noFrom = [{ title: "A", from: "list" }, { title: "B" }];
+  assert.deepEqual(orderPicksForCart(noFrom).map((p) => p.title), ["A", "B"]);
 });

@@ -198,6 +198,16 @@ export function planWeek({
  * 再確立する」恒久対策を併せ持つ（そちらが最終の担保）。
  */
 export function orderPicksForCart(picks) {
-  const versionProne = (p) => !!(p && p.publisher && String(p.publisher).trim());
-  return [...picks.filter(versionProne), ...picks.filter((p) => !versionProne(p))];
+  // 版スキップしやすい本＝出所が list / series / ehonnavi（＝公文リスト本体・シリーズ続巻・絵本ナビ枠。
+  // いずれも「まだ予約したことのない版」で、リスト指定の出版社が所蔵と食い違うと candidates 0 で見送りに
+  // なりうる）。これらを先に処理する。
+  // 確実にカートへ入る本＝それ以外（requeue: / 再予約リクエスト / adhoc 等＝以前に実際に予約できた版が
+  // 存在する取消復帰・再依頼本）。これらを後に処理し、最後の操作が addToCart（カート画面に留まる）になる。
+  // ※判定を publisher の有無にしていた版は、絵本ナビ枠にも publisher があるため全冊が「版スキップ扱い」に
+  //   なり並べ替え不発だった（jinan 2026-08-17）。出所（from）で判定するのが正しい。
+  const skipProne = (p) => {
+    const f = typeof p?.from === "string" ? p.from : "";
+    return f === "list" || f === "ehonnavi" || f.startsWith("series");
+  };
+  return [...picks.filter(skipProne), ...picks.filter((p) => !skipProne(p))];
 }

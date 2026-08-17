@@ -1,16 +1,24 @@
 {
   "items": [
     {
-      "title": "ちいさなたまねぎさん",
-      "author": "せなけいこ",
-      "publisher": "金の星社",
-      "from": "再予約リクエスト(未読かも→再度借りる)"
+      "title": "はけたよはけたよ",
+      "author": "かんざわとしこ にしまきかやこ・絵",
+      "from": "requeue:予約取消"
     },
     {
-      "title": "あおくんときいろちゃん",
-      "author": "レオーニ",
-      "publisher": "至光社",
-      "from": "再予約リクエスト(未読かも→再度借りる)"
+      "title": "くだものだもの",
+      "author": "石津ちひろ",
+      "from": "requeue:予約取消"
+    },
+    {
+      "title": "しろくまのパンツ",
+      "author": "tupera tupera",
+      "from": "requeue:予約取消"
+    },
+    {
+      "title": "ちびゴリラのちびちび",
+      "author": "ボーンスタイン いわたみみ・訳",
+      "from": "requeue:予約取消"
     },
     {
       "title": "14ひきのあさごはん",
