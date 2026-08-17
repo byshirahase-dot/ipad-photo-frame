@@ -316,43 +316,49 @@ test("rankResults preserves onDetail single-hit flag and index", async () => {
   assert.equal(ng.length, 0);
 });
 
-// --- orderPicksForCart: カート投入順の最適化（2026-08-09） ---
-// 版スキップしやすい本（list/ehonnavi/series）を先に、確実にカートへ入る取消復帰本（requeue）を
-// 後に処理し、最後の操作が addToCart（カート画面に留まる）になるようにする。安定ソートで群内順は保つ。
-test("orderPicksForCart moves requeue picks to the end (jinan 2026-08-10 の再現)", () => {
-  // jinan 08-10 の実際の picks 相当: 先頭に requeue、末尾に版ガードの公文リスト本
+// --- orderPicksForCart: カート投入順の最適化（2026-08-09 / 2026-08-17 判定軸を publisher へ） ---
+// 版スキップしやすい本＝publisher 指定のある本（list/ehonnavi/series/版指定の再予約）を先に、
+// 版ガードが無く確実にカートへ入る本＝publisher 指定の無い本（取消復帰など）を後に処理し、
+// 最後の操作が addToCart（カート画面に留まる）になるようにする。安定ソートで群内順は保つ。
+test("orderPicksForCart: publisher 指定の無い本を末尾へ（jinan 2026-08-17 の再現）", () => {
+  // jinan 08-17 の実際の picks 相当: 末尾に版ガードの公文リスト本（publisher=冨山房）。
+  // 旧実装（from が "requeue" 始まりだけを末尾へ）ではこの並びは version-prone な list 本が
+  // 末尾に残り、確定フェーズがカートを見失って全滅していた（本修正の対象）。
   const picks = [
-    { title: "パンダ銭湯", from: "requeue:予約取消" },
-    { title: "14ひきのあさごはん", from: "requeue:予約取消" },
-    { title: "14ひきのひっこし", from: "requeue:予約取消" },
-    { title: "まよなかのだいどころ", from: "list", publisher: "冨山房" },
+    { title: "パンダ銭湯", from: "requeue:予約取消" }, // publisher 無し＝確実に入る
+    { title: "ちいさなたまねぎさん", from: "再予約リクエスト", publisher: "金の星社" },
+    { title: "あおくんときいろちゃん", from: "再予約リクエスト", publisher: "至光社" },
+    { title: "まよなかのだいどころ", from: "list", publisher: "冨山房" }, // 版スキップの主因
   ];
   const ordered = orderPicksForCart(picks);
-  // 版ガードで見送りになりうる list 本が先頭に来る
-  assert.equal(ordered[0].title, "まよなかのだいどころ");
-  // 確実にカートへ入る requeue 本が末尾（＝最後の操作が addToCart になる）
-  assert.equal(ordered[ordered.length - 1].from.startsWith("requeue"), true);
+  // publisher 指定のある本（版スキップしうる）が先頭側に集まる
+  assert.ok(!!ordered[0].publisher);
+  // 末尾は publisher 指定の無い本＝確実にカートへ入る（＝最後の操作が addToCart になる）
+  assert.equal(ordered[ordered.length - 1].title, "パンダ銭湯");
+  assert.ok(!ordered[ordered.length - 1].publisher);
+  // 版スキップの主因（まよなかのだいどころ）は末尾ではない
+  assert.notEqual(ordered[ordered.length - 1].title, "まよなかのだいどころ");
 });
 
 test("orderPicksForCart is a stable partition (群内の順序は保つ)", () => {
   const picks = [
-    { title: "A", from: "list" },
-    { title: "B", from: "requeue:x" },
-    { title: "C", from: "series:S" },
-    { title: "D", from: "requeue:y" },
-    { title: "E", from: "ehonnavi" },
+    { title: "A", from: "list", publisher: "X社" },
+    { title: "B", from: "requeue:x" }, // publisher 無し
+    { title: "C", from: "series:S", publisher: "Y社" },
+    { title: "D", from: "requeue:y" }, // publisher 無し
+    { title: "E", from: "ehonnavi", publisher: "Z社" },
   ];
   const ordered = orderPicksForCart(picks).map((p) => p.title).join("");
-  // 非requeue（A,C,E）を元順で、続けて requeue（B,D）を元順で
+  // publisher 有り（A,C,E）を元順で、続けて publisher 無し（B,D）を元順で
   assert.equal(ordered, "ACEBD");
 });
 
-test("orderPicksForCart: 全て requeue でも全て非requeue でも壊れない", () => {
-  const allReq = [{ title: "A", from: "requeue:1" }, { title: "B", from: "requeue:2" }];
-  assert.deepEqual(orderPicksForCart(allReq).map((p) => p.title), ["A", "B"]);
-  const noReq = [{ title: "A", from: "list" }, { title: "B", from: "series:S" }];
-  assert.deepEqual(orderPicksForCart(noReq).map((p) => p.title), ["A", "B"]);
-  // from が無い pick も落とさない（非requeue 扱い）
-  const noFrom = [{ title: "A" }, { title: "B", from: "requeue:1" }];
-  assert.deepEqual(orderPicksForCart(noFrom).map((p) => p.title), ["A", "B"]);
+test("orderPicksForCart: 全て publisher 有り／無しでも壊れない", () => {
+  const allProne = [{ title: "A", publisher: "X" }, { title: "B", publisher: "Y" }];
+  assert.deepEqual(orderPicksForCart(allProne).map((p) => p.title), ["A", "B"]);
+  const noneProne = [{ title: "A", from: "requeue:1" }, { title: "B", from: "requeue:2" }];
+  assert.deepEqual(orderPicksForCart(noneProne).map((p) => p.title), ["A", "B"]);
+  // publisher が空文字/空白のみは「指定なし」扱い（末尾側）
+  const blank = [{ title: "A", publisher: "  " }, { title: "B", publisher: "実在社" }];
+  assert.deepEqual(orderPicksForCart(blank).map((p) => p.title), ["B", "A"]);
 });

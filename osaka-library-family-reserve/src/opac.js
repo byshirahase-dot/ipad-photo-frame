@@ -456,12 +456,23 @@ export class Opac {
    * WOpacSmtYoyCartBackAction.do に飛んで確定ボタンが見つからず中断するため、
    * 「全冊カート投入 → 最後に1回だけ確定」という二段構えにしている。
    */
-  async addToCart() {
+  async addToCart(permalink = null) {
     try {
       // この時点ではまだ書誌詳細ページに居る（クリックでカートへ遷移する前）。詳細URLを控えておくと、
       // 後でカートから離れてしまったとき（バッチ最後の本が版スキップ等）に、この詳細を開き直して
       // カートを再確立できる（#openCart 参照。新しく開いた詳細は submitFlg=true でカートリンクが効く）。
-      const detailUrl = this.page.url();
+      // ★2026-08-17: page.url() は toDetail() の POST 遷移後で tilcod を持たず goto で再現できない
+      // （＝旧 #openCart 再確立が空振りしていた真因）。検索結果行 a.layer-doc の href
+      // （WOpacSmtTifTilListToTifTilDetailAction.do?urlNotFlag=1&tilcod=XXX＝GETで開ける恒久リンク）を
+      // 呼び出し側から受け取り、あれば再現可能な絶対URLとして優先採用する。
+      let detailUrl = this.page.url();
+      if (permalink && /tilcod=/.test(permalink)) {
+        try {
+          detailUrl = new URL(permalink, this.page.url()).href;
+        } catch {
+          /* 相対URL解決に失敗したら page.url() のまま（従来動作） */
+        }
+      }
       const body = (await this.page.textContent("body")) || "";
       if (/この書誌は予約できません/.test(body)) {
         return { ok: false, notReservable: true, message: "予約不可の版（大型絵本・禁帯出等）" };

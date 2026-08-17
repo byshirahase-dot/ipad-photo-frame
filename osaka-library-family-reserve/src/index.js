@@ -239,7 +239,9 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, adhoc, pe
       for (let ci = 0; ci < candidates.length; ci++) {
         // 検索が書誌詳細へ直行した単一ヒット（onDetail）は既に詳細を開いているので openResult を飛ばす
         if (!candidates[ci].onDetail) await opac.openResult(candidates[ci].index);
-        add = await opac.addToCart();
+        // 版スキップ本が末尾でもカートを再確立できるよう、結果行の恒久リンク（href＝tilcod付きGET）を
+        // 渡す。onDetail は既に詳細URL（href=page.url()）を持つのでそれを使う。
+        add = await opac.addToCart(candidates[ci].href || null);
         if (!add || add.ok || !add.notReservable) break;
         if (ci < candidates.length - 1) await opac.backToResults();
       }
