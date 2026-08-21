@@ -19,7 +19,9 @@ function parseArgs(argv) {
     else if (a === "--plan-only") { args.planOnly = true; args.dryRun = true; }
     else if (a.startsWith("--account=")) args.accounts.push(a.split("=")[1]);
     else if (a.startsWith("--limit=")) args.limit = Number(a.split("=")[1]);
-    else if (a.startsWith("--title=")) args.title = a.slice("--title=".length);
+    // --title は複数指定可（--title=A --title=B ...）。複数冊を1回のログインでまとめて予約する
+    // （アカウントへの短時間の連続アクセス＝スロットリングを避けるため単発予約でも1セッションに束ねる）。
+    else if (a.startsWith("--title=")) (args.titles ??= []).push(a.slice("--title=".length));
     else if (a.startsWith("--author=")) args.author = a.slice("--author=".length);
   }
   return args;
@@ -32,6 +34,8 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, adhoc, pe
     mode: account.mode,
     reserved: [],
     failed: [],
+    requeued: [],
+    fulfilled: [],
     reserveLimit: cfg.opac.reserveLimit,
   };
 
@@ -51,12 +55,21 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, adhoc, pe
   let plan = null;
 
   if (adhoc) {
-    // 単発予約モード: 「この本を◯◯のアカウントで予約して」用。進度・キューには触れない
-    if (ledger.has(adhoc.title)) {
-      section.skippedReason = `「${adhoc.title}」は台帳に記録済み（予約済み・処理済み）です`;
+    // 単発予約モード: 「この本を◯◯のアカウントで予約して」用。進度・キューには触れない。
+    // 複数タイトル可（前倒し予約など）。台帳に既にある本は成功扱いで飛ばす（二重予約防止）。
+    const titles = adhoc.titles?.length ? adhoc.titles : (adhoc.title ? [adhoc.title] : []);
+    picks = [];
+    for (const t of titles) {
+      if (ledger.has(t)) {
+        section.fulfilled.push({ title: t, note: "既に台帳に記録済み（予約済み・処理済み）" });
+        continue;
+      }
+      picks.push({ title: t, author: adhoc.author ?? "", from: "adhoc" });
+    }
+    if (!picks.length) {
+      section.skippedReason = "単発予約: 対象タイトルはすべて台帳に記録済み（予約済み・処理済み）です";
       return section;
     }
-    picks = [{ title: adhoc.title, author: adhoc.author ?? "", from: "adhoc" }];
   } else if (account.mode === "kumon") {
     const flat = flatten(loadKumonList(), cfg.levelOrder);
     progress = new Progress(id, account.startProgress);
@@ -149,9 +162,11 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, adhoc, pe
     //   → 貸出中一覧（listLoanTitles）と照合し、借用中の本は borrowed（終了扱い）にして戻さない。
     const loanTitles = await opac.listLoanTitles();
     const loanKeys = loanTitles.map((t) => Ledger.key(t));
-    section.requeued = [];
-    section.fulfilled = [];
+    // 単発予約（adhoc）は進度・キューに触れないモードなので、取消復帰（markExpired＋requeue）も行わない。
+    // adhoc は queue を読み込まないため、ここで markExpired だけ走ると「expired にしたのに再キュー先が無い」
+    // 不整合になる。取消復帰は通常の週次実行（queue あり）に任せる。
     for (const s of states) {
+      if (adhoc) break;
       if (!cancelledRe.test(s.state)) continue;
       const entry = ledger.findActiveReserved(s.title);
       if (!entry) continue; // 台帳に無い（このシステムの予約でない・処理済み）ものは無視
@@ -355,7 +370,7 @@ async function main() {
       process.exit(1);
     }
   }
-  if (args.title && ids.length !== 1) {
+  if (args.titles?.length && ids.length !== 1) {
     console.error("--title の単発予約は --account=xxx でアカウントを1つ指定してください");
     process.exit(1);
   }
@@ -374,7 +389,7 @@ async function main() {
       dryRun: args.dryRun,
       planOnly: args.planOnly,
       limit: args.limit ?? 0,
-      adhoc: args.title ? { title: args.title, author: args.author } : null,
+      adhoc: args.titles?.length ? { titles: args.titles, author: args.author } : null,
       pendingSeries,
       logRoot,
     });
@@ -385,7 +400,7 @@ async function main() {
   }
 
   // 単発予約は週次レポート（reports/日付.md）を上書きしないよう別ファイルに書く
-  const slug = args.title ? `adhoc-${todayStr()}` : null;
+  const slug = args.titles?.length ? `adhoc-${todayStr()}` : null;
   const file = writeReport({ dryRun: args.dryRun, sections, pendingSeries, slug });
   console.log(`\nレポート: ${path.relative(process.cwd(), file)}`);
 }
