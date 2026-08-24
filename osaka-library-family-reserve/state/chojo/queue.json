@@ -1,17 +1,6 @@
 {
   "items": [
     {
-      "title": "やまなし",
-      "author": "宮沢賢治",
-      "from": "requeue:予約取消"
-    },
-    {
-      "title": "森のなかの海賊船",
-      "author": "岡田淳",
-      "publisher": "理論社",
-      "from": "再予約リクエスト(読み切れず返却→再度借りる)"
-    },
-    {
       "title": "ユメミザクラの木の下で",
       "author": "岡田淳",
       "publisher": "理論社",

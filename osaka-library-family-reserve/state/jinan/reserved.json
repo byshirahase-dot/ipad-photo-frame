@@ -255,26 +255,53 @@
     {
       "title": "パンダ銭湯",
       "author": "tupera tupera",
-      "status": "reserved",
-      "note": "",
+      "status": "borrowed",
+      "note": "受取済み・貸出中（借用済み）のため終了扱い",
       "source": "ehonnavi",
-      "date": "2026-08-17"
+      "date": "2026-08-17",
+      "borrowedDate": "2026-08-24"
     },
     {
       "title": "ちいさなたまねぎさん",
       "author": "せなけいこ",
-      "status": "reserved",
-      "note": "",
+      "status": "borrowed",
+      "note": "受取済み・貸出中（借用済み）のため終了扱い",
       "source": "再予約リクエスト(未読かも→再度借りる)",
-      "date": "2026-08-17"
+      "date": "2026-08-17",
+      "borrowedDate": "2026-08-24"
     },
     {
       "title": "あおくんときいろちゃん",
       "author": "レオーニ",
+      "status": "borrowed",
+      "note": "受取済み・貸出中（借用済み）のため終了扱い",
+      "source": "再予約リクエスト(未読かも→再度借りる)",
+      "date": "2026-08-17",
+      "borrowedDate": "2026-08-24"
+    },
+    {
+      "title": "くだものだもの",
+      "author": "石津ちひろ",
       "status": "reserved",
       "note": "",
-      "source": "再予約リクエスト(未読かも→再度借りる)",
-      "date": "2026-08-17"
+      "source": "ehonnavi",
+      "date": "2026-08-24"
+    },
+    {
+      "title": "はけたよはけたよ",
+      "author": "かんざわとしこ にしまきかやこ・絵",
+      "status": "reserved",
+      "note": "",
+      "source": "requeue:予約取消",
+      "date": "2026-08-24"
+    },
+    {
+      "title": "しろくまのパンツ",
+      "author": "tupera tupera",
+      "status": "reserved",
+      "note": "",
+      "source": "requeue:予約取消",
+      "date": "2026-08-24"
     }
   ]
 }

@@ -90,18 +90,20 @@
     {
       "title": "居るのはつらいよ",
       "author": "東畑開人",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "mom-queue",
-      "date": "2026-08-10"
+      "date": "2026-08-10",
+      "expiredDate": "2026-08-24"
     },
     {
       "title": "パラ・スター Side 百花",
       "author": "阿部暁子",
-      "status": "reserved",
-      "note": "",
+      "status": "borrowed",
+      "note": "受取済み・貸出中（借用済み）のため終了扱い",
       "source": "mom-queue",
-      "date": "2026-08-10"
+      "date": "2026-08-10",
+      "borrowedDate": "2026-08-24"
     },
     {
       "title": "サピエンス全史 上",
@@ -126,6 +128,30 @@
       "note": "",
       "source": "mom-queue",
       "date": "2026-08-17"
+    },
+    {
+      "title": "ねらわれた星",
+      "author": "星新一",
+      "status": "reserved",
+      "note": "",
+      "source": "mom-queue",
+      "date": "2026-08-24"
+    },
+    {
+      "title": "スモールワールズ",
+      "author": "一穂ミチ",
+      "status": "reserved",
+      "note": "",
+      "source": "mom-queue",
+      "date": "2026-08-24"
+    },
+    {
+      "title": "月の立つ林で",
+      "author": "青山美智子",
+      "status": "reserved",
+      "note": "",
+      "source": "mom-queue",
+      "date": "2026-08-24"
     }
   ]
 }

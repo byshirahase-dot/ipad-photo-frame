@@ -171,26 +171,29 @@
     {
       "title": "おこだでませんように",
       "author": "くすのきしげのり",
-      "status": "reserved",
-      "note": "",
+      "status": "borrowed",
+      "note": "受取済み・貸出中（借用済み）のため終了扱い",
       "source": "ehonnavi",
-      "date": "2026-08-10"
+      "date": "2026-08-10",
+      "borrowedDate": "2026-08-24"
     },
     {
       "title": "おおはくちょうのそら",
       "author": "手島圭三郎",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "requeue:予約取消",
-      "date": "2026-08-10"
+      "date": "2026-08-10",
+      "expiredDate": "2026-08-24"
     },
     {
       "title": "11ぴきのねこどろんこ",
       "author": "馬場のぼる",
-      "status": "reserved",
-      "note": "",
+      "status": "borrowed",
+      "note": "受取済み・貸出中（借用済み）のため終了扱い",
       "source": "requeue:予約取消",
-      "date": "2026-08-10"
+      "date": "2026-08-10",
+      "borrowedDate": "2026-08-24"
     },
     {
       "title": "ずーっとずっとだいすきだよ",
@@ -223,6 +226,30 @@
       "note": "",
       "source": "list",
       "date": "2026-08-17"
+    },
+    {
+      "title": "まりーちゃんとひつじ",
+      "author": "フランソワーズ 与田準一・訳",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-08-24"
+    },
+    {
+      "title": "おじさんのかさ",
+      "author": "佐野洋子",
+      "status": "reserved",
+      "note": "",
+      "source": "requeue:予約取消",
+      "date": "2026-08-24"
+    },
+    {
+      "title": "こんとあき",
+      "author": "林明子",
+      "status": "reserved",
+      "note": "",
+      "source": "requeue:予約取消",
+      "date": "2026-08-24"
     }
   ]
 }
