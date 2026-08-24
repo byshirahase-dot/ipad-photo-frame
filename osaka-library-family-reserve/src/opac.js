@@ -792,6 +792,14 @@ export function rankResults(results, wantedTitle, limit = 3, preferBunko = false
   const w = norm(wantedTitle);
   const special = /大型|紙芝居|点字|デイジー|カセット|大活字|DVD|CD/;
   const isBunko = (r) => /文庫/.test(`${r.title} ${r.writer ?? ""} ${r.publisher ?? ""}`);
+  // 上下巻の並び順（ユーザー指定 2026-08: 上下に分かれている時は上から予約する）。
+  // 同じ作品名で複数巻がヒットしたら 上/単巻 → 中 → 下 の順に並べ、上巻を先に予約させる。
+  const volOrder = (t) => {
+    const s = String(t);
+    if (/(?:[\s　（(]|^)(?:下|下巻)(?:[\s　）)]|$)|（下）|\(下\)/.test(s)) return 2;
+    if (/(?:[\s　（(]|^)(?:中|中巻)(?:[\s　）)]|$)|（中）|\(中\)/.test(s)) return 1;
+    return 0; // 上・上巻・単巻はいずれも先頭
+  };
   const scored = [];
   for (const r of results) {
     const t = norm(r.title);
@@ -813,9 +821,9 @@ export function rankResults(results, wantedTitle, limit = 3, preferBunko = false
     const matched = scored.filter(
       (r) => publisherMatches(r.publisher, expectedPublisher) || (preferBunko && isBunko(r))
     );
-    matched.sort((a, b) => b.score - a.score || a.index - b.index);
+    matched.sort((a, b) => b.score - a.score || volOrder(a.title) - volOrder(b.title) || a.index - b.index);
     return matched.slice(0, limit);
   }
-  scored.sort((a, b) => b.score - a.score || a.index - b.index);
+  scored.sort((a, b) => b.score - a.score || volOrder(a.title) - volOrder(b.title) || a.index - b.index);
   return scored.slice(0, limit);
 }

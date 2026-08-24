@@ -316,6 +316,31 @@ test("rankResults preserves onDetail single-hit flag and index", async () => {
   assert.equal(ng.length, 0);
 });
 
+// --- rankResults: 上下巻は上から予約する（ユーザー指定 2026-08） ---
+// 同じ作品名で複数巻がヒットしたら、スコアが同点でも 上/単巻 → 中 → 下 の順に並べ、
+// 上巻を先に予約させる（下巻だけ届いた「ハックルベリー・フィンの冒険」への対処）。
+test("rankResults: 上下巻は 上→中→下 の順に並ぶ（同点時のタイブレーク）", async () => {
+  const { rankResults } = await import("../src/opac.js");
+  // OPAC が下巻を先に返しても、上巻が先頭に来る
+  const results = [
+    { index: 0, title: "ハックルベリー・フィンの冒険 下", publisher: "岩波書店", href: "d" },
+    { index: 1, title: "ハックルベリー・フィンの冒険 上", publisher: "岩波書店", href: "u" },
+  ];
+  const ranked = rankResults(results, "ハックルベリー・フィンの冒険", 3, false, "岩波書店");
+  assert.deepEqual(ranked.map((r) => r.title), [
+    "ハックルベリー・フィンの冒険 上",
+    "ハックルベリー・フィンの冒険 下",
+  ]);
+  // 括弧書き（上）（下）・中巻を含む3巻でも順序が保たれる
+  const three = [
+    { index: 0, title: "作品名（下）", publisher: "X社", href: "d" },
+    { index: 1, title: "作品名（中）", publisher: "X社", href: "m" },
+    { index: 2, title: "作品名（上）", publisher: "X社", href: "u" },
+  ];
+  const r3 = rankResults(three, "作品名", 3, false, null);
+  assert.deepEqual(r3.map((r) => r.title), ["作品名（上）", "作品名（中）", "作品名（下）"]);
+});
+
 // --- orderPicksForCart: カート投入順の最適化（2026-08-09 / 2026-08-17 判定軸を publisher へ） ---
 // 版スキップしやすい本＝publisher 指定のある本（list/ehonnavi/series/版指定の再予約）を先に、
 // 版ガードが無く確実にカートへ入る本＝publisher 指定の無い本（取消復帰など）を後に処理し、
