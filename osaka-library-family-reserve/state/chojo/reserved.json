@@ -222,6 +222,38 @@
       "note": "",
       "source": "再予約リクエスト(読み切れず返却→再度借りる)",
       "date": "2026-08-24"
+    },
+    {
+      "title": "放課後の時間割",
+      "author": "岡田淳",
+      "status": "reserved",
+      "note": "",
+      "source": "ehonnavi",
+      "date": "2026-08-31"
+    },
+    {
+      "title": "地球の声に耳をすませて",
+      "author": "大木聖子",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-08-31"
+    },
+    {
+      "title": "ユメミザクラの木の下で",
+      "author": "岡田淳",
+      "status": "reserved",
+      "note": "",
+      "source": "再予約リクエスト(読み切れず返却→再度借りる)",
+      "date": "2026-08-31"
+    },
+    {
+      "title": "あかりの木の魔法",
+      "author": "岡田淳",
+      "status": "reserved",
+      "note": "",
+      "source": "再予約リクエスト(読み切れず返却→再度借りる)",
+      "date": "2026-08-31"
     }
   ]
 }

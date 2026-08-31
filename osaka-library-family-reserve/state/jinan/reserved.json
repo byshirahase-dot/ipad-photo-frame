@@ -302,6 +302,30 @@
       "note": "",
       "source": "requeue:予約取消",
       "date": "2026-08-24"
+    },
+    {
+      "title": "これはのみのぴこ",
+      "author": "谷川俊太郎",
+      "status": "reserved",
+      "note": "",
+      "source": "ehonnavi",
+      "date": "2026-08-31"
+    },
+    {
+      "title": "ちびゴリラのちびちび",
+      "author": "ボーンスタイン いわたみみ・訳",
+      "status": "reserved",
+      "note": "",
+      "source": "requeue:予約取消",
+      "date": "2026-08-31"
+    },
+    {
+      "title": "14ひきのあさごはん",
+      "author": "いわむらかずお",
+      "status": "reserved",
+      "note": "",
+      "source": "requeue:予約取消",
+      "date": "2026-08-31"
     }
   ]
 }

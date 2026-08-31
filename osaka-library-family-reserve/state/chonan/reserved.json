@@ -250,6 +250,30 @@
       "note": "",
       "source": "requeue:予約取消",
       "date": "2026-08-24"
+    },
+    {
+      "title": "しょうぼうじどうしゃじぷた",
+      "author": "渡辺茂男 山本忠敬・絵",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-08-31"
+    },
+    {
+      "title": "おおはくちょうのそら",
+      "author": "手島圭三郎",
+      "status": "reserved",
+      "note": "",
+      "source": "requeue:予約取消",
+      "date": "2026-08-31"
+    },
+    {
+      "title": "11ぴきのねことへんなねこ",
+      "author": "馬場のぼる",
+      "status": "reserved",
+      "note": "",
+      "source": "requeue:予約取消",
+      "date": "2026-08-31"
     }
   ]
 }

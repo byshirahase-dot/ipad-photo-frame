@@ -1,16 +1,6 @@
 {
   "items": [
     {
-      "title": "おおはくちょうのそら",
-      "author": "手島圭三郎",
-      "from": "requeue:予約取消"
-    },
-    {
-      "title": "11ぴきのねことへんなねこ",
-      "author": "馬場のぼる",
-      "from": "requeue:予約取消"
-    },
-    {
       "title": "おこだでませんように",
       "author": "くすのきしげのり",
       "from": "requeue:予約取消"
@@ -29,6 +19,48 @@
       "title": "ともだちや",
       "author": "内田麟太郎 降矢なな・絵",
       "from": "requeue:予約取消"
+    },
+    {
+      "title": "ひとまねこざるときいろいぼうし",
+      "author": "レイ 光吉夏弥・訳",
+      "publisher": "岩波書店",
+      "from": "series:ひとまねこざる"
+    },
+    {
+      "title": "ひとまねこざる",
+      "author": "レイ 光吉夏弥・訳",
+      "publisher": "岩波書店",
+      "from": "series:ひとまねこざる"
+    },
+    {
+      "title": "じてんしゃにのるひとまねこざる",
+      "author": "レイ 光吉夏弥・訳",
+      "publisher": "岩波書店",
+      "from": "series:ひとまねこざる"
+    },
+    {
+      "title": "たこをあげるひとまねこざる",
+      "author": "レイ 光吉夏弥・訳",
+      "publisher": "岩波書店",
+      "from": "series:ひとまねこざる"
+    },
+    {
+      "title": "ろけっとこざる",
+      "author": "レイ 光吉夏弥・訳",
+      "publisher": "岩波書店",
+      "from": "series:ひとまねこざる"
+    },
+    {
+      "title": "ひとまねこざるびょういんへいく",
+      "author": "レイ 光吉夏弥・訳",
+      "publisher": "岩波書店",
+      "from": "series:ひとまねこざる"
+    },
+    {
+      "title": "ひとまねこざるのABC",
+      "author": "レイ 光吉夏弥・訳",
+      "publisher": "岩波書店",
+      "from": "series:ひとまねこざる"
     }
   ]
 }
