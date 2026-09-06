@@ -20,6 +20,10 @@ export class Opac {
     this.headless = headless;
     this.storageStatePath = storageStatePath;
     this.shotCount = 0;
+    // ログイン確立後は true。WebOTX のセッションはノードローカル（レプリケーション無し）で、
+    // ログイン後に F5 の振り分けノードを変えるとセッションが切れる。よって永続化 Cookie の
+    // 破棄によるノード振り直しは「未ログイン時（＝正常ノード探し）」に限定する。
+    this.authenticated = false;
   }
 
   async start() {
@@ -42,20 +46,70 @@ export class Opac {
     this.context = await this.browser.newContext(pageOpts);
     this.page = await this.context.newPage();
     this.page.setDefaultTimeout(20000);
+    // 中継層が 408 を最大 relayMaxAttempts 回まで再取得するため、ページ遷移は
+    // 1リクエストあたり数回の再試行×リソース数ぶん時間がかかりうる。遷移待ちの
+    // タイムアウトは要素操作(20s)より十分に長くする。
+    this.page.setDefaultNavigationTimeout(150000);
     // confirm/alert ダイアログは受け入れる（LICSは確認にJSダイアログを使うことがある）
     this.page.on("dialog", (d) => d.accept().catch(() => {}));
-    if (proxyServer) {
+    if (proxyServer && !process.env.OML_NO_RELAY) {
       // Chromium とプロキシ終端の TLS 非互換対策:
       // リクエストを Playwright の Node 側 fetch（プロキシ・CA設定済み）で中継する
+      // ※ OML_NO_RELAY=1 で無効化（中継は各リクエストをブラウザ外で再取得するため、
+      //   サイトの WAF/ボット判定・JS チャレンジ・Cookie 継続を壊すことがある）
+      // OPAC は F5 ロードバランサ配下の WebOTX が複数ノードで動いており、一部ノードが
+      // 不定期に HTTP 408（+「このページは表示できません」エラーページ）を返す。実測で
+      // 約3割の確率。ログインは複数リクエストを連鎖するため（0.7^5≒17%）ほぼ必ず途中で踏む。
+      // ブラウザなら人手で再読み込みするところ。中継層で一過性エラー（408/5xx/接続断）を
+      // 数回だけ再取得することで、正常ノードに当たった応答をブラウザへ返す。
+      const TRANSIENT = new Set([408, 500, 502, 503, 504]);
+      // 408 は実測で約3〜4割の確率で返る。1ページ十数リクエストを全て正常に揃えるには
+      // 1リクエストあたりの再試行を多めに確保する（1-0.4^N を全リソースぶん掛け合わせる）。
+      const relayMaxAttempts = Number(process.env.OML_RELAY_MAX_ATTEMPTS || 12);
       await this.page.route("**/*", async (route) => {
-        try {
-          const resp = await route.fetch({ maxRedirects: 0 });
-          await route.fulfill({ response: resp });
-        } catch {
-          await route.abort().catch(() => {});
+        const req = route.request();
+        for (let attempt = 1; ; attempt++) {
+          try {
+            const resp = await route.fetch({ maxRedirects: 0 });
+            const status = resp.status();
+            const transient = TRANSIENT.has(status);
+            if (process.env.OML_RELAY_DEBUG) {
+              console.error(`[relay] try${attempt} ${req.method()} ${status} ${req.url()}${transient ? " <<transient>>" : ""}`);
+            }
+            if (transient && attempt < relayMaxAttempts) {
+              // 未ログイン時のみ、F5 の永続化 Cookie(BIGipServer*) を落として次の再取得で
+              // 別ノードへ振り分けさせる（不健全ノードに張り付いたままの連続408を回避）。
+              // ログイン後はノードを固定したまま同一ノードへ再試行する（一過性の408は復旧する。
+              // ノードを変えるとノードローカルのセッションが切れて「ログイン画面」に落ちるため）。
+              if (!this.authenticated) await this.dropPersistenceCookie().catch(() => {});
+              await new Promise((r) => setTimeout(r, 300 + Math.floor(Math.random() * 300)));
+              continue;
+            }
+            await route.fulfill({ response: resp });
+            return;
+          } catch (e) {
+            if (process.env.OML_RELAY_DEBUG) console.error(`[relay] try${attempt} ERR ${req.url()} : ${e.message}`);
+            if (attempt < relayMaxAttempts) {
+              await new Promise((r) => setTimeout(r, 900 + Math.floor(Math.random() * 400)));
+              continue;
+            }
+            await route.abort().catch(() => {});
+            return;
+          }
         }
       });
     }
+  }
+
+  /** F5 BIG-IP の永続化 Cookie(BIGipServer*) だけを削除し、他（JSESSIONID 等）は残す */
+  async dropPersistenceCookie() {
+    if (!this.context) return;
+    const cookies = await this.context.cookies();
+    const bigip = cookies.filter((c) => c.name.startsWith("BIGipServer"));
+    if (bigip.length === 0) return;
+    const keep = cookies.filter((c) => !c.name.startsWith("BIGipServer"));
+    await this.context.clearCookies();
+    if (keep.length) await this.context.addCookies(keep);
   }
 
   async close() {
@@ -122,7 +176,35 @@ export class Opac {
   // ---------- ログイン ----------
 
   async login(card, pass) {
-    try {
+    // ログインは複数の画面遷移を連鎖する。どれか1つが 408（未認証時はノードを跨いでも
+    // よいので中継が別ノードへ振り直す）で崩れることがあるため、フロー全体を数回リトライする。
+    // 各リトライの前に永続化 Cookie を落として別ノードで最初からやり直す（＝人手の再読込相当）。
+    const flowAttempts = 3;
+    let lastErr = null;
+    for (let a = 1; a <= flowAttempts; a++) {
+      try {
+        await this._loginAttempt(card, pass);
+        // 以後はノード固定（永続化Cookieを落とさない）。ノードローカルセッション維持のため。
+        this.authenticated = true;
+        return true;
+      } catch (err) {
+        lastErr = err;
+        if (err.authFail) break; // 資格情報エラーはリトライしない
+        if (a < flowAttempts) {
+          await this.dropPersistenceCookie().catch(() => {});
+          await this.page.waitForTimeout(1500);
+        }
+      }
+    }
+    await this.fail("login", lastErr);
+  }
+
+  /** ログイン1回ぶんの画面フロー（トップ→ログインリンク→フォーム→送信）。失敗時は throw。 */
+  async _loginAttempt(card, pass) {
+    // トップ表示→メニュー展開→ログインリンク発見 を数回リトライする。
+    let loginLink = null;
+    const linkAttempts = 4;
+    for (let a = 1; a <= linkAttempts; a++) {
       await this.politeWait();
       await this.page.goto(`${this.baseUrl}/WOpacSmtMnuTopAction.do`, {
         waitUntil: "domcontentloaded",
@@ -134,60 +216,64 @@ export class Opac {
         await menuBtn.click();
         await this.page.waitForTimeout(800);
       }
-      const loginLink = await this.firstVisible(
+      loginLink = await this.firstVisible(
         ["a#usr-lgin", 'a:has-text("ログイン")'],
         "ログインリンク"
-      );
-      await this.politeWait();
-      await loginLink.click();
-      await this.page.waitForLoadState("domcontentloaded").catch(() => {});
-      // ログインフォームの描画を待つ（出なければ一度だけクリックし直す）
-      const formReady = await this.page
-        .waitForSelector("#usrcardnumber, input[type='password']", { timeout: 8000 })
-        .catch(() => null);
-      if (!formReady) {
-        // メニューを開き直してからもう一度だけクリック
-        await this.page.locator("#openmenu2").click().catch(() => {});
-        await this.page.waitForTimeout(600);
-        await this.politeWait();
-        await loginLink.click().catch(() => {});
-        await this.page.waitForSelector("#usrcardnumber, input[type='password']", { timeout: 8000 }).catch(() => {});
-      }
-      await this.shot("login-form");
-      const cardInput = await this.firstVisible(
-        [
-          "#usrcardnumber",
-          'input[name="username"]',
-          'input[name*="usercd" i]',
-          // 注意: 汎用の input[type=text] は検索ボックスを誤爆するため入れない
-        ],
-        "カード番号入力欄"
-      );
-      await cardInput.fill(card);
-      const passInput = await this.firstVisible(
-        ["#password", 'input[type="password"]'],
-        "パスワード入力欄"
-      );
-      await passInput.fill(pass);
-      const loginBtn = await this.firstVisible(
-        [
-          'input[value*="ログイン"]',
-          this.page.getByRole("button", { name: /ログイン/ }),
-          'input[type="submit"][value*="ログイン"]',
-        ],
-        "ログインボタン"
-      );
-      await loginBtn.click();
-      await this.page.waitForLoadState("domcontentloaded").catch(() => {});
-      const body = await this.page.textContent("body");
-      if (/(パスワード|カード).*(誤り|正しく|一致しません)|認証に失敗/.test(body || "")) {
-        throw new Error("ログイン失敗（カード番号またはパスワードが違う）");
-      }
-      await this.shot("login-ok");
-      return true;
-    } catch (err) {
-      await this.fail("login", err);
+      ).catch(() => null);
+      if (loginLink) break;
+      if (a < linkAttempts) await this.page.waitForTimeout(1200);
     }
+    if (!loginLink) {
+      throw new Error("画面要素が見つかりません: ログインリンク（トップ再読込を繰り返しても不可）");
+    }
+    await this.politeWait();
+    await loginLink.click();
+    await this.page.waitForLoadState("domcontentloaded").catch(() => {});
+    // ログインフォームの描画を待つ（出なければ一度だけクリックし直す）
+    const formReady = await this.page
+      .waitForSelector("#usrcardnumber, input[type='password']", { timeout: 8000 })
+      .catch(() => null);
+    if (!formReady) {
+      // メニューを開き直してからもう一度だけクリック
+      await this.page.locator("#openmenu2").click().catch(() => {});
+      await this.page.waitForTimeout(600);
+      await this.politeWait();
+      await loginLink.click().catch(() => {});
+      await this.page.waitForSelector("#usrcardnumber, input[type='password']", { timeout: 8000 }).catch(() => {});
+    }
+    await this.shot("login-form");
+    const cardInput = await this.firstVisible(
+      [
+        "#usrcardnumber",
+        'input[name="username"]',
+        'input[name*="usercd" i]',
+        // 注意: 汎用の input[type=text] は検索ボックスを誤爆するため入れない
+      ],
+      "カード番号入力欄"
+    );
+    await cardInput.fill(card);
+    const passInput = await this.firstVisible(
+      ["#password", 'input[type="password"]'],
+      "パスワード入力欄"
+    );
+    await passInput.fill(pass);
+    const loginBtn = await this.firstVisible(
+      [
+        'input[value*="ログイン"]',
+        this.page.getByRole("button", { name: /ログイン/ }),
+        'input[type="submit"][value*="ログイン"]',
+      ],
+      "ログインボタン"
+    );
+    await loginBtn.click();
+    await this.page.waitForLoadState("domcontentloaded").catch(() => {});
+    const body = await this.page.textContent("body");
+    if (/(パスワード|カード).*(誤り|正しく|一致しません)|認証に失敗/.test(body || "")) {
+      const e = new Error("ログイン失敗（カード番号またはパスワードが違う）");
+      e.authFail = true;
+      throw e;
+    }
+    await this.shot("login-ok");
   }
 
   // ---------- 予約状況（枠の残数確認） ----------
@@ -750,6 +836,7 @@ export class Opac {
   }
 
   async logout() {
+    this.authenticated = false;
     try {
       const btn = this.page.getByRole("link", { name: /ログアウト/ });
       if (await btn.first().isVisible({ timeout: 1500 })) {

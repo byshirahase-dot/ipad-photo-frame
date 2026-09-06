@@ -146,10 +146,11 @@
     {
       "title": "クリスマス・キャロル",
       "author": "",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "adhoc",
-      "date": "2026-08-22"
+      "date": "2026-08-22",
+      "expiredDate": "2026-09-07"
     },
     {
       "title": "そこに僕はいた",
@@ -178,18 +179,20 @@
     {
       "title": "ガラスの家族",
       "author": "",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "adhoc",
-      "date": "2026-08-22"
+      "date": "2026-08-22",
+      "expiredDate": "2026-09-07"
     },
     {
       "title": "ハックルベリー・フィンの冒険 上",
       "author": "トウェイン",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "adhoc:上下の上を補完",
-      "date": "2026-08-23"
+      "date": "2026-08-23",
+      "expiredDate": "2026-09-07"
     },
     {
       "title": "マジックツリーハウス①恐竜の谷の大冒険",
@@ -210,18 +213,20 @@
     {
       "title": "扉のむこうの物語",
       "author": "岡田淳",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "ehonnavi",
-      "date": "2026-08-24"
+      "date": "2026-08-24",
+      "expiredDate": "2026-09-07"
     },
     {
       "title": "森のなかの海賊船",
       "author": "岡田淳",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "再予約リクエスト(読み切れず返却→再度借りる)",
-      "date": "2026-08-24"
+      "date": "2026-08-24",
+      "expiredDate": "2026-09-07"
     },
     {
       "title": "放課後の時間割",
@@ -254,6 +259,30 @@
       "note": "",
       "source": "再予約リクエスト(読み切れず返却→再度借りる)",
       "date": "2026-08-31"
+    },
+    {
+      "title": "夜の小学校で",
+      "author": "岡田淳",
+      "status": "reserved",
+      "note": "",
+      "source": "ehonnavi",
+      "date": "2026-09-07"
+    },
+    {
+      "title": "キャプテンはつらいぜ",
+      "author": "後藤竜二",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-09-07"
+    },
+    {
+      "title": "空気がなくなる日",
+      "author": "岩倉政治",
+      "status": "reserved",
+      "note": "",
+      "source": "再予約リクエスト(読み切れず返却→再度借りる)",
+      "date": "2026-09-07"
     }
   ]
 }

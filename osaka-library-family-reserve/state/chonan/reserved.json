@@ -274,6 +274,22 @@
       "note": "",
       "source": "requeue:予約取消",
       "date": "2026-08-31"
+    },
+    {
+      "title": "11ぴきのねこ",
+      "author": "馬場のぼる",
+      "status": "borrowed",
+      "note": "既に貸出中のためスキップ",
+      "source": "requeue:予約取消",
+      "date": "2026-09-07"
+    },
+    {
+      "title": "11ぴきのねこふくろのなか",
+      "author": "馬場のぼる",
+      "status": "reserved",
+      "note": "",
+      "source": "requeue:予約取消",
+      "date": "2026-09-07"
     }
   ]
 }
