@@ -1,6 +1,12 @@
 {
   "items": [
     {
+      "title": "注文の多い料理店",
+      "author": "宮沢賢治",
+      "publisher": "講談社",
+      "from": "requeue:講談社版取り直し"
+    },
+    {
       "title": "空気がなくなる日",
       "author": "岩倉政治",
       "publisher": "ポプラ社",
