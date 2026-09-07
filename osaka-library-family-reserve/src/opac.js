@@ -65,7 +65,9 @@ export class Opac {
       const TRANSIENT = new Set([408, 500, 502, 503, 504]);
       // 408 は実測で約3〜4割の確率で返る。1ページ十数リクエストを全て正常に揃えるには
       // 1リクエストあたりの再試行を多めに確保する（1-0.4^N を全リソースぶん掛け合わせる）。
-      const relayMaxAttempts = Number(process.env.OML_RELAY_MAX_ATTEMPTS || 12);
+      // ⚠️ リトライは控えめにする。相手が弱っている/締めている場合、連打は逆効果。
+      //   既定は少なめ（数回）で、間隔も長めに取る。押し切らず、ダメなら諦めて上位へ委ねる。
+      const relayMaxAttempts = Number(process.env.OML_RELAY_MAX_ATTEMPTS || 3);
       await this.page.route("**/*", async (route) => {
         const req = route.request();
         for (let attempt = 1; ; attempt++) {
@@ -82,7 +84,8 @@ export class Opac {
               // ログイン後はノードを固定したまま同一ノードへ再試行する（一過性の408は復旧する。
               // ノードを変えるとノードローカルのセッションが切れて「ログイン画面」に落ちるため）。
               if (!this.authenticated) await this.dropPersistenceCookie().catch(() => {});
-              await new Promise((r) => setTimeout(r, 300 + Math.floor(Math.random() * 300)));
+              // 間隔は長めに（連打しない）。1.5〜3秒。
+              await new Promise((r) => setTimeout(r, 1500 + Math.floor(Math.random() * 1500)));
               continue;
             }
             await route.fulfill({ response: resp });
@@ -179,7 +182,7 @@ export class Opac {
     // ログインは複数の画面遷移を連鎖する。どれか1つが 408（未認証時はノードを跨いでも
     // よいので中継が別ノードへ振り直す）で崩れることがあるため、フロー全体を数回リトライする。
     // 各リトライの前に永続化 Cookie を落として別ノードで最初からやり直す（＝人手の再読込相当）。
-    const flowAttempts = 3;
+    const flowAttempts = 2;
     let lastErr = null;
     for (let a = 1; a <= flowAttempts; a++) {
       try {
@@ -203,7 +206,7 @@ export class Opac {
   async _loginAttempt(card, pass) {
     // トップ表示→メニュー展開→ログインリンク発見 を数回リトライする。
     let loginLink = null;
-    const linkAttempts = 4;
+    const linkAttempts = 2;
     for (let a = 1; a <= linkAttempts; a++) {
       await this.politeWait();
       await this.page.goto(`${this.baseUrl}/WOpacSmtMnuTopAction.do`, {
