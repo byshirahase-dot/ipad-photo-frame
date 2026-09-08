@@ -46,10 +46,8 @@ export class Opac {
     this.context = await this.browser.newContext(pageOpts);
     this.page = await this.context.newPage();
     this.page.setDefaultTimeout(20000);
-    // 中継層が 408 を最大 relayMaxAttempts 回まで再取得するため、ページ遷移は
-    // 1リクエストあたり数回の再試行×リソース数ぶん時間がかかりうる。遷移待ちの
-    // タイムアウトは要素操作(20s)より十分に長くする。
-    this.page.setDefaultNavigationTimeout(150000);
+    // 遷移待ちタイムアウト（リトライを廃したので長大にする必要はない）。
+    this.page.setDefaultNavigationTimeout(45000);
     // confirm/alert ダイアログは受け入れる（LICSは確認にJSダイアログを使うことがある）
     this.page.on("dialog", (d) => d.accept().catch(() => {}));
     if (proxyServer && !process.env.OML_NO_RELAY) {
@@ -57,43 +55,27 @@ export class Opac {
       // リクエストを Playwright の Node 側 fetch（プロキシ・CA設定済み）で中継する
       // ※ OML_NO_RELAY=1 で無効化（中継は各リクエストをブラウザ外で再取得するため、
       //   サイトの WAF/ボット判定・JS チャレンジ・Cookie 継続を壊すことがある）
-      // OPAC は F5 ロードバランサ配下の WebOTX が複数ノードで動いており、一部ノードが
-      // 不定期に HTTP 408（+「このページは表示できません」エラーページ）を返す。実測で
-      // 約3割の確率。ログインは複数リクエストを連鎖するため（0.7^5≒17%）ほぼ必ず途中で踏む。
-      // ブラウザなら人手で再読み込みするところ。中継層で一過性エラー（408/5xx/接続断）を
-      // 数回だけ再取得することで、正常ノードに当たった応答をブラウザへ返す。
-      const TRANSIENT = new Set([408, 500, 502, 503, 504]);
-      // 408 は実測で約3〜4割の確率で返る。1ページ十数リクエストを全て正常に揃えるには
-      // 1リクエストあたりの再試行を多めに確保する（1-0.4^N を全リソースぶん掛け合わせる）。
-      // ⚠️ リトライは控えめにする。相手が弱っている/締めている場合、連打は逆効果。
-      //   既定は少なめ（数回）で、間隔も長めに取る。押し切らず、ダメなら諦めて上位へ委ねる。
-      const relayMaxAttempts = Number(process.env.OML_RELAY_MAX_ATTEMPTS || 3);
+      // ★HTTP応答（408含む）は絶対にリトライしない。
+      //   2026-09-07の障害でこの中継が408をリトライで押し切る実装になっており、それが
+      //   図書館側F5の「送信元IP単位のレート/ソフトBAN」を恒久BANへ硬化させた（Fable検証で確認）。
+      //   408は「お前は制限対象だ」というサイトの判定なので、連打は最悪手。サイトが返した応答は
+      //   状態コードに関わらずそのままブラウザへ渡し、上位（index.js）が見送り/翌週リトライで受ける。
+      //   再試行するのは「ネットワーク例外（接続リセット等・サーバの判定ではない）」だけ、控えめに1回。
+      const netRetry = Number(process.env.OML_RELAY_NET_RETRY || 1);
       await this.page.route("**/*", async (route) => {
         const req = route.request();
-        for (let attempt = 1; ; attempt++) {
+        for (let attempt = 0; ; attempt++) {
           try {
             const resp = await route.fetch({ maxRedirects: 0 });
-            const status = resp.status();
-            const transient = TRANSIENT.has(status);
             if (process.env.OML_RELAY_DEBUG) {
-              console.error(`[relay] try${attempt} ${req.method()} ${status} ${req.url()}${transient ? " <<transient>>" : ""}`);
+              console.error(`[relay] ${req.method()} ${resp.status()} ${req.url()}`);
             }
-            if (transient && attempt < relayMaxAttempts) {
-              // 未ログイン時のみ、F5 の永続化 Cookie(BIGipServer*) を落として次の再取得で
-              // 別ノードへ振り分けさせる（不健全ノードに張り付いたままの連続408を回避）。
-              // ログイン後はノードを固定したまま同一ノードへ再試行する（一過性の408は復旧する。
-              // ノードを変えるとノードローカルのセッションが切れて「ログイン画面」に落ちるため）。
-              if (!this.authenticated) await this.dropPersistenceCookie().catch(() => {});
-              // 間隔は長めに（連打しない）。1.5〜3秒。
-              await new Promise((r) => setTimeout(r, 1500 + Math.floor(Math.random() * 1500)));
-              continue;
-            }
-            await route.fulfill({ response: resp });
+            await route.fulfill({ response: resp }); // 408/5xxでもそのまま返す（リトライ禁止）
             return;
           } catch (e) {
-            if (process.env.OML_RELAY_DEBUG) console.error(`[relay] try${attempt} ERR ${req.url()} : ${e.message}`);
-            if (attempt < relayMaxAttempts) {
-              await new Promise((r) => setTimeout(r, 900 + Math.floor(Math.random() * 400)));
+            if (process.env.OML_RELAY_DEBUG) console.error(`[relay] ERR ${req.url()} : ${e.message}`);
+            if (attempt < netRetry) {
+              await new Promise((r) => setTimeout(r, 1500 + Math.floor(Math.random() * 1500)));
               continue;
             }
             await route.abort().catch(() => {});
@@ -182,7 +164,7 @@ export class Opac {
     // ログインは複数の画面遷移を連鎖する。どれか1つが 408（未認証時はノードを跨いでも
     // よいので中継が別ノードへ振り直す）で崩れることがあるため、フロー全体を数回リトライする。
     // 各リトライの前に永続化 Cookie を落として別ノードで最初からやり直す（＝人手の再読込相当）。
-    const flowAttempts = 2;
+    const flowAttempts = 1; // ★ログインフローもリトライしない（失敗したら諦める。連打しない）
     let lastErr = null;
     for (let a = 1; a <= flowAttempts; a++) {
       try {
@@ -206,7 +188,7 @@ export class Opac {
   async _loginAttempt(card, pass) {
     // トップ表示→メニュー展開→ログインリンク発見 を数回リトライする。
     let loginLink = null;
-    const linkAttempts = 2;
+    const linkAttempts = 1; // ★トップ再読込での粘りもしない（数ヶ月動いていた単発挙動へ戻す）
     for (let a = 1; a <= linkAttempts; a++) {
       await this.politeWait();
       await this.page.goto(`${this.baseUrl}/WOpacSmtMnuTopAction.do`, {
