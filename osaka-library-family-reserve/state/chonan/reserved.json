@@ -230,34 +230,38 @@
     {
       "title": "まりーちゃんとひつじ",
       "author": "フランソワーズ 与田準一・訳",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "list",
-      "date": "2026-08-24"
+      "date": "2026-08-24",
+      "expiredDate": "2026-09-12"
     },
     {
       "title": "おじさんのかさ",
       "author": "佐野洋子",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "requeue:予約取消",
-      "date": "2026-08-24"
+      "date": "2026-08-24",
+      "expiredDate": "2026-09-12"
     },
     {
       "title": "こんとあき",
       "author": "林明子",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "requeue:予約取消",
-      "date": "2026-08-24"
+      "date": "2026-08-24",
+      "expiredDate": "2026-09-12"
     },
     {
       "title": "しょうぼうじどうしゃじぷた",
       "author": "渡辺茂男 山本忠敬・絵",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "list",
-      "date": "2026-08-31"
+      "date": "2026-08-31",
+      "expiredDate": "2026-09-12"
     },
     {
       "title": "おおはくちょうのそら",

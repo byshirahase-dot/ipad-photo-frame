@@ -171,10 +171,11 @@
     {
       "title": "ハックルベリー・フィンの冒険",
       "author": "",
-      "status": "reserved",
-      "note": "",
+      "status": "borrowed",
+      "note": "受取済み・貸出中（借用済み）のため終了扱い",
       "source": "adhoc",
-      "date": "2026-08-22"
+      "date": "2026-08-22",
+      "borrowedDate": "2026-09-12"
     },
     {
       "title": "ガラスの家族",
@@ -231,34 +232,38 @@
     {
       "title": "放課後の時間割",
       "author": "岡田淳",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "ehonnavi",
-      "date": "2026-08-31"
+      "date": "2026-08-31",
+      "expiredDate": "2026-09-12"
     },
     {
       "title": "地球の声に耳をすませて",
       "author": "大木聖子",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "list",
-      "date": "2026-08-31"
+      "date": "2026-08-31",
+      "expiredDate": "2026-09-12"
     },
     {
       "title": "ユメミザクラの木の下で",
       "author": "岡田淳",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "再予約リクエスト(読み切れず返却→再度借りる)",
-      "date": "2026-08-31"
+      "date": "2026-08-31",
+      "expiredDate": "2026-09-12"
     },
     {
       "title": "あかりの木の魔法",
       "author": "岡田淳",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "再予約リクエスト(読み切れず返却→再度借りる)",
-      "date": "2026-08-31"
+      "date": "2026-08-31",
+      "expiredDate": "2026-09-12"
     },
     {
       "title": "夜の小学校で",

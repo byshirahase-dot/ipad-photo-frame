@@ -1,13 +1,23 @@
 {
   "items": [
     {
-      "title": "14ひきのひっこし",
-      "author": "いわむらかずお",
+      "title": "これはのみのぴこ",
+      "author": "谷川俊太郎",
       "from": "requeue:予約取消"
     },
     {
-      "title": "ティッチ",
-      "author": "ハッチンス いしいももこ・訳",
+      "title": "はけたよはけたよ",
+      "author": "かんざわとしこ にしまきかやこ・絵",
+      "from": "requeue:予約取消"
+    },
+    {
+      "title": "くだものだもの",
+      "author": "石津ちひろ",
+      "from": "requeue:予約取消"
+    },
+    {
+      "title": "しろくまのパンツ",
+      "author": "tupera tupera",
       "from": "requeue:予約取消"
     },
     {

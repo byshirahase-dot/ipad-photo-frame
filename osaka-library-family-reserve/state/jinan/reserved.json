@@ -282,34 +282,38 @@
     {
       "title": "くだものだもの",
       "author": "石津ちひろ",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "ehonnavi",
-      "date": "2026-08-24"
+      "date": "2026-08-24",
+      "expiredDate": "2026-09-12"
     },
     {
       "title": "はけたよはけたよ",
       "author": "かんざわとしこ にしまきかやこ・絵",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "requeue:予約取消",
-      "date": "2026-08-24"
+      "date": "2026-08-24",
+      "expiredDate": "2026-09-12"
     },
     {
       "title": "しろくまのパンツ",
       "author": "tupera tupera",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "requeue:予約取消",
-      "date": "2026-08-24"
+      "date": "2026-08-24",
+      "expiredDate": "2026-09-12"
     },
     {
       "title": "これはのみのぴこ",
       "author": "谷川俊太郎",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "ehonnavi",
-      "date": "2026-08-31"
+      "date": "2026-08-31",
+      "expiredDate": "2026-09-12"
     },
     {
       "title": "ちびゴリラのちびちび",
@@ -326,6 +330,30 @@
       "note": "",
       "source": "requeue:予約取消",
       "date": "2026-08-31"
+    },
+    {
+      "title": "おべんとうバス",
+      "author": "真珠まりこ",
+      "status": "reserved",
+      "note": "",
+      "source": "ehonnavi",
+      "date": "2026-09-12"
+    },
+    {
+      "title": "14ひきのひっこし",
+      "author": "いわむらかずお",
+      "status": "reserved",
+      "note": "",
+      "source": "requeue:予約取消",
+      "date": "2026-09-12"
+    },
+    {
+      "title": "ティッチ",
+      "author": "ハッチンス いしいももこ・訳",
+      "status": "reserved",
+      "note": "",
+      "source": "requeue:予約取消",
+      "date": "2026-09-12"
     }
   ]
 }
