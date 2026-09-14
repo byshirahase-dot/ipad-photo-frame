@@ -359,6 +359,58 @@ export class Opac {
   // ---------- 検索 ----------
 
   /** 書名検索して結果一覧を返す: [{ index, title, author }] */
+  /** 検索結果一覧の現在ページから行を読む。index は results 全体の通し番号にする */
+  async #readResultRows(offset) {
+    await this.page.waitForSelector("a.layer-doc", { timeout: 8000 }).catch(() => {});
+    const rows = this.page.locator("a.layer-doc");
+    const n = Math.min(await rows.count(), 20); // 表示件数20件に合わせる
+    const out = [];
+    for (let i = 0; i < n; i++) {
+      const t = (await rows.nth(i).locator(".title").first().textContent().catch(() => ""))?.trim();
+      const w = (await rows.nth(i).locator(".writer").first().textContent().catch(() => ""))?.trim();
+      const p = (await rows.nth(i).locator(".publisher").first().textContent().catch(() => ""))?.trim();
+      // getAttribute は相対パスを返し page.goto に渡せない。el.href は常に絶対URL。
+      const href = (await rows.nth(i).evaluate((el) => el.href).catch(() => "")) || "";
+      if (t) out.push({ index: offset + out.length, title: t, author: w, publisher: p, href });
+    }
+    return out;
+  }
+
+  /** 検索結果一覧の page ページ目へ送る。送れなければ false */
+  async #gotoResultPage(page) {
+    const ok = await this.page
+      .evaluate((pg) => {
+        const sels = Array.from(document.querySelectorAll("select"));
+        const sel = sels.find((s) => /pagingPages/.test(s.getAttribute("onchange") || ""));
+        if (!sel) return false;
+        if (!Array.from(sel.options).some((o) => o.value === String(pg))) return false;
+        const m = (sel.getAttribute("onchange") || "").match(/pagingPages\(\s*'([^']+)'/);
+        if (!m) return false;
+        // eslint-disable-next-line no-undef
+        pagingPages(m[1], (pg - 1) * 20);
+        return true;
+      }, page)
+      .catch(() => false);
+    if (!ok) return false;
+    await this.page.waitForLoadState("domcontentloaded").catch(() => {});
+    await this.page.waitForTimeout(600);
+    return true;
+  }
+
+  /** 検索結果一覧の絞込みフォームで「書名」を range 指定（0=含む / 1=で始まる）で再検索する */
+  async #narrowByTitle(title, range) {
+    await this.page.selectOption("#searchkind_add", "0"); // 書名
+    await this.page.selectOption("#searchrange_add", range).catch(() => {});
+    await this.page.locator("#search_add").fill(title);
+    await this.politeWait();
+    // 再検索ボタンは input の onchange で有効化されるため JS で直接実行
+    await this.page.evaluate(() => {
+      // eslint-disable-next-line no-undef
+      submitNarrow();
+    });
+    await this.page.waitForLoadState("domcontentloaded").catch(() => {});
+  }
+
   async searchTitle(title) {
     try {
       await this.politeWait();
@@ -389,22 +441,62 @@ export class Opac {
       await this.page.waitForLoadState("domcontentloaded").catch(() => {});
       await this.shot(`search-${title.slice(0, 12)}`);
 
+      // 検索そのものが送信されず、トップページに留まることがある（実測 2026-09-14 chojo「にんじん」）。
+      // これを「所蔵なし」と誤認すると台帳に failed として焼き付き、その本は二度と予約されない。
+      // 結果一覧でも書誌詳細でもなければ null を返し、呼び出し側に「検索できなかった」と伝える。
+      const pageTitle = await this.page.title().catch(() => "");
+      if (!/検索結果/.test(pageTitle)) {
+        await this.shot(`search-failed-${title.slice(0, 10)}`);
+        return null;
+      }
+
       if (await this.#noHits()) return [];
 
       // 全項目検索は雑誌などのノイズが多いので、絞込みフォームで「書名」再検索
       const narrowBox = this.page.locator("#search_add");
       if (await narrowBox.isVisible({ timeout: 3000 }).catch(() => false)) {
-        await this.page.selectOption("#searchkind_add", "0"); // 書名
-        await narrowBox.fill(title);
-        await this.politeWait();
-        // 再検索ボタンは input の onchange で有効化されるため JS で直接実行
-        await this.page.evaluate(() => {
-          // eslint-disable-next-line no-undef
-          submitNarrow();
-        });
-        await this.page.waitForLoadState("domcontentloaded").catch(() => {});
+        // 書名を「この言葉で始まる」(searchrange_add=1) で絞る。
+        // ★既定の「この言葉を含む」(=0) だと書名の途中一致まで拾い、雑誌が大量に混ざる。
+        //   実測（2026-09-14 chonan）: 「ちょっとだけ」は書名AND絞込み後も151件で、
+        //   1ページ目が AERA・壮快・an・an…と雑誌だけになり、目的の絵本が10件目より後ろへ落ちて
+        //   「出版社の版が見つからない」として見送られていた（花いっぱいになあれ・ともだちやも同様）。
+        //   前方一致なら雑誌はそもそも該当しない。続く rankResults の sameWork が
+        //   「ともだちや」→「ともだちやま」のような別作品を最終的に弾く。
+        await this.#narrowByTitle(title, "1");
         await this.shot(`narrow-${title.slice(0, 12)}`);
-        if (await this.#noHits()) return [];
+        // 前方一致で0件になる書誌（OPACの書名がシリーズ名から始まる等）は「含む」で取り直す。
+        // 余分なリクエストはこのフォールバック時のみ発生する。
+        if (await this.#noHits()) {
+          await this.#narrowByTitle(title, "0");
+          await this.shot(`narrow2-${title.slice(0, 12)}`);
+          if (await this.#noHits()) return [];
+        }
+      }
+
+      // 表示件数を20件に上げる（select の onchange="dispmaxnumChange(this)" が遷移する）。
+      // ★10件のままだと目的の版が1ページ目に入らず取り逃す。実測（2026-09-14 chonan）:
+      //   「花いっぱいになあれ」は書名前方一致で14件まで絞れていたのに、1ページ目が
+      //   教材アンソロジー（2011〜2006年）で埋まり、目的の大日本図書版（古い本）が
+      //   11件目以降に落ちて「出版社の版が見つからない」になっていた。
+      const cntSel = this.page.locator("#AssistListSelect");
+      if (await cntSel.isVisible({ timeout: 2000 }).catch(() => false)) {
+        const cur = await cntSel.inputValue().catch(() => "");
+        if (cur !== "20") {
+          await this.politeWait();
+          await Promise.all([
+            this.page
+              .waitForNavigation({ waitUntil: "domcontentloaded", timeout: 15000 })
+              .catch(() => {}),
+            this.page
+              .evaluate(() => {
+                const el = document.getElementById("AssistListSelect");
+                el.value = "20";
+                // eslint-disable-next-line no-undef
+                dispmaxnumChange(el);
+              })
+              .catch(() => {}),
+          ]);
+        }
       }
 
       // 出版年降順に並べ替え（新しい版を優先＝古くて傷んだ本を避ける。ユーザー指定 2026-08）。
@@ -417,8 +509,17 @@ export class Opac {
         if (idx >= 0) {
           const value = await sortSel.locator("option").nth(idx).getAttribute("value");
           await this.politeWait();
-          await sortSel.selectOption(value);
-          await this.page.waitForLoadState("domcontentloaded").catch(() => {});
+          // ★並べ替えは遷移を伴う（select の onchange="sort(this.value,'0')" が form を submit する）。
+          //   以前は selectOption 後に waitForLoadState を呼ぶだけで、既にロード済みのページでは
+          //   即座に解決してしまい**並べ替え前のページを読んでいた**（2026-09-14 実測: narrow と
+          //   sorted の保存HTMLが完全に同一で、既定順のまま雑誌が先頭に居座っていた）。
+          //   絞込みと同じく JS を直接実行し、遷移を待って受ける。
+          await Promise.all([
+            this.page
+              .waitForNavigation({ waitUntil: "domcontentloaded", timeout: 15000 })
+              .catch(() => {}),
+            this.page.evaluate((v) => sort(v, "0"), value).catch(() => {}),
+          ]);
           await this.shot(`sorted-${title.slice(0, 12)}`);
         }
       }
@@ -427,15 +528,27 @@ export class Opac {
       await this.page.waitForSelector("a.layer-doc", { timeout: 8000 }).catch(() => {});
       await this.page.waitForLoadState("domcontentloaded").catch(() => {});
       // 結果行: a.layer-doc の .title がタイトル。href は書誌詳細への直接リンク（GET）
-      const rows = this.page.locator("a.layer-doc");
-      const n = Math.min(await rows.count(), 10);
+      // 1ページ目が雑誌だらけなら次ページも読む。
+      // ★雑誌は出版年が空で、出版年降順では常に先頭に来る。実測（2026-09-14）:
+      //   「ちょっとだけ」は書名前方一致で80件まで絞れていたのに、20件中16件が雑誌
+      //   （LEON・ガルビィ・サンキュ!・PHP…）で、目的の福音館書店版（2007年）まで届かなかった。
+      //   雑誌は書名索引に記事名まで入るため、書名検索でも除外できない。
+      //   通常の検索（例「おおはくちょうのそら」4件）では追加のリクエストは発生しない。
       const results = [];
-      for (let i = 0; i < n; i++) {
-        const t = (await rows.nth(i).locator(".title").first().textContent().catch(() => ""))?.trim();
-        const w = (await rows.nth(i).locator(".writer").first().textContent().catch(() => ""))?.trim();
-        const p = (await rows.nth(i).locator(".publisher").first().textContent().catch(() => ""))?.trim();
-        const href = (await rows.nth(i).getAttribute("href").catch(() => "")) || "";
-        if (t) results.push({ index: i, title: t, author: w, publisher: p, href });
+      const hasYear = (r) => /\d{4}\/\d{2}/.test(`${r.publisher ?? ""} ${r.author ?? ""}`);
+      for (let page = 1; page <= 3; page++) {
+        if (page > 1) {
+          // ページ送りは select の onchange="pagingPages('<sortkey>', (this.value-1)*'20')"。
+          // ソートキーはページ側の値をそのまま使う（ハードコードしない）。
+          const moved = await this.#gotoResultPage(page);
+          if (!moved) break;
+          await this.shot(`page${page}-${title.slice(0, 10)}`);
+        }
+        const added = await this.#readResultRows(results.length);
+        results.push(...added);
+        if (added.length === 0) break;
+        // 書籍らしい行（出版年あり）が十分取れたら打ち切る
+        if (results.filter(hasYear).length >= 10) break;
       }
       // 検索が1件だけヒットするとOPACは結果一覧を出さず書誌詳細へ直行する（例: リトルバンパイア等、
       // 巻タイトルがユニークな多巻もの）。一覧行(layer-doc)が0でも、開いている書誌詳細が予約可能なら
@@ -499,12 +612,19 @@ export class Opac {
     return /該当する資料(は|が)?(ありません|見つかりません)/.test(body);
   }
 
-  /** 検索結果 index 番目の詳細を開く */
-  async openResult(index) {
-    const rows = this.page.locator("a.layer-doc");
+  /**
+   * 検索結果の書誌詳細を開く。
+   * href（結果行の恒久リンク＝tilcod付きGET・絶対URL）があればそれで直接開く。
+   * ★ページ送りをすると index と画面上の行がずれるため、href を優先する。
+   */
+  async openResult(index, href = null) {
     await this.politeWait();
-    await rows.nth(index).click();
-    await this.page.waitForLoadState("domcontentloaded").catch(() => {});
+    if (href) {
+      await this.page.goto(href, { waitUntil: "domcontentloaded" });
+    } else {
+      await this.page.locator("a.layer-doc").nth(index).click();
+      await this.page.waitForLoadState("domcontentloaded").catch(() => {});
+    }
     await this.shot("bib-detail");
   }
 
@@ -613,12 +733,61 @@ export class Opac {
     }
   }
 
-  /** カート（予約候補）画面へ遷移する */
+  /**
+   * 今表示している予約状況一覧ページから、有効な（取消・期限切れでない）予約のタイトルを摘出する。
+   * ページ遷移は一切行わない（今あるDOMを読むだけ）。行が無ければ空配列。
+   */
+  async #titlesOnCurrentList() {
+    try {
+      const cancelled = /取消|期限切れ|無効/;
+      const rows = this.page.locator("div.layer-item");
+      const n = await rows.count();
+      const out = [];
+      for (let i = 0; i < n; i++) {
+        const title = (await rows.nth(i).locator(".title").first().textContent().catch(() => ""))?.trim();
+        if (!title) continue;
+        const text = (await rows.nth(i).textContent().catch(() => "")) || "";
+        const state = text.match(/予約状態\s*[:：]?\s*(\S+)/)?.[1]?.trim() ?? "";
+        if (state && cancelled.test(state)) continue;
+        out.push(title.replace(/\s+/g, " "));
+      }
+      return out;
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * 今いるページが「予約カート」画面かを判定する。
+   *
+   * ★重要（2026-09-12 chojo 全滅の真因）: 「カート（予約候補） N」という表記は
+   *   **全ページ共通のヘッダ**に出る。書誌詳細でも貸出状況一覧でも必ず現れるため、
+   *   本文テキスト（textContent("body")）でのカート判定は**どこに居ても必ず真**になり、
+   *   #openCart が一度も遷移しないまま戻っていた（受取館セレクトは本物のカート画面にしか
+   *   無いので、後段が「受取館セレクトが見つかりません」で全滅した）。
+   *   → カート画面だけが持つもの＝<title>予約カート／受取館セレクト（receivename）で判定する。
+   */
+  async #isCartPage() {
+    const title = await this.page.title().catch(() => "");
+    if (isCartPageTitle(title)) return true;
+    // タイトル取得に失敗した場合の保険（カート画面にしか無いセレクト）
+    return (
+      (await this.page
+        .locator('select[name="receivename"], #receiveWay')
+        .count()
+        .catch(() => 0)) > 0
+    );
+  }
+
+  /**
+   * カート（予約候補）画面へ遷移する。
+   * 返り値: カート画面に到達できたか（true/false）。
+   */
   async #openCart() {
     // 既にカート画面なら何もしない（ここで遷移するとカートから離れてしまう）。
-    if (/カート\s*（?予約候補/.test((await this.page.textContent("body")) || "")) {
+    if (await this.#isCartPage()) {
       await this.shot("cart");
-      return;
+      return true;
     }
     // カート画面に居ない。ヘッダのカートリンク（onclick=yoycart）は、そのページの submitFlg が
     // true のときだけ遷移する。バッチ最後の本が版スキップ等でフォーム submit 済みだと
@@ -639,12 +808,14 @@ export class Opac {
       cartLink.click().catch(() => {}),
     ]);
     await this.shot("cart");
+    // 到達できたかを呼び出し側に返す（408対策でリトライはしない。失敗はそのまま報告する）
+    return await this.#isCartPage();
   }
 
   /** カート内の予約候補を一括削除して空にする（残留候補の混入を防ぐ・best-effort） */
   async emptyCart() {
     try {
-      await this.#openCart();
+      if (!(await this.#openCart())) return; // カートに到達できなければ何もしない（best-effort）
       const body = (await this.page.textContent("body")) || "";
       this.#assertNotLoginPage(body);
       if (/カートに\s*0\s*件/.test(body)) return;
@@ -677,7 +848,20 @@ export class Opac {
   async reserveCartContents({ pickupBranch, contactMethod, countBefore = null }) {
     try {
       if (countBefore == null) countBefore = await this.currentReserveCount();
-      await this.#openCart();
+      // カート画面へ到達できなければ確定に進まない。ここで進むと「受取館セレクトが見つかりません」
+      // という原因を取り違えたメッセージで全滅する（2026-09-12 chojo）。408対策でリトライはせず、
+      // 到達できなかった事実をそのまま報告して1回で止める。
+      if (!(await this.#openCart())) {
+        this.#assertNotLoginPage(await this.page.textContent("body"));
+        await this.shot("cart-open-failed");
+        return {
+          ok: false,
+          message: "予約カート画面へ遷移できませんでした（確定を中止・スクショ参照）",
+          countBefore,
+          countAfter: countBefore,
+          delta: 0,
+        };
+      }
 
       const cartBody = (await this.page.textContent("body")) || "";
       this.#assertNotLoginPage(cartBody);
@@ -705,7 +889,18 @@ export class Opac {
               cSel.selectOption({ label: contactMethod }).catch(() => {}),
             ]);
             await this.page.waitForTimeout(800);
-            await this.#openCart(); // 遷移後、確実にカート画面へ戻す
+            // 遷移後、確実にカート画面へ戻す（戻れなければ後段の受取館解決が空振りするので中止）
+            if (!(await this.#openCart())) {
+              this.#assertNotLoginPage(await this.page.textContent("body"));
+              await this.shot("cart-open-failed");
+              return {
+                ok: false,
+                message: "連絡方法の設定後にカート画面へ戻れませんでした（確定を中止）",
+                countBefore,
+                countAfter: countBefore,
+                delta: 0,
+              };
+            }
           }
         } else {
           await this.shot("contact-select-missing");
@@ -807,14 +1002,30 @@ export class Opac {
       // ログアウトし空になる。したがって exec 直後のページでは成立を確実に判定できない。
       // → ここでは submit の実行と結果ページの文言だけを返し、成立の確定は呼び出し側が
       //   「新規ログインでの予約一覧照合」で冊単位に行う（scripts/verify-reservations.mjs と同じ確実な方法）。
-      const textOk = /受付|完了|予約しました|予約を受け付け/.test(done);
+      // exec 後にサイトが「予約状況一覧」へ直行することがある（実測: chonan 2026-09-12）。
+      // その一覧は**そのセッションで実際に成立した予約そのもの**なので、文言（受付/完了）より強い証拠になる。
+      // 新規ログインでの照合が空振りした場合（同日 chonan は一覧が本文ごと空のページで返ってきた）に
+      // 使えるよう、この場でタイトルを摘出して呼び出し側へ渡す。追加のリクエストは一切発生しない。
+      const onReserveList = /予約状況一覧/.test(await this.page.title().catch(() => ""));
+      let resultTitles = [];
+      if (onReserveList) {
+        resultTitles = await this.#titlesOnCurrentList();
+      }
+      const textOk = /受付|完了|予約しました|予約を受け付け/.test(done) || resultTitles.length > 0;
       const hasError = /予約の?上限|これ以上予約|予約できません|受け付けられません/.test(done);
       await this.shot("reserve-verify");
       const resultPageOk = textOk && !hasError;
       const message = hasError
         ? `結果ページにエラー文言: ${done.match(/.{0,40}(上限|予約できません|受け付けられません).{0,20}/)?.[0]?.trim() ?? "上限等"}`
         : "予約申し込みを送信（成立は新規ログインの予約一覧照合で確定）";
-      return { ok: resultPageOk, message, resultPageOk, hasError, expected: this.reservedItemCount };
+      return {
+        ok: resultPageOk,
+        message,
+        resultPageOk,
+        hasError,
+        resultTitles,
+        expected: this.reservedItemCount,
+      };
     } catch (err) {
       await this.fail(`reserveCart`, err);
     }
@@ -835,6 +1046,15 @@ export class Opac {
 }
 
 /**
+ * ページタイトルが「予約カート」画面のものかを判定する（OpacClient#isCartPage の判定本体）。
+ * 本文テキストで判定してはいけない: 「カート（予約候補） N」は全ページ共通ヘッダの表記で、
+ * 書誌詳細・貸出状況一覧など**どのページでも一致する**（2026-09-12 chojo 全滅の真因）。
+ */
+export function isCartPageTitle(title) {
+  return /予約カート/.test(String(title ?? ""));
+}
+
+/**
  * 検索結果を予約候補順に並べる。
  * 完全一致 > 前方一致 > 部分一致。特殊版らしきもの（大型絵本・紙芝居等）は後回し。
  */
@@ -848,6 +1068,34 @@ export function specialFormatOnly(bodyText) {
   const special = /点字|デイジー|大型|紙芝居|大活字|カセット|マルチメディア|DVD|VHS|CD|布の絵本|電子/;
   if (kinds.every((k) => special.test(k))) return [...new Set(kinds)].join("・");
   return null;
+}
+
+/**
+ * 求める書名と、サイト上のタイトル（検索結果・予約一覧）が「同じ作品」かを判定する。
+ *
+ * サイトのタイトルは副題・叢書名・版表示が後ろに付くことがあるので前方一致を許すが、
+ * **続きが区切りで始まること**を必須にする。素の部分一致だと別の本を掴む:
+ *   「ともだちや」→「ともだちやま」（加藤休ミ／ビリケン出版）を予約した（2026-09-12 chonan・実害）
+ *   「11ぴきのねこ」→「11ぴきのねこふくろのなか」も別の本
+ * 一方これは同じ作品として通したい:
+ *   「11ぴきのねこ ふくろのなか」「おおはくちょうのそら 北の森の動物たちシリーズ」
+ *   「ひとまねこざるときいろいぼうし 改版」「ちいさなたまねぎさん（こどものくに傑作絵本 19）」
+ */
+export function sameWork(siteTitle, wantedTitle) {
+  const norm = (s) =>
+    String(s ?? "")
+      .normalize("NFKC")
+      .replace(/[\s\u3000]+/g, " ")
+      .trim()
+      .toLowerCase();
+  const a = norm(siteTitle);
+  const b = norm(wantedTitle);
+  if (!a || !b) return false;
+  if (a === b) return true;
+  // 区切り＝空白・各種括弧・コロン等。ここで切れていれば副題／叢書名／版表示とみなす
+  const sep = /[ \u3000([{<:：,、。・\-–—~〜「『【〔]/;
+  const extendsWith = (long, short) => long.startsWith(short) && sep.test(long[short.length]);
+  return extendsWith(a, b) || extendsWith(b, a);
 }
 
 /** 出版社名の表記ゆれを吸収して比較する（NFKC正規化・空白除去・部分一致） */
@@ -880,6 +1128,10 @@ export function rankResults(results, wantedTitle, limit = 3, preferBunko = false
     else if (t.startsWith(w)) score = 60;
     else if (t.includes(w) || w.includes(t)) score = 40;
     if (score < 0) continue;
+    // 前方一致・部分一致は「区切りで続く」ものだけを同じ作品として採る。
+    // norm() は空白を落とすので境界が消える＝「ともだちや」が「ともだちやま」に化ける
+    // （2026-09-12 chonan で実際に別の本を予約した）。生のタイトルで境界を見直す。
+    if (score < 100 && !sameWork(r.title, wantedTitle)) continue;
     if (special.test(r.title)) score -= 30;
     // 文庫版があれば優先（読みやすく新しい傾向。ユーザー指定でmom・chojoに適用）。
     // 文庫は同じ作品なので出版社が違っても取り違えの心配がない。

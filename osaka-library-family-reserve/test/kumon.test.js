@@ -387,3 +387,22 @@ test("orderPicksForCart: 全て版スキップ系／全て再予約系でも壊�
   const noFrom = [{ title: "A", from: "list" }, { title: "B" }];
   assert.deepEqual(orderPicksForCart(noFrom).map((p) => p.title), ["A", "B"]);
 });
+
+test("取消復帰キューと公文リストに同じ本があっても1回しか選ばない", () => {
+  // 2026-09-12 chojo: 「扉のむこうの物語」が取消復帰キューと公文リストの両方から拾われ、
+  // 同じ書誌を2回カートに入れて予約枠を1つ無駄にしていた（台帳は expired なので has で止まらない）。
+  const { picks, skipped } = planWeek({
+    flat: sampleFlat(),
+    progress: fakeProgress("3A", 1),
+    queue: fakeQueue([{ title: "てぶくろ", author: "", from: "requeue:予約取消" }]),
+    ledger: fakeLedger(),
+    quota: 4,
+    seriesResolver: null,
+  });
+  const titles = picks.map((p) => p.title);
+  assert.equal(new Set(titles).size, titles.length, `重複あり: ${titles.join(", ")}`);
+  assert.equal(titles.filter((t) => t === "てぶくろ").length, 1);
+  // キュー由来を残し、リスト側の行はスキップ理由つきで読み飛ばす
+  assert.equal(picks.find((p) => p.title === "てぶくろ").from, "requeue:予約取消");
+  assert.ok(skipped.some((r) => r.title === "てぶくろ" && /今週すでに予約対象/.test(r.reason)));
+});

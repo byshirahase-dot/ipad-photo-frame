@@ -3,7 +3,7 @@ import { ROOT, loadDotEnv, loadAccountsConfig, credentialsFor, todayStr, ensureD
 import { Ledger, Progress, Queue, readMomQueue, writeMomQueue, recordMomRecommended } from "./state.js";
 import { loadKumonList, flatten, planWeek, loadEhonnaviList, orderPicksForCart } from "./kumon.js";
 import { makeSeriesResolver } from "./series.js";
-import { Opac, rankResults } from "./opac.js";
+import { Opac, rankResults, sameWork } from "./opac.js";
 import { writeReport } from "./report.js";
 
 /**
@@ -228,22 +228,37 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, adhoc, pe
         continue;
       }
       const results = await opac.searchTitle(pick.title);
+      // null = 検索が実行できなかった（結果ページに到達せず）。所蔵なしではないので
+      // 台帳にもカーソルにも触れず、そのまま翌週へ持ち越す。
+      if (results === null) {
+        section.failed.push({ title: pick.title, note: "検索が実行できなかった（翌週リトライ）" });
+        continue;
+      }
       // 母（recommend）は同名なら文庫版を優先して予約する（ユーザー指定）。
       // 公文リストの本は出版社もリストと一致する版だけを予約する（ユーザー指定・リスト＝正）
       const candidates = results?.length
         ? rankResults(results, pick.title, 3, account.preferBunko ?? account.mode === "recommend", pick.publisher || null)
         : [];
       if (!candidates.length) {
-        const pubMismatch = !!(results?.length && pick.publisher);
+        // 検索ヒットはあったのに候補が残らなかった＝「所蔵なし」ではない。
+        // 出版社不一致のほか、検索結果1ページ目に該当の版が載っていない場合がある
+        // （出版年降順＋書名の部分一致でノイズが多く、「ともだちや」は1ページ目が
+        //  「ともだちやま」等のノイズで埋まっていた）。いずれも台帳には記録せず翌週リトライする。
+        const hadHits = !!results?.length;
+        const pubMismatch = !!(hadHits && pick.publisher);
         const note = pubMismatch
           ? `リスト指定の出版社（${pick.publisher}）の版が見つからない（CSVの出版社表記を要確認）`
-          : "所蔵なし・検索ヒットなし";
+          : hadHits
+            ? "検索ヒットはあるが該当する版が1ページ目に無い（翌週リトライ）"
+            : "所蔵なし・検索ヒットなし";
         section.failed.push({ title: pick.title, note });
-        // 台帳に記録するのは真の所蔵なしのみ。
+        // 台帳に記録するのは真の所蔵なし（検索ヒット0件）のみ。
         // - adhoc の失敗は記録しない（タイトルを直して再依頼できるように）
         // - 出版社不一致は表記ゆれの可能性があるため記録せず、翌週自動リトライ
         //   （CSV側の表記を直せば解消する。毎週レポートに出るので放置されない）
-        if (!dryRun && pick.from !== "adhoc" && !pubMismatch) {
+        // - ★ヒットありで候補ゼロを「所蔵なし」として台帳に書くと、その本は二度と
+        //   予約されなくなる（failed は has() でブロックされる）。必ず翌週へ持ち越す。
+        if (!dryRun && pick.from !== "adhoc" && !hadHits) {
           ledger.add({ title: pick.title, author: pick.author ?? "", status: "failed", note: "所蔵なし", source: pick.from });
           if (pick.advanceTo) cursor = pick.advanceTo;
         }
@@ -253,7 +268,8 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, adhoc, pe
       let add = null;
       for (let ci = 0; ci < candidates.length; ci++) {
         // 検索が書誌詳細へ直行した単一ヒット（onDetail）は既に詳細を開いているので openResult を飛ばす
-        if (!candidates[ci].onDetail) await opac.openResult(candidates[ci].index);
+        // href（恒久リンク）を渡す。ページ送りで index が画面とずれても正しい書誌を開ける
+        if (!candidates[ci].onDetail) await opac.openResult(candidates[ci].index, candidates[ci].href || null);
         // 版スキップ本が末尾でもカートを再確立できるよう、結果行の恒久リンク（href＝tilcod付きGET）を
         // 渡す。onDetail は既に詳細URL（href=page.url()）を持つのでそれを使う。
         add = await opac.addToCart(candidates[ci].href || null);
@@ -298,17 +314,32 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, adhoc, pe
       } catch {
         /* 照合ログインに失敗したときのみ結果ページ文言（resultPageOk）にフォールバック */
       }
-      const activeKeys = activeTitlesAfter.map((t) => Ledger.key(t));
+      // 照合に使う一覧を決める。
+      // 1) 新規ログインで取れた予約一覧（最も確実）
+      // 2) 取れなかったとき（本文が空のページが返ることがある。chonan 2026-09-12）は、
+      //    exec 直後に表示された予約状況一覧のタイトル（opac が追加リクエスト無しで摘出したもの）
+      // 3) どちらも無ければ結果ページの文言（最後の手段）
+      // ★2) が無かったために、実際には成立した「ひとまねこざるときいろいぼうし」「ともだちや」が
+      //    台帳に載らず、翌週に二重予約されかけた（2026-09-12）。
+      const verifyTitles = activeTitlesAfter.length > 0 ? activeTitlesAfter : rres.resultTitles ?? [];
+      const verifySource =
+        activeTitlesAfter.length > 0
+          ? "予約一覧で確認"
+          : verifyTitles.length > 0
+            ? "予約確定後の予約状況一覧で確認"
+            : "結果ページの文言で判定";
+      // 照合は sameWork（区切り付き前方一致）で行う。Ledger.key ベースの素の部分一致だと
+      // 「ともだちや」が別の本「ともだちやま」に一致し、予約していない本を台帳に
+      // 「予約済み」と書いて二度と予約しなくなる（2026-09-12 chonan で実際に発生した事故）。
       const isReserved = (title) => {
-        if (activeTitlesAfter.length === 0) return !!rres.resultPageOk;
-        const k = Ledger.key(title);
-        return activeKeys.some((ak) => ak === k || ak.includes(k) || k.includes(ak));
+        if (verifyTitles.length === 0) return !!rres.resultPageOk;
+        return verifyTitles.some((st) => sameWork(st, title));
       };
       let reservedCount = 0;
       for (const pick of inCart) {
         if (isReserved(pick.title)) {
           reservedCount += 1;
-          section.reserved.push({ title: pick.title, note: "予約完了（予約一覧で確認）" });
+          section.reserved.push({ title: pick.title, note: `予約完了（${verifySource}）` });
           ledger.add({ title: pick.title, author: pick.author ?? "", status: "reserved", source: pick.from });
           if (pick.advanceTo) cursor = pick.advanceTo;
           if (account.mode === "recommend") {

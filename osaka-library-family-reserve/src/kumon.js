@@ -100,25 +100,36 @@ export function planWeek({
   const seriesQuota = Math.min(seriesPerWeek, quota);
   let seriesTaken = 0;
 
+  // 同じ本を1週に2回 picks へ入れない（2026-09-12 chojo「扉のむこうの物語」が2回入った）。
+  // 取消復帰でキューに積まれた本が、公文リストの現在位置にも載っていると両方から拾われる。
+  // 台帳エントリは expired（＝再予約可）なので ledger.has では止まらない。
+  // 同じ書誌を2回カートに入れて予約枠を1つ無駄にするため、ここで排除する。
+  const takenKeys = new Set();
+  const alreadyPicked = (title) => takenKeys.has(Ledger.key(title));
+  const take = (pick) => {
+    takenKeys.add(Ledger.key(pick.title));
+    picks.push(pick);
+  };
+
   // 0) 絵本ナビ枠（週 ehonnaviPerWeek 冊まで。年齢帯で絞ったリストを先頭から、台帳にない本を取る）
   //    絵本ナビは進度カーソルを持たない: 予約/処理済みは台帳(ledger)で自動的にスキップされるため、
   //    毎週「まだ手をつけていない次の本」が自然に選ばれる。くもんと重複する本も台帳で二重予約を防ぐ。
   let ehonnaviTaken = 0;
   for (const b of ehonnaviList) {
     if (ehonnaviTaken >= ehonnaviPerWeek || picks.length >= quota) break;
-    if (ledger.has(b.title)) continue;
-    picks.push({ title: b.title, author: b.author ?? "", publisher: b.publisher ?? "", from: "ehonnavi" });
+    if (ledger.has(b.title) || alreadyPicked(b.title)) continue;
+    take({ title: b.title, author: b.author ?? "", publisher: b.publisher ?? "", from: "ehonnavi" });
     ehonnaviTaken += 1;
   }
 
   // 1) 持ち越しキュー（シリーズの続巻）からシリーズ枠ぶんだけ
   while (seriesTaken < seriesQuota && queue.length > 0) {
     const item = queue.peek();
-    if (ledger.has(item.title)) {
+    if (ledger.has(item.title) || alreadyPicked(item.title)) {
       queue.shift();
       continue;
     }
-    picks.push({ ...item, from: item.from ?? "queue" });
+    take({ ...item, from: item.from ?? "queue" });
     queue.shift();
     seriesTaken += 1;
   }
@@ -137,13 +148,18 @@ export function planWeek({
       skipped.push({ ...row, reason: "予約・処理済み" });
       continue;
     }
+    // 取消復帰キュー等で今週すでに拾っている本。カーソルはこの行を通り過ぎてよい
+    if (alreadyPicked(row.title)) {
+      skipped.push({ ...row, reason: "今週すでに予約対象（キューと重複）" });
+      continue;
+    }
     const series = seriesResolver ? seriesResolver(row) : null;
     if (series && series.volumes.length > 1) {
       const rest = [];
       for (const v of series.volumes) {
-        if (ledger.has(v.title)) continue;
+        if (ledger.has(v.title) || alreadyPicked(v.title)) continue;
         if (seriesTaken < seriesQuota && picks.length < quota) {
-          picks.push({ title: v.title, author: row.author, publisher: row.publisher, from: `series:${series.name}`, advanceTo });
+          take({ title: v.title, author: row.author, publisher: row.publisher, from: `series:${series.name}`, advanceTo });
           seriesTaken += 1;
         } else {
           rest.push({ title: v.title, author: row.author, publisher: row.publisher, from: `series:${series.name}` });
@@ -152,17 +168,17 @@ export function planWeek({
       if (rest.length) queue.push(...rest);
       continue;
     }
-    picks.push({ ...row, from: "list", advanceTo });
+    take({ ...row, from: "list", advanceTo });
   }
 
   // 3) リストが尽きた場合はキューから補充（シリーズ枠の制限を超えてよい）
   while (picks.length < quota && queue.length > 0) {
     const item = queue.peek();
-    if (ledger.has(item.title)) {
+    if (ledger.has(item.title) || alreadyPicked(item.title)) {
       queue.shift();
       continue;
     }
-    picks.push({ ...item, from: item.from ?? "queue" });
+    take({ ...item, from: item.from ?? "queue" });
     queue.shift();
   }
 

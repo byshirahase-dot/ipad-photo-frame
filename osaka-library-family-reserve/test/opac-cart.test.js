@@ -1,0 +1,60 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { isCartPageTitle } from "../src/opac.js";
+
+// 全ページ共通ヘッダの実物（logs/2026-09-12 の保存HTMLから抽出した並び）。
+// カート件数バッジはどのページにも出るため、本文テキストでのカート判定は必ず誤爆する。
+const COMMON_HEADER_TEXT = "マイ本棚 0 件 貸出中 7 件 予約中 5 件 カート\n （予約候補） 0 検索メニューです。";
+
+test("旧実装の本文テキスト判定は共通ヘッダに誤爆する（回帰の記録）", () => {
+  const oldGuard = /カート\s*（?予約候補/;
+  // 書誌詳細でも貸出状況一覧でも、本文にはこのヘッダが必ず含まれる＝常に真になっていた
+  assert.ok(oldGuard.test(COMMON_HEADER_TEXT));
+});
+
+test("タイトル判定はカート画面だけを真にする", () => {
+  assert.ok(isCartPageTitle("予約カート：蔵書検索システム"));
+  assert.ok(!isCartPageTitle("検索結果書誌詳細：蔵書検索システム"));
+  assert.ok(!isCartPageTitle("貸出状況一覧：蔵書検索システム"));
+  assert.ok(!isCartPageTitle("予約状況一覧：蔵書検索システム"));
+  assert.ok(!isCartPageTitle("トップページ：蔵書検索システム"));
+  assert.ok(!isCartPageTitle(""));
+  assert.ok(!isCartPageTitle(null));
+});
+
+import { sameWork, rankResults } from "../src/opac.js";
+
+test("sameWork: 副題・叢書名・版表示が付いたサイト側タイトルは同じ作品として通す", () => {
+  assert.ok(sameWork("ともだちや", "ともだちや"));
+  assert.ok(sameWork("11ぴきのねこ ふくろのなか", "11ぴきのねこ ふくろのなか"));
+  assert.ok(sameWork("おおはくちょうのそら 北の森の動物たちシリーズ", "おおはくちょうのそら"));
+  assert.ok(sameWork("ひとまねこざるときいろいぼうし 改版", "ひとまねこざるときいろいぼうし"));
+  assert.ok(sameWork("ちいさなたまねぎさん（こどものくに傑作絵本 19）", "ちいさなたまねぎさん"));
+  // サイト側が副題を落として短いこともある（逆向きも同じ作品）
+  assert.ok(sameWork("ひとまねこざるときいろいぼうし", "ひとまねこざるときいろいぼうし 大型絵本"));
+});
+
+test("sameWork: 区切り無しで続くタイトルは別の本として弾く", () => {
+  // 2026-09-12 chonan: 「ともだちや」を探して別の本「ともだちやま」を予約してしまった
+  assert.ok(!sameWork("ともだちやま", "ともだちや"));
+  assert.ok(!sameWork("11ぴきのねこふくろのなか", "11ぴきのねこ"));
+  assert.ok(!sameWork("", "ともだちや"));
+  assert.ok(!sameWork("ともだちや", ""));
+});
+
+test("rankResults: 区切り無しで伸びた別タイトルを候補にしない", () => {
+  const results = [
+    { index: 0, title: "ともだちやま", writer: "加藤 休ミ／作", publisher: "ビリケン出版" },
+    { index: 1, title: "ともだちや", writer: "内田 麟太郎／作", publisher: "偕成社" },
+  ];
+  const picked = rankResults(results, "ともだちや", 3);
+  assert.deepEqual(picked.map((r) => r.title), ["ともだちや"]);
+});
+
+test("rankResults: 副題付きの版は引き続き候補に残る", () => {
+  const results = [
+    { index: 0, title: "ひとまねこざるときいろいぼうし 改版", writer: "H.A.レイ", publisher: "岩波書店" },
+  ];
+  const picked = rankResults(results, "ひとまねこざるときいろいぼうし", 3, false, "岩波書店");
+  assert.equal(picked.length, 1);
+});
