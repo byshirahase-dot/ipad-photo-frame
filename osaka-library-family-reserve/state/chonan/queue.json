@@ -1,21 +1,14 @@
 {
   "items": [
     {
-      "title": "ともだちや",
-      "author": "内田麟太郎 降矢なな・絵",
+      "title": "おおはくちょうのそら",
+      "author": "手島圭三郎",
       "from": "requeue:予約取消"
     },
     {
-      "title": "ひとまねこざるときいろいぼうし",
-      "author": "レイ 光吉夏弥・訳",
-      "publisher": "岩波書店",
-      "from": "series:ひとまねこざる"
-    },
-    {
-      "title": "ひとまねこざる",
-      "author": "レイ 光吉夏弥・訳",
-      "publisher": "岩波書店",
-      "from": "series:ひとまねこざる"
+      "title": "11ぴきのねことへんなねこ",
+      "author": "馬場のぼる",
+      "from": "requeue:予約取消"
     },
     {
       "title": "じてんしゃにのるひとまねこざる",

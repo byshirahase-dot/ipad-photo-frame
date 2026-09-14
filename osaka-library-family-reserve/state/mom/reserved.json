@@ -157,18 +157,36 @@
     {
       "title": "居るのはつらいよ",
       "author": "東畑開人",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "mom-queue",
-      "date": "2026-08-31"
+      "date": "2026-08-31",
+      "expiredDate": "2026-09-14"
     },
     {
       "title": "春琴抄",
       "author": "谷崎潤一郎",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
+      "source": "mom-queue",
+      "date": "2026-08-31",
+      "expiredDate": "2026-09-14"
+    },
+    {
+      "title": "ねらわれた星",
+      "author": "星新一",
       "status": "reserved",
       "note": "",
       "source": "mom-queue",
-      "date": "2026-08-31"
+      "date": "2026-09-14"
+    },
+    {
+      "title": "ナイルパーチの女子会",
+      "author": "柚木麻子",
+      "status": "reserved",
+      "note": "",
+      "source": "mom-queue",
+      "date": "2026-09-14"
     }
   ]
 }

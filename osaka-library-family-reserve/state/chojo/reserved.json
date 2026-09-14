@@ -288,6 +288,62 @@
       "note": "",
       "source": "再予約リクエスト(読み切れず返却→再度借りる)",
       "date": "2026-09-07"
+    },
+    {
+      "title": "扉のむこうの物語",
+      "author": "岡田淳",
+      "status": "reserved",
+      "note": "",
+      "source": "ehonnavi",
+      "date": "2026-09-12"
+    },
+    {
+      "title": "生物の消えた島",
+      "author": "田川日出夫 松岡達英・絵",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-09-12"
+    },
+    {
+      "title": "森のなかの海賊船",
+      "author": "岡田淳",
+      "status": "reserved",
+      "note": "",
+      "source": "requeue:予約取消",
+      "date": "2026-09-12"
+    },
+    {
+      "title": "ハックルベリー・フィンの冒険 上",
+      "author": "トウェイン",
+      "status": "reserved",
+      "note": "",
+      "source": "requeue:予約取消",
+      "date": "2026-09-12"
+    },
+    {
+      "title": "放課後の時間割",
+      "author": "岡田淳",
+      "status": "reserved",
+      "note": "",
+      "source": "ehonnavi",
+      "date": "2026-09-14"
+    },
+    {
+      "title": "ガラスの家族",
+      "author": "",
+      "status": "reserved",
+      "note": "",
+      "source": "requeue:予約取消",
+      "date": "2026-09-14"
+    },
+    {
+      "title": "クリスマス・キャロル",
+      "author": "",
+      "status": "reserved",
+      "note": "",
+      "source": "requeue:予約取消",
+      "date": "2026-09-14"
     }
   ]
 }
