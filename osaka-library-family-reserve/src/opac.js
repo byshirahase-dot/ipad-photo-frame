@@ -1214,10 +1214,36 @@ export function sameWork(siteTitle, wantedTitle) {
   const b = norm(wantedTitle);
   if (!a || !b) return false;
   if (a === b) return true;
-  // 区切り＝空白・各種括弧・コロン等。ここで切れていれば副題／叢書名／版表示とみなす
+  // 分かち書きの有無だけの違いは同じ作品とみなす。
+  // 実害（2026-09-26 chonan）: こちらの表記「11ぴきのねこふくろのなか」に対しサイトは
+  // 「11ぴきのねこ ふくろのなか」。実際は予約が成立して[待ち]なのに成立照合がここで落ち、
+  // 台帳に載らず「予約確定できず見送り」と誤報告された（翌週の二重予約につながる）。
+  // ※空白を詰めても「ともだちや」と「ともだちやま」は一致しないので、別作品の取り違え防止は保たれる。
+  const squeeze = (s) => {
+    let out = "";
+    const map = []; // squeeze 後の各文字が元の何文字目だったか
+    for (let i = 0; i < s.length; i++) {
+      if (/\s/.test(s[i])) continue;
+      out += s[i];
+      map.push(i);
+    }
+    return { out, map };
+  };
+  const sa = squeeze(a);
+  const sb = squeeze(b);
+  if (sa.out === sb.out) return true;
+  // 区切り＝空白・各種括弧・コロン等。ここで切れていれば副題／叢書名／版表示とみなす。
+  // 一致判定は空白を無視して行い（表記ゆれ対策）、区切りの有無は元の文字列で確かめる。
   const sep = /[ \u3000([{<:：,、。・\-–—~〜「『【〔]/;
-  const extendsWith = (long, short) => long.startsWith(short) && sep.test(long[short.length]);
-  return extendsWith(a, b) || extendsWith(b, a);
+  const extendsWith = (long, sl, ss) => {
+    if (!ss.out.length || !sl.out.startsWith(ss.out)) return false;
+    const nextIdx = sl.map[ss.out.length]; // 続きの最初の「空白でない文字」の元位置
+    if (nextIdx === undefined) return false; // 続きが無い＝完全一致（上で処理済み）
+    // 接頭辞と続きの間に空白が挟まっていれば副題／叢書名とみなす
+    const gap = long.slice(sl.map[ss.out.length - 1] + 1, nextIdx);
+    return /\s/.test(gap) || sep.test(long[nextIdx]);
+  };
+  return extendsWith(a, sa, sb) || extendsWith(b, sb, sa);
 }
 
 /** 出版社名の表記ゆれを吸収して比較する（NFKC正規化・空白除去・部分一致） */

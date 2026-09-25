@@ -406,3 +406,27 @@ test("取消復帰キューと公文リストに同じ本があっても1回し�
   assert.equal(picks.find((p) => p.title === "てぶくろ").from, "requeue:予約取消");
   assert.ok(skipped.some((r) => r.title === "てぶくろ" && /今週すでに予約対象/.test(r.reason)));
 });
+
+// 2026-09-26 の実害の回帰テスト。
+// キュー由来の本は planWeek が取り出した時点で queue.shift() 済みで、バッチ成立時に
+// queue.save() で「消化済み」として保存される。台帳にも書かない本（検索不成立・版ガード）は
+// index.js が keepForRetry でキューへ戻さないと、どこにも残らず消失する
+// （長女の「にんじん」が実際に消えた）。戻せるように出所の印が要る。
+test("キュー由来の pick には fromQueue の印が付く（失敗時にキューへ戻すため）", () => {
+  const { picks } = planWeek({
+    flat: sampleFlat(),
+    progress: fakeProgress("3A", 1),
+    queue: fakeQueue([{ title: "にんじん", author: "ルナール", from: "priority:長女リクエスト" }]),
+    ledger: fakeLedger(),
+    quota: 2,
+    seriesResolver: null,
+  });
+  const ninjin = picks.find((p) => p.title === "にんじん");
+  assert.ok(ninjin, "キューの本が選ばれている");
+  assert.equal(ninjin.fromQueue, true);
+  assert.equal(ninjin.from, "priority:長女リクエスト", "出所の表示は保たれる");
+  // 公文リスト由来の本にはこの印を付けない（進度カーソルで管理されるため戻す必要がない）
+  const fromList = picks.find((p) => p.title !== "にんじん");
+  assert.ok(fromList);
+  assert.equal(fromList.fromQueue, undefined);
+});

@@ -209,10 +209,33 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, adhoc, pe
     // 後に処理し、最後の操作が addToCart（カート画面に留まる）になるようにする。母（recommend）は
     // queue 順が上限カットの優先度そのものなので並べ替えない（kumon のみ）。
     if (account.mode === "kumon") picks = orderPicksForCart(picks);
+
+    /**
+     * 予約できなかった本を翌週へ確実に持ち越す。
+     *
+     * ★2026-09-26 の実害: キュー由来の本は planWeek が取り出した時点で queue.shift() 済みで、
+     *   バッチが成立すると queue.save() で「消化済み」として保存される。台帳にも記録しない
+     *   （＝恒久ブロックを避けるための正しい判断）本は、**どこにも残らず消失**していた
+     *   （長女の「にんじん」が検索不成立のまま消えた）。台帳に書かない本はキューへ戻す。
+     * ※母（recommend）の queue は「予約成立した本だけを取り除く」方式なので何もしなくてよい。
+     */
+    const keepForRetry = (pick) => {
+      if (!queue || account.mode !== "kumon" || !pick.fromQueue) return;
+      const k = Ledger.key(pick.title);
+      if (queue.data.items.some((b) => Ledger.key(b.title) === k)) return; // 二重登録しない
+      queue.unshift({
+        title: pick.title,
+        author: pick.author ?? "",
+        ...(pick.publisher ? { publisher: pick.publisher } : {}),
+        from: pick.from ?? "queue",
+      });
+    };
+
     const inCart = []; // カート投入に成功した pick（確定対象）
     for (const pick of picks) {
       if (inCart.length >= available) {
         section.failed.push({ title: pick.title, note: "予約上限に達するため見送り" });
+        if (!dryRun) keepForRetry(pick);
         continue;
       }
       // 既に借りている本はカートに入れない（入れると「既に貸出中の書誌です」でカート全体が
@@ -232,6 +255,7 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, adhoc, pe
       // 台帳にもカーソルにも触れず、そのまま翌週へ持ち越す。
       if (results === null) {
         section.failed.push({ title: pick.title, note: "検索が実行できなかった（翌週リトライ）" });
+        if (!dryRun) keepForRetry(pick);
         continue;
       }
       // 母（recommend）は同名なら文庫版を優先して予約する（ユーザー指定）。
@@ -261,6 +285,8 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, adhoc, pe
         if (!dryRun && pick.from !== "adhoc" && !hadHits) {
           ledger.add({ title: pick.title, author: pick.author ?? "", status: "failed", note: "所蔵なし", source: pick.from });
           if (pick.advanceTo) cursor = pick.advanceTo;
+        } else if (!dryRun) {
+          keepForRetry(pick);
         }
         continue;
       }
@@ -284,11 +310,13 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, adhoc, pe
           inCart.push(pick);
         }
       } else {
+        // カート投入できなかった（特殊資料のみの版・予約不可の版・例外）。
+        // ★台帳には記録しない。failed は has() でブロックされるため、記録するとその本は**二度と
+        //   予約されなくなる**（2026-09-25 に「春琴抄＝大活字のみ」「ちびゴリラのちびちび＝点字付」を
+        //   記録してしまい、実際には別の版で予約できるのに恒久ブロックされた）。所蔵や検索結果の
+        //   並びは週ごとに変わるので、上の出版社不一致と同じく翌週リトライに任せる。
         section.failed.push({ title: pick.title, note: add?.message ?? "カート投入失敗" });
-        if (!dryRun) {
-          ledger.add({ title: pick.title, author: pick.author ?? "", status: "failed", note: add?.message ?? "カート投入失敗", source: pick.from });
-          if (pick.advanceTo) cursor = pick.advanceTo;
-        }
+        if (!dryRun) keepForRetry(pick);
       }
     }
 

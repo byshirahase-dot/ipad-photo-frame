@@ -385,10 +385,35 @@
     {
       "title": "ちびゴリラのちびちび",
       "author": "ボーンスタイン いわたみみ・訳",
-      "status": "failed",
-      "note": "特殊資料のみの版（点字付）",
+      "status": "expired",
+      "note": "【2026-09-26 手動解除】特殊資料のみの版（点字付） を failed で記録していたが、failed は has() で恒久ブロックされ二度と予約されなくなる（実際には別の版で予約できる。春琴抄は08-31に文庫版で成立済み）。版ガード見送りは翌週リトライが設計意図なので expired に変更。コード側も記録しないよう修正済み。",
       "source": "requeue:予約取消",
-      "date": "2026-09-25"
+      "date": "2026-09-25",
+      "expiredDate": "2026-09-26"
+    },
+    {
+      "title": "コップちゃん",
+      "author": "中川ひろたか",
+      "status": "reserved",
+      "note": "",
+      "source": "ehonnavi",
+      "date": "2026-09-26"
+    },
+    {
+      "title": "はけたよはけたよ",
+      "author": "かんざわとしこ にしまきかやこ・絵",
+      "status": "reserved",
+      "note": "",
+      "source": "requeue:予約取消（2026-09-25 markExpired・中断バッチのため手動補完）",
+      "date": "2026-09-26"
+    },
+    {
+      "title": "14ひきのあさごはん",
+      "author": "いわむらかずお",
+      "status": "reserved",
+      "note": "",
+      "source": "requeue:予約取消",
+      "date": "2026-09-26"
     }
   ]
 }

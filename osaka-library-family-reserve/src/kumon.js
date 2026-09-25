@@ -129,7 +129,9 @@ export function planWeek({
       queue.shift();
       continue;
     }
-    take({ ...item, from: item.from ?? "queue" });
+    // fromQueue: キュー由来であることの印。予約できなかったとき index.js が
+    // キューへ戻して翌週リトライさせる（戻さないと queue.save() で消化扱いになり消失する）。
+    take({ ...item, from: item.from ?? "queue", fromQueue: true });
     queue.shift();
     seriesTaken += 1;
   }
@@ -178,7 +180,7 @@ export function planWeek({
       queue.shift();
       continue;
     }
-    take({ ...item, from: item.from ?? "queue" });
+    take({ ...item, from: item.from ?? "queue", fromQueue: true });
     queue.shift();
   }
 
