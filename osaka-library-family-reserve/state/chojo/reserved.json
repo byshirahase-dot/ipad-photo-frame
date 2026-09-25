@@ -268,18 +268,20 @@
     {
       "title": "夜の小学校で",
       "author": "岡田淳",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "ehonnavi",
-      "date": "2026-09-07"
+      "date": "2026-09-07",
+      "expiredDate": "2026-09-25"
     },
     {
       "title": "キャプテンはつらいぜ",
       "author": "後藤竜二",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "list",
-      "date": "2026-09-07"
+      "date": "2026-09-07",
+      "expiredDate": "2026-09-25"
     },
     {
       "title": "空気がなくなる日",
@@ -300,34 +302,38 @@
     {
       "title": "生物の消えた島",
       "author": "田川日出夫 松岡達英・絵",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "list",
-      "date": "2026-09-12"
+      "date": "2026-09-12",
+      "expiredDate": "2026-09-25"
     },
     {
       "title": "森のなかの海賊船",
       "author": "岡田淳",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "requeue:予約取消",
-      "date": "2026-09-12"
+      "date": "2026-09-12",
+      "expiredDate": "2026-09-25"
     },
     {
       "title": "ハックルベリー・フィンの冒険 上",
       "author": "トウェイン",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "requeue:予約取消",
-      "date": "2026-09-12"
+      "date": "2026-09-12",
+      "expiredDate": "2026-09-25"
     },
     {
       "title": "放課後の時間割",
       "author": "岡田淳",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "ehonnavi",
-      "date": "2026-09-14"
+      "date": "2026-09-14",
+      "expiredDate": "2026-09-25"
     },
     {
       "title": "ガラスの家族",

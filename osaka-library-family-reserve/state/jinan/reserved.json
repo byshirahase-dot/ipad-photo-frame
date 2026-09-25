@@ -376,10 +376,19 @@
     {
       "title": "はけたよはけたよ",
       "author": "かんざわとしこ にしまきかやこ・絵",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "requeue:予約取消",
-      "date": "2026-09-14"
+      "date": "2026-09-14",
+      "expiredDate": "2026-09-25"
+    },
+    {
+      "title": "ちびゴリラのちびちび",
+      "author": "ボーンスタイン いわたみみ・訳",
+      "status": "failed",
+      "note": "特殊資料のみの版（点字付）",
+      "source": "requeue:予約取消",
+      "date": "2026-09-25"
     }
   ]
 }
