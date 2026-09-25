@@ -22,6 +22,35 @@ test("タイトル判定はカート画面だけを真にする", () => {
   assert.ok(!isCartPageTitle(null));
 });
 
+import { tilcodFromHref } from "../src/opac.js";
+
+// 2026-09-25: 4アカウント全滅の回帰の記録。結果行の href は
+//   <a class="layer-doc" href="...?urlNotFlag=1&tilcod=XXX" onclick="toDetail('XXX');return false;">
+// で onclick が return false するため、**人のクリックでは href は使われない**。
+// href は「外からURLで入る」用の恒久リンクで、GET で開くとサーバは hash（画面遷移トークン）が
+// 空のページを返す。カート投入までは通るが確定 POST だけが hash を検証するため、
+// ログイン画面が返り「セッション切れ」に見えていた。
+// → href は goto するためではなく、tilcod を取り出して内部の POST 遷移 toDetail() に渡すために使う。
+const ROW_HREF =
+  "https://www.oml.city.osaka.lg.jp/licsxp-opac/WOpacSmtTifTilListToTifTilDetailAction.do?urlNotFlag=1&tilcod=1000012617679";
+
+test("tilcodFromHref: 結果行の恒久リンクから書誌IDを取り出す", () => {
+  assert.equal(tilcodFromHref(ROW_HREF), "1000012617679");
+  // getAttribute で取った相対URLでも取れる
+  assert.equal(
+    tilcodFromHref("WOpacSmtTifTilListToTifTilDetailAction.do?urlNotFlag=1&tilcod=1000010584886"),
+    "1000010584886",
+  );
+});
+
+test("tilcodFromHref: tilcod の無いURL・空入力は null（POST遷移に切り替えられないケース）", () => {
+  // toDetail() の POST 後の URL は tilcod を持たない（単一ヒット直行時にここへ来る）
+  assert.equal(tilcodFromHref("https://www.oml.city.osaka.lg.jp/licsxp-opac/WOpacSmtTifTilDetailAction.do"), null);
+  assert.equal(tilcodFromHref(""), null);
+  assert.equal(tilcodFromHref(null), null);
+  assert.equal(tilcodFromHref(undefined), null);
+});
+
 import { sameWork, rankResults } from "../src/opac.js";
 
 test("sameWork: 副題・叢書名・版表示が付いたサイト側タイトルは同じ作品として通す", () => {

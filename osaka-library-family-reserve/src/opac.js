@@ -613,19 +613,96 @@ export class Opac {
   }
 
   /**
-   * 検索結果の書誌詳細を開く。
-   * href（結果行の恒久リンク＝tilcod付きGET・絶対URL）があればそれで直接開く。
-   * ★ページ送りをすると index と画面上の行がずれるため、href を優先する。
+   * 検索結果の書誌詳細を、サイト自身の画面遷移（LBForm の POST）で開く。
+   *
+   * ★★2026-09-25 の全アカウント全滅の真因（ここを GET にしてはいけない）:
+   *   結果行は
+   *     <a class="layer-doc" href="...TifTilDetailAction.do?urlNotFlag=1&tilcod=XXX"
+   *        onclick="javascript:toDetail('XXX');return false;">
+   *   で、onclick が return false するため **href は人のクリックでは決して使われない**。
+   *   実体は toDetail() ＝ LBForm を POST する内部遷移で、この POST が hidden の
+   *   `hash`（画面遷移トークン）を運ぶ。サーバは POST で来た詳細ページにだけ新しい hash を
+   *   発行し、href を直接 GET した場合（urlNotFlag=1＝「URLで外から入った」）は
+   *   **hash が空のページ**を返す。セッション自体は生きている（ログアウトリンクも出る）ので
+   *   カート投入までは通るが、最後の確定 POST（WOpacSmtYoyCartExecAction.do）だけが hash を
+   *   検証するため、空だと遷移無効と見なされ**ログイン画面が返る**＝「セッション切れ」に見えた。
+   *   2026-09-14 の openResult 変更（index ずれ対策の page.goto(href)）がこの回帰を入れた。
+   *
+   * ページ送りで index と画面上の行がずれる問題は、位置ではなく **tilcod で行を特定** して解決する。
    */
   async openResult(index, href = null) {
     await this.politeWait();
-    if (href) {
-      await this.page.goto(href, { waitUntil: "domcontentloaded" });
-    } else {
-      await this.page.locator("a.layer-doc").nth(index).click();
-      await this.page.waitForLoadState("domcontentloaded").catch(() => {});
+    const tilcod = tilcodFromHref(href);
+    const moved = tilcod ? await this.#openDetailByTilcod(tilcod) : false;
+    // POST遷移が使えなかったときだけ、従来どおり画面上の行を位置でクリックする。
+    // ★遷移を試みて詳細に着けなかった場合に位置クリックすると、見当違いのページで
+    //   無関係な行を開きかねない。結果一覧に留まっているときだけフォールバックする。
+    if (!moved) {
+      const onList = (await this.page.locator("a.layer-doc").count().catch(() => 0)) > 0;
+      if (onList) {
+        await this.page.locator("a.layer-doc").nth(index).click();
+        await this.page.waitForLoadState("domcontentloaded").catch(() => {});
+      }
     }
     await this.shot("bib-detail");
+  }
+
+  /**
+   * tilcod の書誌詳細へ、サイトの内部遷移（toDetail＝LBForm の POST）で移動する。
+   * 表示中の結果ページに該当行があればその行をクリックし（人の操作と完全に同じ）、
+   * 無ければ（ページ送り後など）同じことを行う toDetail() を直接呼ぶ。
+   * どちらも LBForm を submit するので hash が引き継がれる。
+   * 返り値: 遷移できたか。
+   */
+  async #openDetailByTilcod(tilcod) {
+    // toDetail() も各リンクの onclick も「if (submitFlg)」で守られており、同じページで一度
+    // submit 済みだと submitFlg=false のまま空振りする（過去の #openCart 空振りと同じ罠）。
+    const ready = await this.page
+      .evaluate(() => {
+        if (typeof window.toDetail !== "function" || !document.LBForm) return false;
+        window.submitFlg = true;
+        return true;
+      })
+      .catch(() => false);
+    if (!ready) return false;
+    const row = this.page.locator(`a.layer-doc[href*="tilcod=${tilcod}"]`).first();
+    const onThisPage = (await row.count().catch(() => 0)) > 0;
+    await Promise.all([
+      this.page.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 20000 }).catch(() => {}),
+      onThisPage
+        ? row.click().catch(() => {})
+        : this.page
+            .evaluate((t) => {
+              window.toDetail(t);
+            }, tilcod)
+            .catch(() => {
+              /* submit によるナビゲーションで context が破棄されることがある（上の待機で受ける） */
+            }),
+    ]);
+    return await this.#onDetailPage();
+  }
+
+  /** 今いるページが書誌詳細かを <title> で判定する */
+  async #onDetailPage() {
+    const title = await this.page.title().catch(() => "");
+    return /書誌詳細/.test(title);
+  }
+
+  /**
+   * 現在ページの LBForm が持つ画面遷移トークン hash を返す（無ければ ""）。
+   * 空のまま予約確定 POST を出すとサーバがログイン画面を返す（2026-09-25 の真因）ので、
+   * 確定直前の検査に使う。
+   */
+  async #formHash() {
+    return await this.page
+      .evaluate(() => {
+        const f = document.LBForm;
+        if (!f) return "";
+        const h = f.hash;
+        if (!h) return "";
+        return (h.length ? h[0].value : h.value) || "";
+      })
+      .catch(() => "");
   }
 
   /** 書誌詳細から検索結果一覧へ戻る */
@@ -653,11 +730,13 @@ export class Opac {
       // 後でカートから離れてしまったとき（バッチ最後の本が版スキップ等）に、この詳細を開き直して
       // カートを再確立できる（#openCart 参照。新しく開いた詳細は submitFlg=true でカートリンクが効く）。
       // ★2026-08-17: page.url() は toDetail() の POST 遷移後で tilcod を持たず goto で再現できない
-      // （＝旧 #openCart 再確立が空振りしていた真因）。検索結果行 a.layer-doc の href
-      // （WOpacSmtTifTilListToTifTilDetailAction.do?urlNotFlag=1&tilcod=XXX＝GETで開ける恒久リンク）を
-      // 呼び出し側から受け取り、あれば再現可能な絶対URLとして優先採用する。
+      // （＝旧 #openCart 再確立が空振りしていた真因）。検索結果行 a.layer-doc の href から
+      // tilcod（書誌ID）を控えておき、再確立は **GET ではなく** サイト内部の POST 遷移で行う。
+      // ★2026-09-25: href を goto すると hash 空のページになり、確定 POST がログイン画面に落ちる。
+      // よって URL ではなく tilcod を持ち回るのが正。URL は最後の手段としてのみ残す。
+      const tilcod = tilcodFromHref(permalink);
       let detailUrl = this.page.url();
-      if (permalink && /tilcod=/.test(permalink)) {
+      if (permalink && tilcod) {
         try {
           detailUrl = new URL(permalink, this.page.url()).href;
         } catch {
@@ -691,7 +770,8 @@ export class Opac {
       await this.shot("cart-added");
       const after = (await this.page.textContent("body")) || "";
       this.#assertNotLoginPage(after);
-      // カート投入に成功した本の詳細URLを控える（確定フェーズでカート再確立に使う）
+      // カート投入に成功した本の書誌を控える（確定フェーズでカート再確立に使う）
+      if (tilcod) this.lastCartDetailTilcod = tilcod;
       if (detailUrl && /Detail|detail/.test(detailUrl)) this.lastCartDetailUrl = detailUrl;
       // 「カートに入れる」ボタンがまだ有効なままなら投入に失敗している可能性
       return { ok: true, message: "カート投入" };
@@ -795,7 +875,17 @@ export class Opac {
     // → 直近にカート投入した本の書誌詳細を開き直す（新規ロードで submitFlg=true）と、その詳細の
     //    カートリンクは正常に効く。カートはサーバ側セッション状態なので、そこから開けば投入済みの
     //    本がすべて表示される。詳細URLが無い（emptyCart 初回等）ときは現ページから素直にクリックする。
-    if (this.lastCartDetailUrl) {
+    // ★2026-09-25: ここで href を goto してはいけない。GET で入り直した詳細は hash が空で、
+    //   そこから開いたカートも hash 空になり、確定 POST がログイン画面に落ちる（全滅の真因）。
+    //   取り残されるのは検索結果一覧（toDetail と有効な hash を持つ）なので、内部の POST 遷移で戻る。
+    let reopened = false;
+    if (this.lastCartDetailTilcod) {
+      await this.politeWait();
+      reopened = await this.#openDetailByTilcod(this.lastCartDetailTilcod);
+    }
+    if (!reopened && this.lastCartDetailUrl) {
+      // 最後の手段（単一ヒット直行の本は tilcod を持てない）。GET で入り直すと hash が空になり
+      // 確定は通らないが、カート内容の確認まではできる。確定前に #formHash が検出して明示的に止める。
       await this.politeWait();
       await this.page
         .goto(this.lastCartDetailUrl, { waitUntil: "domcontentloaded" })
@@ -954,6 +1044,25 @@ export class Opac {
       this.reservedItemCount = Math.max(expected ?? 0, 1); // 期待成立冊数（後段の照合に使う）
       await this.shot("reserve-branch-set");
 
+      // (3.5) 確定 POST の前に画面遷移トークン hash を検査する。
+      // hash が空のカートから確定すると、サーバは遷移無効と見なしてログイン画面を返し、
+      // 「セッション切れ」という誤解を招くエラーになる（2026-09-25 に4アカウント全滅）。
+      // 空になる原因は「書誌詳細を GET の恒久リンクで開いた」こと＝こちら側の経路ミスなので、
+      // セッション切れと区別できるメッセージで返し、原因が即わかるようにする。
+      const cartHash = await this.#formHash();
+      if (!cartHash) {
+        await this.shot("cart-hash-missing");
+        return {
+          ok: false,
+          message:
+            "カート画面の遷移トークン(hash)が空のため確定を中止（書誌詳細をGETの恒久リンクで開くとこうなる。" +
+            "詳細へは toDetail() のPOST遷移で入ること。2026-09-25の回帰を参照）",
+          countBefore,
+          countAfter: countBefore,
+          delta: 0,
+        };
+      }
+
       // (4) 予約確定。「予約する」ボタンの onclick=exec() は「if(submitFlg){...}」で守られており、
       // 連絡方法の選択（selectyoyrak）でカートが再描画されると submitFlg=false のため空振りする。
       // そこでボタンに頼らず、exec() の実体（action=WOpacSmtYoyCartExecAction.do → submit）を
@@ -1052,6 +1161,19 @@ export class Opac {
  */
 export function isCartPageTitle(title) {
   return /予約カート/.test(String(title ?? ""));
+}
+
+/**
+ * 検索結果行の href（...TifTilDetailAction.do?urlNotFlag=1&tilcod=1000012617679）から
+ * tilcod（書誌ID）を取り出す。取れなければ null。
+ *
+ * この href は「外から URL で入る」ための恒久リンクであり、**GET で開いてはいけない**
+ * （サーバが hash 空のページを返し、予約確定 POST がログイン画面に落ちる＝2026-09-25 の真因）。
+ * tilcod だけを取り出して、サイト内部の POST 遷移 toDetail(tilcod) に渡すために使う。
+ */
+export function tilcodFromHref(href) {
+  const m = String(href ?? "").match(/[?&]tilcod=([0-9A-Za-z]+)/);
+  return m ? m[1] : null;
 }
 
 /**
