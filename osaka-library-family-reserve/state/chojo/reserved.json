@@ -294,10 +294,11 @@
     {
       "title": "扉のむこうの物語",
       "author": "岡田淳",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "ehonnavi",
-      "date": "2026-09-12"
+      "date": "2026-09-12",
+      "expiredDate": "2026-09-28"
     },
     {
       "title": "生物の消えた島",
@@ -338,10 +339,11 @@
     {
       "title": "ガラスの家族",
       "author": "",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "requeue:予約取消",
-      "date": "2026-09-14"
+      "date": "2026-09-14",
+      "expiredDate": "2026-09-28"
     },
     {
       "title": "クリスマス・キャロル",
@@ -366,6 +368,30 @@
       "note": "",
       "source": "requeue:予約取消（2026-09-25 markExpired・中断バッチのため手動補完）",
       "date": "2026-09-26"
+    },
+    {
+      "title": "フングリコングリ 図工室のおはなし会",
+      "author": "岡田淳",
+      "status": "reserved",
+      "note": "",
+      "source": "ehonnavi",
+      "date": "2026-09-28"
+    },
+    {
+      "title": "大造じいさんとガン",
+      "author": "椋鳩十",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-09-28"
+    },
+    {
+      "title": "キャプテンはつらいぜ",
+      "author": "後藤竜二",
+      "status": "reserved",
+      "note": "",
+      "source": "requeue:予約取消（2026-09-25 markExpired・中断バッチのため手動補完）",
+      "date": "2026-09-28"
     }
   ]
 }

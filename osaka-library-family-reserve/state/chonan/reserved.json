@@ -322,6 +322,38 @@
       "note": "2026-09-26に実際は予約成立（予約一覧で[待ち]を確認）。スクリプトは「予約確定できず見送り」と誤判定＝成立照合のsameWorkが表記ゆれ（こちら「11ぴきのねこふくろのなか」/サイト「11ぴきのねこ ふくろのなか」）で落ちたため。手動で記録。",
       "source": "requeue:予約取消",
       "date": "2026-09-26"
+    },
+    {
+      "title": "ちょっとだけ",
+      "author": "瀧村有子",
+      "status": "reserved",
+      "note": "",
+      "source": "ehonnavi",
+      "date": "2026-09-28"
+    },
+    {
+      "title": "花いっぱいになあれ",
+      "author": "松谷みよ子 司修・絵",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-09-28"
+    },
+    {
+      "title": "おおはくちょうのそら",
+      "author": "手島圭三郎",
+      "status": "reserved",
+      "note": "",
+      "source": "requeue:予約取消",
+      "date": "2026-09-28"
+    },
+    {
+      "title": "11ぴきのねことへんなねこ",
+      "author": "馬場のぼる",
+      "status": "reserved",
+      "note": "",
+      "source": "requeue:予約取消",
+      "date": "2026-09-28"
     }
   ]
 }
