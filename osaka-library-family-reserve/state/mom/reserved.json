@@ -141,10 +141,11 @@
     {
       "title": "スモールワールズ",
       "author": "一穂ミチ",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "mom-queue",
-      "date": "2026-08-24"
+      "date": "2026-08-24",
+      "expiredDate": "2026-10-09"
     },
     {
       "title": "月の立つ林で",
@@ -184,10 +185,11 @@
     {
       "title": "ナイルパーチの女子会",
       "author": "柚木麻子",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "mom-queue",
-      "date": "2026-09-14"
+      "date": "2026-09-14",
+      "expiredDate": "2026-10-09"
     },
     {
       "title": "春琴抄",
@@ -201,18 +203,52 @@
     {
       "title": "ねらわれた星",
       "author": "星新一",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "mom-queue",
-      "date": "2026-09-26"
+      "date": "2026-09-26",
+      "expiredDate": "2026-10-09"
     },
     {
       "title": "居るのはつらいよ",
       "author": "東畑開人",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
+      "source": "mom-queue",
+      "date": "2026-09-26",
+      "expiredDate": "2026-10-09"
+    },
+    {
+      "title": "春琴抄",
+      "author": "谷崎潤一郎",
       "status": "reserved",
       "note": "",
       "source": "mom-queue",
-      "date": "2026-09-26"
+      "date": "2026-10-09"
+    },
+    {
+      "title": "妖怪の子預かります",
+      "author": "廣嶋玲子",
+      "status": "reserved",
+      "note": "",
+      "source": "mom-queue",
+      "date": "2026-10-09"
+    },
+    {
+      "title": "刺青・秘密",
+      "author": "谷崎潤一郎",
+      "status": "reserved",
+      "note": "2026-10-09 手動補完: 確定後の予約一覧が読み込み途中(7/15行)で照合され未成立と誤判定。確定前11件→確定後『現在、予約している書誌は15件』・カート0件で4冊全成立と判断",
+      "source": "mom-queue",
+      "date": "2026-10-09"
+    },
+    {
+      "title": "急に具合が悪くなる",
+      "author": "宮野真生子・磯野真穂",
+      "status": "reserved",
+      "note": "2026-10-09 手動補完: 確定後の予約一覧が読み込み途中(7/15行)で照合され未成立と誤判定。確定前11件→確定後『現在、予約している書誌は15件』・カート0件で4冊全成立と判断",
+      "source": "mom-queue",
+      "date": "2026-10-09"
     }
   ]
 }

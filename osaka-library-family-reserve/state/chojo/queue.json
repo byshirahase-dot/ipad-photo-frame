@@ -7,12 +7,27 @@
       "from": "priority:長女リクエスト(先に読みたい・公文G-4を前倒し)｜2026-09-26 検索不成立でキューから消失していたため手動で復帰"
     },
     {
-      "title": "扉のむこうの物語",
+      "title": "空気がなくなる日",
+      "author": "岩倉政治",
+      "from": "requeue:予約取消"
+    },
+    {
+      "title": "キャプテンはつらいぜ",
+      "author": "後藤竜二",
+      "from": "requeue:予約取消"
+    },
+    {
+      "title": "夜の小学校で",
       "author": "岡田淳",
       "from": "requeue:予約取消"
     },
     {
-      "title": "ガラスの家族",
+      "title": "放課後の時間割",
+      "author": "岡田淳",
+      "from": "requeue:予約取消"
+    },
+    {
+      "title": "クリスマス・キャロル",
       "author": "",
       "from": "requeue:予約取消"
     },
@@ -108,6 +123,36 @@
       "author": "ボーデンブルク 川西芙沙・訳",
       "publisher": "くもん出版",
       "from": "series:リトルバンパイア"
+    },
+    {
+      "title": "だれも知らない小さな国",
+      "author": "佐藤さとる",
+      "publisher": "講談社",
+      "from": "series:コロボックル物語"
+    },
+    {
+      "title": "豆つぶほどの小さないぬ",
+      "author": "佐藤さとる",
+      "publisher": "講談社",
+      "from": "series:コロボックル物語"
+    },
+    {
+      "title": "星からおちた小さな人",
+      "author": "佐藤さとる",
+      "publisher": "講談社",
+      "from": "series:コロボックル物語"
+    },
+    {
+      "title": "ふしぎな目をした男の子",
+      "author": "佐藤さとる",
+      "publisher": "講談社",
+      "from": "series:コロボックル物語"
+    },
+    {
+      "title": "小さな国のつづきの話",
+      "author": "佐藤さとる",
+      "publisher": "講談社",
+      "from": "series:コロボックル物語"
     }
   ]
 }

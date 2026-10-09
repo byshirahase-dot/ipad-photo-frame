@@ -433,6 +433,22 @@
       "note": "",
       "source": "requeue:予約取消",
       "date": "2026-09-28"
+    },
+    {
+      "title": "くだものだもの",
+      "author": "石津ちひろ",
+      "status": "reserved",
+      "note": "",
+      "source": "ehonnavi",
+      "date": "2026-10-09"
+    },
+    {
+      "title": "おべんとうバス",
+      "author": "真珠まりこ",
+      "status": "reserved",
+      "note": "",
+      "source": "requeue:予約取消",
+      "date": "2026-10-09"
     }
   ]
 }
