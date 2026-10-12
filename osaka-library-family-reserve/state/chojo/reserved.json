@@ -413,6 +413,30 @@
       "note": "",
       "source": "requeue:予約取消",
       "date": "2026-10-09"
+    },
+    {
+      "title": "放課後の時間割",
+      "author": "岡田淳",
+      "status": "reserved",
+      "note": "",
+      "source": "ehonnavi",
+      "date": "2026-10-12"
+    },
+    {
+      "title": "だれも知らない小さな国",
+      "author": "佐藤さとる",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-10-12"
+    },
+    {
+      "title": "空気がなくなる日",
+      "author": "岩倉政治",
+      "status": "reserved",
+      "note": "",
+      "source": "requeue:予約取消",
+      "date": "2026-10-12"
     }
   ]
 }
