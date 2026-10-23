@@ -23,7 +23,7 @@
       "name": "長男",
       "mode": "kumon",
       "pickupBranch": "阿倍野",
-      "weeklyQuota": 4,
+      "weeklyQuota": 8,
       "envCard": "OML_CARD_CHONAN",
       "envPass": "OML_PASS_CHONAN",
       "startProgress": { "level": "A", "position": 11 },
@@ -33,11 +33,11 @@
       "name": "次男",
       "mode": "kumon",
       "pickupBranch": "阿倍野",
-      "weeklyQuota": 4,
+      "weeklyQuota": 8,
       "envCard": "OML_CARD_JINAN",
       "envPass": "OML_PASS_JINAN",
       "startProgress": { "level": "3A", "position": 1 },
-      "ehonnaviAge": "3"
+      "ehonnaviAge": "4"
     }
   },
   "levelOrder": ["5A", "4A", "3A", "2A", "A", "B", "C", "D", "E", "F", "G", "H", "I"],
