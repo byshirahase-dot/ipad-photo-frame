@@ -221,10 +221,11 @@
     {
       "title": "春琴抄",
       "author": "谷崎潤一郎",
-      "status": "reserved",
-      "note": "",
+      "status": "borrowed",
+      "note": "受取済み・貸出中（借用済み）のため終了扱い",
       "source": "mom-queue",
-      "date": "2026-10-09"
+      "date": "2026-10-09",
+      "borrowedDate": "2026-10-24"
     },
     {
       "title": "妖怪の子預かります",
@@ -249,6 +250,38 @@
       "note": "2026-10-09 手動補完: 確定後の予約一覧が読み込み途中(7/15行)で照合され未成立と誤判定。確定前11件→確定後『現在、予約している書誌は15件』・カート0件で4冊全成立と判断",
       "source": "mom-queue",
       "date": "2026-10-09"
+    },
+    {
+      "title": "ナイルパーチの女子会",
+      "author": "柚木麻子",
+      "status": "reserved",
+      "note": "",
+      "source": "mom-queue",
+      "date": "2026-10-24"
+    },
+    {
+      "title": "痴人の愛",
+      "author": "谷崎潤一郎",
+      "status": "reserved",
+      "note": "",
+      "source": "mom-queue",
+      "date": "2026-10-24"
+    },
+    {
+      "title": "本にだって雄と雌があります",
+      "author": "小田雅久仁",
+      "status": "reserved",
+      "note": "",
+      "source": "mom-queue",
+      "date": "2026-10-24"
+    },
+    {
+      "title": "ケアの倫理とエンパワメント",
+      "author": "小川公代",
+      "status": "reserved",
+      "note": "",
+      "source": "mom-queue",
+      "date": "2026-10-24"
     }
   ]
 }

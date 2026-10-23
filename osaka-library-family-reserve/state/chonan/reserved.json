@@ -412,18 +412,52 @@
     {
       "title": "ひとまねこざるときいろいぼうし",
       "author": "レイ 光吉夏弥・訳",
-      "status": "reserved",
-      "note": "",
+      "status": "borrowed",
+      "note": "受取済み・貸出中（借用済み）のため終了扱い",
       "source": "requeue:予約取消",
-      "date": "2026-10-12"
+      "date": "2026-10-12",
+      "borrowedDate": "2026-10-24"
     },
     {
       "title": "11ぴきのねこふくろのなか",
       "author": "馬場のぼる",
+      "status": "borrowed",
+      "note": "受取済み・貸出中（借用済み）のため終了扱い",
+      "source": "requeue:予約取消",
+      "date": "2026-10-12",
+      "borrowedDate": "2026-10-24"
+    },
+    {
+      "title": "ちょっとだけ",
+      "author": "瀧村有子",
+      "status": "reserved",
+      "note": "",
+      "source": "ehonnavi",
+      "date": "2026-10-24"
+    },
+    {
+      "title": "だってだってのおばあさん",
+      "author": "佐野洋子",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-10-24"
+    },
+    {
+      "title": "花いっぱいになあれ",
+      "author": "松谷みよ子 司修・絵",
       "status": "reserved",
       "note": "",
       "source": "requeue:予約取消",
-      "date": "2026-10-12"
+      "date": "2026-10-24"
+    },
+    {
+      "title": "おおはくちょうのそら",
+      "author": "手島圭三郎",
+      "status": "reserved",
+      "note": "",
+      "source": "requeue:予約取消",
+      "date": "2026-10-24"
     }
   ]
 }
