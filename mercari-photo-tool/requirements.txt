@@ -1,0 +1,8 @@
+rembg[cpu]>=2.0.60,<3
+gradio>=6.0,<7
+numpy>=1.26
+pillow>=10.0
+scipy>=1.11
+pyyaml>=6.0
+pillow-heif>=0.16
+qrcode[pil]>=7.4

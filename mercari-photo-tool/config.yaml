@@ -1,0 +1,86 @@
+# ============================================================
+#  メルカリ写真まとめて加工ツール 設定ファイル
+#  編集して保存したら、画面の「設定ファイルを再読み込み」ボタンを押すか
+#  ツールを再起動すると反映されます。
+#  ※ 色は "#RRGGBB" 形式（例: 白 "#FFFFFF" / 黒 "#000000"）
+# ============================================================
+
+server:
+  port: 7860            # ブラウザで開くポート番号
+  open_browser: true    # 起動時にMacのブラウザを自動で開く
+  allow_lan: true       # 同じWi-Fi内のiPhoneなどから使えるようにする
+  # 家族以外も使うWi-Fiでは、パスワードをかけておくと安心です（空欄なら無し）
+  username: ""
+  password: ""
+
+output:
+  dir: output           # このフォルダの中に日付フォルダ（例: 2026-10-25）を作って保存
+  size: 1080            # 出力サイズ（正方形の一辺, px）
+  format: jpg           # jpg または png
+  jpeg_quality: 92
+  # 背景差し替えなしで正方形にするときの余白: blur（写真をぼかして埋める）/ white（白）
+  pad_fill: blur
+
+segmentation:
+  # 切り抜きAIモデル（初回だけ自動ダウンロードされます）
+  #   isnet-general-use     … 標準。速くて商品写真に強い（約180MB）
+  #   birefnet-general-lite … 高精度だが少し遅い（約220MB）
+  #   u2net                 … 旧来の定番モデル（約170MB）
+  model: isnet-general-use
+  # 切り抜いた部分が写真に占める割合がこの範囲外なら「切り抜き要確認」と表示
+  min_area_ratio: 0.02
+  max_area_ratio: 0.95
+
+background:
+  # 背景画像からランダムに切り出すときの大きさ（背景画像の短辺に対する割合）
+  crop_min: 0.55
+  crop_max: 0.9
+  rotation_max_deg: 4   # ランダム回転の最大角度（度）
+  random_flip: true     # ランダムに左右反転して見た目を変える
+
+# 画面の初期値（画面上でいつでも変更できます）
+defaults:
+  replace_background: true
+  auto_enhance: true
+  square_layout: true
+  add_text: false
+  # 背景: backgrounds フォルダ内のファイル名 / 白背景 / 空欄（フォルダ内の最初の画像。無ければ白背景）
+  background: ""
+  shadow_strength: 0.5      # 接地影の濃さ 0〜1
+  harmonize_strength: 0.5   # 背景を商品の明るさ・色味になじませる強さ 0〜1
+  product_scale: 0.78       # 商品の大きさ（画面に占める割合）0.4〜0.95
+  text_target: 1枚目だけ    # 1枚目だけ / 全部
+
+enhance:
+  # 明るさ・ホワイトバランスの自動補正（実物の色味を変えないよう控えめ）
+  white_balance_strength: 0.6   # 黄色っぽさ・青っぽさの補正の強さ 0〜1
+  max_wb_gain: 0.12             # 色の補正量の上限（0.12 = 各色±12%まで）
+  brightness_strength: 0.7      # 暗さの補正の強さ 0〜1
+  max_brightness_gain: 1.35     # 明るくする最大倍率
+
+text:
+  # チェックボックスに並ぶ文字（自由に追加・削除できます）
+  presets:
+    - 裁断済み
+    - 未使用
+    - 新品
+    - 美品
+    - サイズ130
+  position: 左上            # 左上 / 右上 / 左下 / 右下
+  font_size: 60             # 1080px の画像に対する文字の大きさ(px)
+  text_color: "#FFFFFF"     # 文字の色
+  band_color: "#E8485A"     # 帯の色
+  band_opacity: 0.92        # 帯の不透明度 0〜1（1で完全に不透明）
+  band_shadow: true         # 帯に薄い影をつけて柄の上でも読みやすくする
+  # 複数選んだときの並べ方: stack（1つずつ縦に積む）/ inline（1本の帯にまとめる）
+  layout: stack
+  separator: "・"           # inline のときの区切り文字
+  margin: 32                # 画像の端からの距離(px)
+  # 文字ごとに色を変えたい場合（任意）。例:
+  # colors:
+  #   新品: {band_color: "#D93A3A", text_color: "#FFFFFF"}
+  #   美品: {band_color: "#3A7BD5"}
+  colors: {}
+  # フォント。空欄なら自動（Mac: ヒラギノ角ゴシック W6）
+  font_path: ""
+  font_index: 0
