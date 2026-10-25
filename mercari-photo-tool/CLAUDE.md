@@ -74,7 +74,12 @@ tools/make_sample_background.py  見本のイブル風背景を生成
   - [x] HEIC 読み込みをテストで確認（pillow-heif で HEIC を作成 → 処理、画面からのアップロードも確認）
   - [x] 「よく使う文字を追加・削除」を画面に追加（config.yaml の text.presets だけを書き換え、コメントは保持）。追加時は自動チェック＋「文字を入れる」をオン
   - [x] 文字帯の色をくすみブルー `#6E87A0` に変更（候補 #8296AB / #6E87A0 / #5A7491 を比較して決定）
+  - [x] スリープ防止: start.command は `caffeinate -i`（動いている間だけ）、自動起動は `caffeinate -s`（電源接続中のみ）
+  - [x] 自動起動: `自動起動をオンにする.command` が osacompile で `メルカリ写真ツール.app` を作り、ログイン項目に登録して裏で起動（tools/run_background.sh → logs/tool.log）。`自動起動をオフにする.command` で停止・解除。LaunchAgent ではなく .app にしたのは、launchd 起動のプロセスが ~/Documents を TCC で読めない（無言で拒否される）ことがあるため
+  - [x] app.py が起動時に logs/server.pid・logs/url.txt を書き、start.command は動作中ならブラウザで開くだけ。tools/common.sh に共通処理
+  - [x] iPhone 用に `xxx.local` のアドレス（IP が変わっても使える）も表示
 - 未確認・次にやること
+  - [ ] Mac 実機で自動起動のオン/オフ（osacompile・ログイン項目・TCC の確認ダイアログ）を確認
   - [ ] iPhone 実機で長押し保存・https モードの「まとめて写真に保存」（共有メニュー）を確認
   - [ ] Mac 実機で start.command のダブルクリック起動・ヒラギノフォント・iPhone からの接続を確認
   - [ ] 実際の商品写真で仕上がりを確認し、影の濃さ・背景の明るさ・なじませ・補正の既定値を調整（イブル背景は合成テスト画像で確認済み）

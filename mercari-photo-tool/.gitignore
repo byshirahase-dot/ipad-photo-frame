@@ -1,5 +1,7 @@
 .venv/
 .cert/
+logs/
+メルカリ写真ツール.app/
 output/
 __pycache__/
 .pytest_cache/

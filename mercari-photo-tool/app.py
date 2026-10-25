@@ -4,11 +4,14 @@
 """
 from __future__ import annotations
 
+import atexit
 import datetime as dt
 import html
 import os
+import signal
 import socket
 import subprocess
+import sys
 import tempfile
 import threading
 import uuid
@@ -29,6 +32,8 @@ from photo_tool.text_overlay import POSITIONS, parse_free_text  # noqa: E402
 CFG = load_config()
 WORK_DIR = Path(tempfile.mkdtemp(prefix="mercari_photo_tool_"))  # 処理前プレビュー用の一時フォルダ
 CERT_DIR = ROOT / ".cert"
+STATE_DIR = ROOT / "logs"  # 動いているツールの PID・アドレス（.command ファイルが読む）
+BACKGROUND = os.environ.get("MERCARI_BACKGROUND") == "1"  # 自動起動（裏で動かす）モード
 TEXT_TARGETS = ["1枚目だけ", "全部"]
 
 CSS = """
@@ -101,23 +106,54 @@ def lan_url(port: int) -> str | None:
     return f"{scheme()}://{ip}:{port}" if ip else None
 
 
-def ensure_certificate(ip: str | None) -> tuple[str, str] | None:
+def local_hostname() -> str | None:
+    """Mac のローカルホスト名（例: MacBook-Air.local）。IPアドレスが変わっても同じ名前で開ける。"""
+    try:
+        name = subprocess.run(["scutil", "--get", "LocalHostName"], capture_output=True, text=True,
+                              timeout=3).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return f"{name}.local" if name else None
+
+
+def hostname_url(port: int) -> str | None:
+    host = local_hostname()
+    return f"{scheme()}://{host}:{port}" if host else None
+
+
+def ensure_certificate(ip: str | None, host: str | None = None) -> tuple[str, str] | None:
     """https: true のとき用の自己署名証明書を作る（IPが変わったら作り直す）。"""
     CERT_DIR.mkdir(exist_ok=True)
     cert, key, stamp = CERT_DIR / "cert.pem", CERT_DIR / "key.pem", CERT_DIR / "ip.txt"
-    if cert.exists() and key.exists() and stamp.exists() and stamp.read_text() == (ip or ""):
+    names = f"{ip or ''} {host or ''}"
+    if cert.exists() and key.exists() and stamp.exists() and stamp.read_text() == names:
         return str(cert), str(key)
     base = ["openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-keyout", str(key), "-out", str(cert),
             "-days", "825", "-subj", "/CN=mercari-photo-tool"]
-    san = "subjectAltName=DNS:localhost,IP:127.0.0.1" + (f",IP:{ip}" if ip else "")
+    san = "subjectAltName=DNS:localhost,IP:127.0.0.1" + (f",IP:{ip}" if ip else "") + (f",DNS:{host}" if host else "")
     for cmd in (base + ["-addext", san], base):
         try:
             subprocess.run(cmd, check=True, capture_output=True)
         except (OSError, subprocess.CalledProcessError):
             continue
-        stamp.write_text(ip or "")
+        stamp.write_text(names)
         return str(cert), str(key)
     return None
+
+
+def write_state(port: int, url: str | None, host_url: str | None) -> None:
+    """動いているツールの PID とアドレスを書き出す（start.command などが「もう動いているか」を調べるため）。"""
+    STATE_DIR.mkdir(exist_ok=True)
+    (STATE_DIR / "url.txt").write_text(f"{scheme()}://localhost:{port}\n{url or ''}\n{host_url or ''}\n")
+    pid_file = STATE_DIR / "server.pid"
+    pid_file.write_text(str(os.getpid()))
+
+    def cleanup():
+        if pid_file.exists() and pid_file.read_text() == str(os.getpid()):
+            pid_file.unlink()
+
+    atexit.register(cleanup)
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))  # 「自動起動をオフ」で止めたときも後片付けする
 
 
 def free_port(start: int) -> int:
@@ -354,6 +390,7 @@ def remove_preset(word: str, checked: list[str]):
 def build_ui(port: int | None = None) -> gr.Blocks:
     d = CFG["defaults"]
     url = lan_url(port) if port else None
+    host_url = hostname_url(port) if port else None
     with gr.Blocks(title="メルカリ写真まとめて加工", analytics_enabled=False) as demo:
         gr.Markdown("## 📦 メルカリ写真まとめて加工\n写真を入れて「まとめて処理する」を押すだけ。すべてこのパソコンの中で処理します。")
         items_state = gr.State([])
@@ -396,7 +433,9 @@ def build_ui(port: int | None = None) -> gr.Blocks:
                 reload_btn = gr.Button("設定ファイル・背景フォルダを再読み込み", size="sm", variant="secondary")
                 if url:
                     with gr.Accordion("📱 iPhoneから使う", open=False):
-                        gr.Markdown(f"同じWi-FiにつないだiPhoneのSafariで **{url}** を開いてください（下のQRコードをカメラで読み取ってもOK）。")
+                        gr.Markdown(f"同じWi-FiにつないだiPhoneのSafariで **{url}** を開いてください（下のQRコードをカメラで読み取ってもOK）。"
+                                    + (f"\n\nホーム画面に追加するなら **{host_url}** がおすすめ（IPアドレスが変わってもつながります）。"
+                                       if host_url else ""))
                         qr = qr_image(url)
                         if qr is not None:
                             gr.Image(value=qr, show_label=False, height=220, interactive=False, buttons=[])
@@ -444,20 +483,27 @@ def main() -> None:
     host = "0.0.0.0" if server.get("allow_lan", True) else "127.0.0.1"
     ssl = {}
     if server.get("https"):
-        files = ensure_certificate(lan_ip())
+        files = ensure_certificate(lan_ip(), local_hostname())
         if files:
             ssl = {"ssl_certfile": files[0], "ssl_keyfile": files[1], "ssl_verify": False}
         else:
             print("[注意] 証明書を作れなかったため、https ではなく http で起動します")
             server["https"] = False
     url = lan_url(port) if host == "0.0.0.0" else None
+    host_url = hostname_url(port) if host == "0.0.0.0" else None
+    write_state(port, url, host_url)
     print("=" * 60)
     print(" メルカリ写真まとめて加工ツール")
     print(f"  このMacで開く : {scheme()}://localhost:{port}")
     if url:
         print(f"  iPhoneで開く  : {url}  （同じWi-Fiにつないで Safari で開く）")
+        if host_url:
+            print(f"  　　　　または : {host_url}  （IPアドレスが変わっても使える）")
     print(f"  保存先        : {output_root(CFG)}")
-    print("  終了するには、このウィンドウで Control + C を押すか、ウィンドウを閉じてください")
+    if BACKGROUND:
+        print("  裏で動いています。止めるには「自動起動をオフにする.command」をダブルクリック")
+    else:
+        print("  終了するには、このウィンドウで Control + C を押すか、ウィンドウを閉じてください")
     print("=" * 60)
     threading.Thread(target=segment.warmup, args=(CFG["segmentation"]["model"],), daemon=True).start()
     output_root(CFG).mkdir(parents=True, exist_ok=True)
@@ -467,7 +513,7 @@ def main() -> None:
     build_ui(port).queue(default_concurrency_limit=1).launch(
         server_name=host,
         server_port=port,
-        inbrowser=bool(server.get("open_browser", True)),
+        inbrowser=bool(server.get("open_browser", True)) and not BACKGROUND,
         auth=auth,
         allowed_paths=[str(output_root(CFG)), str(WORK_DIR)],
         show_error=True,
