@@ -7,7 +7,7 @@ import app  # noqa: E402
 
 
 def _settings(**over):
-    s = dict(replace_bg=True, bg_name="白背景", shadow=0.5, harmonize=0.5, enhance_on=True, square_on=True,
+    s = dict(replace_bg=True, bg_name="白背景", bg_brightness=0.78, shadow=0.5, harmonize=0.5, enhance_on=True, square_on=True,
              scale=0.78, text_on=True, presets=["サイズ130", "美品"], free_text="送料込み", position="右下",
              target="1枚目だけ")
     s.update(over)

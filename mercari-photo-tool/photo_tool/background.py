@@ -64,13 +64,30 @@ def make_background(name: str, size: tuple[int, int], rng: np.random.Generator, 
     return out
 
 
+def normalize_brightness(bg: Image.Image, target: float) -> Image.Image:
+    """背景（白っぽい布）の明るさをそろえる。暗く写った布写真でも明るく、切り出す場所による差も小さくする。
+
+    target は中間の明るさの目安（0〜1）。0 なら元の写真のまま。
+    """
+    if not target or target <= 0:
+        return bg
+    arr = to_array(bg)
+    y = arr[::4, ::4] @ LUMA
+    gain = float(np.clip(0.97 / max(float(np.percentile(y, 99.5)), 1e-3), 0.8, 2.0))
+    med = float(np.median(y)) * gain
+    gamma = float(np.clip(np.log(target) / np.log(med), 0.45, 1.6)) if 0.01 < med < 0.99 else 1.0
+    lum = np.clip(arr @ LUMA, 1e-4, None)
+    new = np.clip(lum * gain, 0, 1) ** gamma
+    return to_image(arr * (new / lum)[..., None])
+
+
 def harmonize(bg: Image.Image, stats: dict, strength: float) -> Image.Image:
     """背景の明るさ・色味を、商品写真の明るさ・色かぶりに寄せる。"""
     if strength <= 0:
         return bg
     arr = to_array(bg)
     bg_hi = max(float(np.percentile(arr[::4, ::4] @ LUMA, 97)), 1e-3)
-    ratio = float(np.clip(stats["highlight"] / bg_hi, 0.8, 1.05))
+    ratio = float(np.clip(stats["highlight"] / bg_hi, 0.75, 1.1))
     gain = 1 + (ratio - 1) * strength
     tint = np.clip(1 + (stats["tint"] - 1) * strength, 0.92, 1.08)
     return to_image(arr * (gain * tint))

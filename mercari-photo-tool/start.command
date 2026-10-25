@@ -29,7 +29,7 @@ echo "メルカリ写真まとめて加工ツールを起動します…"
 if [ ! -x "$VENV/bin/python" ]; then
   echo "初回セットアップ中です（数分かかります）…"
   if command -v uv >/dev/null 2>&1; then
-    uv venv --python 3.12 "$VENV" || pause_and_exit 1
+    uv venv --seed --python 3.12 "$VENV" || pause_and_exit 1
   else
     PY="$(find_python)"
     if [ -z "$PY" ]; then

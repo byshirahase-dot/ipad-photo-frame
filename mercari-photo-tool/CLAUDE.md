@@ -37,7 +37,7 @@ app.py                     Gradio 画面。run_batch（まとめて処理）/ �
 photo_tool/config.py       config.yaml 読み込み（既定値とマージ）
 photo_tool/pipeline.py     1枚の処理: 読込(HEIC対応, 最大2400px) → 補正 → 切り抜き → 配置 → 背景+影 → 文字
 photo_tool/segment.py      rembg 切り抜き。離れた小物の除去、縁の色にじみ除去、失敗判定（面積・端・バラバラ・境目のあいまいさ）
-photo_tool/background.py   背景のランダム切り出し(回転・反転)、なじませ(明るさ/色かぶり)、接地影、合成
+photo_tool/background.py   背景のランダム切り出し(回転・反転)、明るさそろえ、なじませ(明るさ/色かぶり)、接地影、合成
 photo_tool/enhance.py      ホワイトバランス(白っぽい部分の色かぶり, ±12%上限) と 明るさ(上限1.35倍+中間調ガンマ)
 photo_tool/layout.py       中央寄せ・正方形化、背景なし時の余白（ぼかし or 白）
 photo_tool/text_overlay.py 帯付き文字。ヒラギノ角ゴ W6 → Linux/Windows フォントの順で探す
@@ -65,7 +65,10 @@ tools/make_sample_background.py  見本のイブル風背景を生成
   - [x] Playwright でデスクトップ / iPhone 幅の操作テスト成功（処理 → 前後比較 → 背景なしで出し直し → 今の設定で出し直し）
   - [x] start.command を Linux 上で初回セットアップから起動まで確認（Mac 実機は未確認）
   - [x] README（Mac 導入・起動・iPhone 手順・設定・トラブル対応）
+  - [x] ユーザー提供のイブル写真2枚（グレー系・白い布が暗めに写っている）を `backgrounds/ibul_gray_1.jpg`, `ibul_gray_2.jpg` として追加。見本 `sample_ibul_pink.jpg` は削除
+  - [x] 背景の明るさそろえ（normalize_brightness: 白点合わせ＋ガンマで中間の明るさを目標値に。UIスライダー「背景の明るさ」既定0.78）を追加
+  - [x] 柄が細かすぎたので切り出し範囲を 0.55〜0.9 → 0.4〜0.65 に変更。なじませの明るさ補正幅を 0.75〜1.1 に拡大
 - 未確認・次にやること
   - [ ] Mac 実機で start.command のダブルクリック起動・ヒラギノフォント・iPhone からの接続を確認
-  - [ ] 実際のイブル写真・商品写真で仕上がりを確認し、影の濃さ・なじませ・補正の既定値を調整
+  - [ ] 実際の商品写真で仕上がりを確認し、影の濃さ・背景の明るさ・なじませ・補正の既定値を調整（イブル背景は合成テスト画像で確認済み）
   - [ ] （必要なら）切り抜きが苦手な商品で `birefnet-general-lite` を比較

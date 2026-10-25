@@ -33,8 +33,9 @@ segmentation:
 
 background:
   # 背景画像からランダムに切り出すときの大きさ（背景画像の短辺に対する割合）
-  crop_min: 0.55
-  crop_max: 0.9
+  # 小さいほど柄が大きく写る
+  crop_min: 0.4
+  crop_max: 0.65
   rotation_max_deg: 4   # ランダム回転の最大角度（度）
   random_flip: true     # ランダムに左右反転して見た目を変える
 
@@ -46,6 +47,8 @@ defaults:
   add_text: false
   # 背景: backgrounds フォルダ内のファイル名 / 白背景 / 空欄（フォルダ内の最初の画像。無ければ白背景）
   background: ""
+  # 背景の明るさの目安 0〜0.95（白いイブルが暗く写っていても明るくそろえる。0で元の写真のまま）
+  background_brightness: 0.78
   shadow_strength: 0.5      # 接地影の濃さ 0〜1
   harmonize_strength: 0.5   # 背景を商品の明るさ・色味になじませる強さ 0〜1
   product_scale: 0.78       # 商品の大きさ（画面に占める割合）0.4〜0.95

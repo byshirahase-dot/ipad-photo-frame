@@ -60,6 +60,14 @@ def test_background_crop_is_random_and_has_no_black_corners(bg_folder):
             assert corner.mean() > 60
 
 
+def test_normalize_brightness_brightens_dim_fabric():
+    dim = Image.fromarray((np.random.default_rng(0).uniform(0.35, 0.85, (300, 300, 1)).repeat(3, 2) * 255).astype(np.uint8))
+    out = np.asarray(background.normalize_brightness(dim, 0.78), np.float32) / 255
+    assert abs(float(np.median(out @ enhance.LUMA)) - 0.78) < 0.05
+    assert out.std() > 0.03  # 柄（明暗）は残る
+    assert background.normalize_brightness(dim, 0) is dim
+
+
 def test_white_background_and_missing_file():
     for name in (WHITE_BACKGROUND, "存在しない.jpg"):
         bg = background.make_background(name, (100, 80), np.random.default_rng(), CFG["background"])

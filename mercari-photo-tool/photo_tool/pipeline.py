@@ -42,6 +42,7 @@ class Options:
     auto_enhance: bool = True
     square_layout: bool = True
     background: str = WHITE_BACKGROUND
+    background_brightness: float = 0.78
     shadow_strength: float = 0.5
     harmonize_strength: float = 0.5
     product_scale: float = 0.78
@@ -89,6 +90,7 @@ def process(img: Image.Image, opts: Options, cfg: dict, rng: np.random.Generator
             bg_name = resolve_background(opts.background, bg_folder)
             bg = background.make_background(bg_name, product.size, rng, cfg["background"], bg_folder)
             if bg_name != WHITE_BACKGROUND:
+                bg = background.normalize_brightness(bg, float(opts.background_brightness))
                 bg = background.harmonize(bg, enhance.scene_stats(work), float(opts.harmonize_strength))
             alpha = np.asarray(product.getchannel("A"), np.float32) / 255
             shadow = background.contact_shadow(alpha, float(opts.shadow_strength))

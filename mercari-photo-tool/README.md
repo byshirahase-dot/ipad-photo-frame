@@ -46,7 +46,8 @@ mv _tmp_download/mercari-photo-tool ./mercari-photo-tool && rm -rf _tmp_download
 
 - 明るい場所で**真上から**、柄が画面いっぱいに写るように撮ると、きれいに仕上がります
 - 1500px 以上の大きめの写真がおすすめ（ランダムに一部を切り出して使うため）
-- 入っている `sample_ibul_pink.jpg` は動作確認用の見本です。不要なら削除してください
+- 暗めに写っていても、画面の「背景の明るさ」で白っぽく明るくそろえます（初期値は `config.yaml` の `defaults.background_brightness`）
+- 柄の大きさは `config.yaml` の `background.crop_min` / `crop_max` で調整できます（小さいほど柄が大きく写る）
 
 ---
 
@@ -105,7 +106,8 @@ mv _tmp_download/mercari-photo-tool ./mercari-photo-tool && rm -rf _tmp_download
 | `text.font_size` / `layout` | 文字の大きさ、複数のときの並べ方（縦に積む / 1行にまとめる） |
 | `text.font_path` | フォント（空欄なら ヒラギノ角ゴシック W6） |
 | `defaults.*` | 画面を開いたときの初期値（影の濃さ・商品の大きさ など） |
-| `background.*` | 背景の切り出し方（大きさ・回転角度・左右反転） |
+| `defaults.background_brightness` | 背景の明るさの初期値（0で元の写真のまま） |
+| `background.*` | 背景の切り出し方（柄の大きさ・回転角度・左右反転） |
 | `enhance.*` | 明るさ・色味補正の強さ |
 | `segmentation.model` | 切り抜きAIモデル（切り抜きが苦手な商品が多いときは `birefnet-general-lite` を試す） |
 | `output.*` | 保存先・サイズ・形式（jpg/png） |

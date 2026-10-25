@@ -81,7 +81,7 @@ def qr_image(url: str):
 # ---------------------------------------------------------------- 処理
 # 画面の設定項目（この順番で関数に渡される）
 SETTING_NAMES = [
-    "replace_bg", "bg_name", "shadow", "harmonize", "enhance_on", "square_on", "scale",
+    "replace_bg", "bg_name", "bg_brightness", "shadow", "harmonize", "enhance_on", "square_on", "scale",
     "text_on", "presets", "free_text", "position", "target",
 ]
 
@@ -99,6 +99,7 @@ def options_for(index: int, settings: tuple) -> Options:
         auto_enhance=bool(s["enhance_on"]),
         square_layout=bool(s["square_on"]),
         background=s["bg_name"] or WHITE_BACKGROUND,
+        background_brightness=float(s["bg_brightness"]),
         shadow_strength=float(s["shadow"]),
         harmonize_strength=float(s["harmonize"]),
         product_scale=float(s["scale"]),
@@ -264,6 +265,8 @@ def build_ui(port: int | None = None) -> gr.Blocks:
                 with gr.Group():
                     replace_bg = gr.Checkbox(label="背景をイブル等の画像に差し替える（切り抜き）", value=d["replace_background"])
                     bg_name = gr.Dropdown(label="背景", choices=background_choices(), value=default_background())
+                    bg_brightness = gr.Slider(0, 0.95, value=d["background_brightness"], step=0.01,
+                                              label="背景の明るさ（0で元の写真のまま）")
                     shadow = gr.Slider(0, 1, value=d["shadow_strength"], step=0.05, label="接地影の濃さ")
                     harmonize = gr.Slider(0, 1, value=d["harmonize_strength"], step=0.05,
                                           label="背景を商品の明るさ・色味になじませる強さ")
@@ -305,7 +308,7 @@ def build_ui(port: int | None = None) -> gr.Blocks:
                     redo_btn = gr.Button("この写真を今の設定で出し直す", min_width=140)
                 zip_file = gr.File(label="③ まとめてダウンロード（ZIP）", interactive=False)
 
-        settings = [replace_bg, bg_name, shadow, harmonize, enhance_on, square_on, scale,
+        settings = [replace_bg, bg_name, bg_brightness, shadow, harmonize, enhance_on, square_on, scale,
                     text_on, presets, free_text, position, target]
         assert len(settings) == len(SETTING_NAMES)
         run_btn.click(run_batch, [files, *settings],
