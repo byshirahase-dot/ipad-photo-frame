@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import copy
+import json
+import re
 from pathlib import Path
 
 import yaml
@@ -12,7 +14,7 @@ BACKGROUND_DIR = ROOT / "backgrounds"
 WHITE_BACKGROUND = "白背景"
 
 DEFAULTS: dict = {
-    "server": {"port": 7860, "open_browser": True, "allow_lan": True, "username": "", "password": ""},
+    "server": {"port": 7860, "open_browser": True, "allow_lan": True, "username": "", "password": "", "https": False},
     "output": {"dir": "output", "size": 1080, "format": "jpg", "jpeg_quality": 92, "pad_fill": "blur"},
     "segmentation": {"model": "isnet-general-use", "min_area_ratio": 0.02, "max_area_ratio": 0.95},
     "background": {"crop_min": 0.6, "crop_max": 0.85, "rotation_max_deg": 4, "random_flip": True},
@@ -39,7 +41,7 @@ DEFAULTS: dict = {
         "position": "左上",
         "font_size": 60,
         "text_color": "#FFFFFF",
-        "band_color": "#E8485A",
+        "band_color": "#6E87A0",
         "band_opacity": 0.92,
         "band_shadow": True,
         "layout": "stack",
@@ -72,6 +74,49 @@ def load_config(path: Path | str = CONFIG_PATH) -> dict:
     cfg["text"]["presets"] = [str(p) for p in cfg["text"]["presets"] or []]
     cfg["text"]["colors"] = cfg["text"]["colors"] or {}
     return cfg
+
+
+def _yaml_scalar(text: str) -> str:
+    """YAML にそのまま書ける形にする（必要なときだけ "..." で囲む）。"""
+    try:
+        if yaml.safe_load(f"k: {text}") == {"k": text}:
+            return text
+    except yaml.YAMLError:
+        pass
+    return json.dumps(text, ensure_ascii=False)
+
+
+def save_presets(presets: list[str], path: Path | str = CONFIG_PATH) -> None:
+    """config.yaml の text.presets だけを書き換える（コメントなど他の部分はそのまま残す）。"""
+    path = Path(path)
+    original = path.read_text(encoding="utf-8")
+    lines = original.splitlines(keepends=True)
+    in_text, start = False, None
+    for i, line in enumerate(lines):
+        if re.match(r"^text:\s*(#.*)?$", line):
+            in_text = True
+        elif in_text and re.match(r"^\S", line) and not line.startswith("#"):
+            break
+        elif in_text and re.match(r"^\s+presets:", line):
+            start = i
+            break
+    if start is None:
+        raise ValueError("config.yaml に text: の presets: が見つかりません")
+    indent = len(lines[start]) - len(lines[start].lstrip())
+    end = start + 1
+    while end < len(lines):  # 既存の「- ○○」の行（間のコメント行を含む）を置き換え対象にする
+        body = lines[end].strip()
+        deeper = len(lines[end]) - len(lines[end].lstrip()) > indent
+        if body.startswith("-") or (body.startswith("#") and deeper):
+            end += 1
+        else:
+            break
+    item = " " * (indent + 2) + "- {}\n"
+    lines[start:end] = [" " * indent + "presets:\n"] + [item.format(_yaml_scalar(str(p))) for p in presets]
+    path.write_text("".join(lines), encoding="utf-8")
+    if load_config(path)["text"]["presets"] != [str(p) for p in presets]:  # 念のため確認して、だめなら元に戻す
+        path.write_text(original, encoding="utf-8")
+        raise ValueError("書き換えに失敗したため元に戻しました")
 
 
 def output_root(cfg: dict) -> Path:

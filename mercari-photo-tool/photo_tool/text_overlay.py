@@ -98,7 +98,7 @@ def draw_labels(img: Image.Image, labels: list[str], cfg: dict, position: str | 
         own = colors.get(text) or {}
         bands.append({
             "text": text, "font": font, "w": bw, "h": bh, "r": round(fs * 0.22),
-            "band": _rgb(own.get("band_color", cfg.get("band_color")), "#E8485A"),
+            "band": _rgb(own.get("band_color", cfg.get("band_color")), "#6E87A0"),
             "fg": _rgb(own.get("text_color", cfg.get("text_color")), "#FFFFFF"),
             "offset": ((l + r) / 2, (t + b) / 2),
         })

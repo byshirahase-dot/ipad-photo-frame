@@ -12,6 +12,10 @@ server:
   # 家族以外も使うWi-Fiでは、パスワードをかけておくと安心です（空欄なら無し）
   username: ""
   password: ""
+  # true にすると https で起動し、iPhone で「処理した写真をまとめて写真に保存」ボタンが使えます。
+  # 初回だけ Safari に「この接続ではプライバシーが保護されません」と出るので、
+  # 「詳細を表示」→「このWebサイトを閲覧」で進んでください（自分のMacなので安全です）。
+  https: false
 
 output:
   dir: output           # このフォルダの中に日付フォルダ（例: 2026-10-25）を作って保存
@@ -72,7 +76,7 @@ text:
   position: 左上            # 左上 / 右上 / 左下 / 右下
   font_size: 60             # 1080px の画像に対する文字の大きさ(px)
   text_color: "#FFFFFF"     # 文字の色
-  band_color: "#E8485A"     # 帯の色
+  band_color: "#6E87A0"     # 帯の色（くすみブルー）
   band_opacity: 0.92        # 帯の不透明度 0〜1（1で完全に不透明）
   band_shadow: true         # 帯に薄い影をつけて柄の上でも読みやすくする
   # 複数選んだときの並べ方: stack（1つずつ縦に積む）/ inline（1本の帯にまとめる）
@@ -81,8 +85,8 @@ text:
   margin: 32                # 画像の端からの距離(px)
   # 文字ごとに色を変えたい場合（任意）。例:
   # colors:
-  #   新品: {band_color: "#D93A3A", text_color: "#FFFFFF"}
-  #   美品: {band_color: "#3A7BD5"}
+  #   新品: {band_color: "#A97C7C"}   # くすみローズ
+  #   美品: {band_color: "#7E9A86"}   # くすみグリーン
   colors: {}
   # フォント。空欄なら自動（Mac: ヒラギノ角ゴシック W6）
   font_path: ""

@@ -149,3 +149,27 @@ def test_cutout_failure_is_detected():
     blank = Image.new("RGB", (800, 600), (128, 128, 128))
     res = pipeline.process(blank, pipeline.Options(), CFG)
     assert not res.ok and res.message
+
+
+def test_heic_photo_can_be_loaded(tmp_path):
+    pillow_heif = pytest.importorskip("pillow_heif")
+    src = tmp_path / "IMG_1234.HEIC"
+    pillow_heif.from_pillow(product_photo(w=800, h=600)).save(src, quality=90)
+    img = pipeline.load_image(src)
+    assert img.mode == "RGB" and img.size == (800, 600)
+    res = pipeline.process(img, pipeline.Options(replace_background=False), CFG)
+    assert res.image.size == (1080, 1080)
+
+
+def test_save_presets_keeps_comments(tmp_path):
+    from photo_tool.config import save_presets
+
+    cfg_file = tmp_path / "config.yaml"
+    cfg_file.write_text((ROOT / "config.yaml").read_text(encoding="utf-8"), encoding="utf-8")
+    words = ["美品", "サイズ140", "130", "送料: 込み"]
+    save_presets(words, cfg_file)
+    after = load_config(cfg_file)
+    assert after["text"]["presets"] == words
+    assert after["text"]["band_color"] == CFG["text"]["band_color"]  # 他の設定は変わらない
+    text = cfg_file.read_text(encoding="utf-8")
+    assert "# チェックボックスに並ぶ文字" in text and "メルカリ写真まとめて加工ツール 設定ファイル" in text
