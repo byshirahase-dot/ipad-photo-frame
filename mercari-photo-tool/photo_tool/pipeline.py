@@ -42,7 +42,7 @@ class Options:
     auto_enhance: bool = True
     square_layout: bool = True
     background: str = WHITE_BACKGROUND
-    background_brightness: float = 0.78
+    background_brightness: float = 0.85
     shadow_strength: float = 0.5
     harmonize_strength: float = 0.5
     product_scale: float = 0.78
