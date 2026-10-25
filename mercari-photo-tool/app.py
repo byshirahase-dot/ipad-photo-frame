@@ -343,6 +343,12 @@ def redo_with_current(items, selected, *settings):
     return _redo(items, selected, None, settings)
 
 
+def on_page_load():
+    words = _latest_presets()
+    return (gr.update(choices=words), gr.update(choices=words, value=None),
+            gr.update(choices=background_choices(), value=default_background()))
+
+
 def reload_settings():
     global CFG
     CFG = load_config()
@@ -367,21 +373,38 @@ def _update_presets(words: list[str], checked: list[str], message: str, text_on=
             gr.update(choices=words, value=None), "", gr.update() if text_on is None else text_on)
 
 
+def _latest_presets() -> list[str]:
+    """config.yaml から最新の一覧を読む（別の画面・iPhone で追加した文字も含める）。"""
+    global CFG
+    try:
+        CFG = load_config()
+    except Exception as e:  # config.yaml の書き間違いなど。今の設定のまま続ける
+        gr.Warning(f"config.yaml を読めませんでした（{e}）")
+    return CFG["text"]["presets"]
+
+
 def add_presets(text: str, checked: list[str]):
-    words = CFG["text"]["presets"]
-    new = [w for w in dict.fromkeys(parse_free_text(text or "")) if w not in words]
-    if not new:
-        gr.Warning("追加する文字を入力してください（すでにある文字は追加されません）。")
+    words = _latest_presets()
+    typed = list(dict.fromkeys(parse_free_text(text or "")))
+    if not typed:
+        gr.Warning("追加する文字を入力してください。")
         return gr.update(), gr.update(), gr.update(), gr.update()
-    # 追加した文字はすぐ使えるようにチェックも入れる
-    return _update_presets(words + new, list(checked or []) + new, f"「{'」「'.join(new)}」を追加しました", True)
+    # 入力した文字はすぐ使えるようにチェックも入れる
+    checked = list(dict.fromkeys(list(checked or []) + typed))
+    new = [w for w in typed if w not in words]
+    if not new:
+        gr.Info(f"「{'」「'.join(typed)}」はもう登録されているので、チェックを入れました")
+        return (gr.update(choices=words, value=[w for w in checked if w in words]),
+                gr.update(choices=words, value=None), "", True)
+    return _update_presets(words + new, checked, f"「{'」「'.join(new)}」を追加しました", True)
 
 
 def remove_preset(word: str, checked: list[str]):
-    words = CFG["text"]["presets"]
+    words = _latest_presets()
     if not word or word not in words:
         gr.Warning("削除する文字を選んでください。")
-        return gr.update(), gr.update(), gr.update(), gr.update()
+        return (gr.update(choices=words, value=[w for w in (checked or []) if w in words]),
+                gr.update(choices=words, value=None), gr.update(), gr.update())
     return _update_presets([w for w in words if w != word], [w for w in (checked or []) if w != word],
                            f"「{word}」を削除しました")
 
@@ -466,6 +489,8 @@ def build_ui(port: int | None = None) -> gr.Blocks:
         redo_nobg_btn.click(redo_without_background, [items_state, selected_state, *settings], redo_outputs)
         redo_btn.click(redo_with_current, [items_state, selected_state, *settings], redo_outputs)
         reload_btn.click(reload_settings, None, [bg_name, presets, del_preset])
+        # 画面を開くたびに最新の設定（追加した文字・背景フォルダ）を反映する
+        demo.load(on_page_load, None, [presets, del_preset, bg_name])
         share_btn.click(None, None, None, js=SHARE_JS)
         preset_outputs = [presets, del_preset, new_preset, text_on]
         add_preset_btn.click(add_presets, [new_preset, presets], preset_outputs)

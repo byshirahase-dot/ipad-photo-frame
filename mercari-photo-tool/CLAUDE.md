@@ -78,6 +78,7 @@ tools/make_sample_background.py  見本のイブル風背景を生成
   - [x] 自動起動: `自動起動をオンにする.command` が osacompile で `メルカリ写真ツール.app` を作り、ログイン項目に登録して裏で起動（tools/run_background.sh → logs/tool.log）。`自動起動をオフにする.command` で停止・解除。LaunchAgent ではなく .app にしたのは、launchd 起動のプロセスが ~/Documents を TCC で読めない（無言で拒否される）ことがあるため
   - [x] app.py が起動時に logs/server.pid・logs/url.txt を書き、start.command は動作中ならブラウザで開くだけ。tools/common.sh に共通処理
   - [x] iPhone 用に `xxx.local` のアドレス（IP が変わっても使える）も表示
+  - [x] 不具合修正: 文字の選択肢が起動時の設定で固定されていたため、後から開いた画面（iPhone・再読み込み）に追加済みの文字が出ず、もう一度追加しようとすると「すでにある」と断られていた → 画面を開くたびに config.yaml を読み直して選択肢を更新（demo.load）。登録済みの文字を入れたときはチェックを入れるだけにした
 - 未確認・次にやること
   - [ ] Mac 実機で自動起動のオン/オフ（osacompile・ログイン項目・TCC の確認ダイアログ）を確認
   - [ ] iPhone 実機で長押し保存・https モードの「まとめて写真に保存」（共有メニュー）を確認

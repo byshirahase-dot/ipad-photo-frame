@@ -50,3 +50,14 @@ def test_certificate_is_created(tmp_path, monkeypatch):
     cert, key = app.ensure_certificate("192.168.1.23")
     assert Path(cert).read_text().startswith("-----BEGIN CERTIFICATE-----")
     assert app.ensure_certificate("192.168.1.23") == (cert, key)  # 同じIPなら作り直さない
+
+
+def test_adding_a_saved_preset_again_just_checks_it(monkeypatch):
+    # 別の画面で追加済みの文字をもう一度入れても、断らずにチェックを入れる
+    cfg = app.load_config()
+    cfg["text"]["presets"] = ["美品", "サイズ140"]
+    monkeypatch.setattr(app, "load_config", lambda *a, **k: cfg)
+    monkeypatch.setattr(app, "save_presets", lambda *a, **k: (_ for _ in ()).throw(AssertionError("保存しないはず")))
+    presets, delete_list, textbox, text_on = app.add_presets("サイズ140", ["美品"])
+    assert "サイズ140" in presets["choices"] and presets["value"] == ["美品", "サイズ140"]
+    assert textbox == "" and text_on is True
