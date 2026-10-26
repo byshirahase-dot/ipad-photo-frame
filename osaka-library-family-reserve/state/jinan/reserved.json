@@ -490,6 +490,54 @@
       "note": "",
       "source": "requeue:予約取消",
       "date": "2026-10-24"
+    },
+    {
+      "title": "おまえうまそうだな",
+      "author": "宮西達也",
+      "status": "reserved",
+      "note": "",
+      "source": "ehonnavi",
+      "date": "2026-10-26"
+    },
+    {
+      "title": "そらまめくんのベッド",
+      "author": "なかやみわ",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-10-26"
+    },
+    {
+      "title": "うえきやのくまさん",
+      "author": "ウォージントン まさきるりこ・訳",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-10-26"
+    },
+    {
+      "title": "キャベツくん",
+      "author": "長新太",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-10-26"
+    },
+    {
+      "title": "ねないこだれだ",
+      "author": "せなけいこ",
+      "status": "reserved",
+      "note": "",
+      "source": "requeue:予約取消",
+      "date": "2026-10-26"
+    },
+    {
+      "title": "くっきーだあいすき",
+      "author": "間所ひさこ 岩村和朗・絵",
+      "status": "reserved",
+      "note": "OPAC表記『くっきーだぁいすき』(金の星社)。予約一覧で[待ち]を確認済みだが照合漏れで未記録だったため手動補正(2026-10-26)",
+      "source": "list",
+      "date": "2026-10-26"
     }
   ]
 }

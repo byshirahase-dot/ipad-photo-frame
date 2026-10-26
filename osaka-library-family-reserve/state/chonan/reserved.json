@@ -458,6 +458,62 @@
       "note": "",
       "source": "requeue:予約取消",
       "date": "2026-10-24"
+    },
+    {
+      "title": "せかいでいちばんつよい国",
+      "author": "デビッド・マッキー",
+      "status": "reserved",
+      "note": "",
+      "source": "ehonnavi",
+      "date": "2026-10-26"
+    },
+    {
+      "title": "ろけっとこざる",
+      "author": "レイ 光吉夏弥・訳",
+      "status": "reserved",
+      "note": "",
+      "source": "series:ひとまねこざる",
+      "date": "2026-10-26"
+    },
+    {
+      "title": "あひるのバーバちゃん",
+      "author": "神沢利子 山脇百合子・絵",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-10-26"
+    },
+    {
+      "title": "はなのすきなうし",
+      "author": "リーフ ローソン・絵",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-10-26"
+    },
+    {
+      "title": "あおい目のこねこ",
+      "author": "マチーセン せたていじ・訳",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-10-26"
+    },
+    {
+      "title": "どんぐりかいぎ",
+      "author": "こうやすすむ 片山健・絵",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-10-26"
+    },
+    {
+      "title": "11ぴきのねことへんなねこ",
+      "author": "馬場のぼる",
+      "status": "reserved",
+      "note": "",
+      "source": "requeue:予約取消",
+      "date": "2026-10-26"
     }
   ]
 }
