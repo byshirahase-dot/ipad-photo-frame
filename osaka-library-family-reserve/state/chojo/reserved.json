@@ -483,6 +483,38 @@
       "note": "",
       "source": "list",
       "date": "2026-10-26"
+    },
+    {
+      "title": "願いのかなうまがり角",
+      "author": "岡田淳",
+      "status": "reserved",
+      "note": "",
+      "source": "ehonnavi",
+      "date": "2026-11-02"
+    },
+    {
+      "title": "ノンちゃん雲に乗る",
+      "author": "石井桃子",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-11-02"
+    },
+    {
+      "title": "大造じいさんとガン",
+      "author": "椋鳩十",
+      "status": "reserved",
+      "note": "",
+      "source": "requeue:予約取消",
+      "date": "2026-11-02"
+    },
+    {
+      "title": "クリスマス・キャロル",
+      "author": "",
+      "status": "reserved",
+      "note": "",
+      "source": "requeue:予約取消",
+      "date": "2026-11-02"
     }
   ]
 }

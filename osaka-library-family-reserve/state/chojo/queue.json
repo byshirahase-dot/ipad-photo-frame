@@ -1,35 +1,10 @@
 {
   "items": [
     {
-      "title": "大造じいさんとガン",
-      "author": "椋鳩十",
-      "from": "requeue:予約取消"
-    },
-    {
       "title": "にんじん",
       "author": "ルナール 高野優・訳",
       "publisher": "新潮社",
       "from": "priority:長女リクエスト(先に読みたい・公文G-4を前倒し)｜2026-09-26 検索不成立でキューから消失していたため手動で復帰"
-    },
-    {
-      "title": "フングリコングリ 図工室のおはなし会",
-      "author": "岡田淳",
-      "from": "requeue:予約取消"
-    },
-    {
-      "title": "夜の小学校で",
-      "author": "岡田淳",
-      "from": "requeue:予約取消"
-    },
-    {
-      "title": "放課後の時間割",
-      "author": "岡田淳",
-      "from": "requeue:予約取消"
-    },
-    {
-      "title": "クリスマス・キャロル",
-      "author": "",
-      "from": "requeue:予約取消"
     },
     {
       "title": "生物の消えた島",
@@ -153,6 +128,60 @@
       "author": "佐藤さとる",
       "publisher": "講談社",
       "from": "series:コロボックル物語"
+    },
+    {
+      "title": "床下の小人たち",
+      "author": "ノートン 林容吉・訳",
+      "publisher": "岩波書店",
+      "from": "series:小人の冒険シリーズ"
+    },
+    {
+      "title": "野に出た小人たち",
+      "author": "ノートン 林容吉・訳",
+      "publisher": "岩波書店",
+      "from": "series:小人の冒険シリーズ"
+    },
+    {
+      "title": "川をくだる小人たち",
+      "author": "ノートン 林容吉・訳",
+      "publisher": "岩波書店",
+      "from": "series:小人の冒険シリーズ"
+    },
+    {
+      "title": "空をとぶ小人たち",
+      "author": "ノートン 林容吉・訳",
+      "publisher": "岩波書店",
+      "from": "series:小人の冒険シリーズ"
+    },
+    {
+      "title": "小人たちの新しい家",
+      "author": "ノートン 林容吉・訳",
+      "publisher": "岩波書店",
+      "from": "series:小人の冒険シリーズ"
+    },
+    {
+      "title": "風にのってきたメアリー・ポピンズ",
+      "author": "トラヴァース 林容吉・訳",
+      "publisher": "岩波書店",
+      "from": "series:メアリー・ポピンズ"
+    },
+    {
+      "title": "帰ってきたメアリー・ポピンズ",
+      "author": "トラヴァース 林容吉・訳",
+      "publisher": "岩波書店",
+      "from": "series:メアリー・ポピンズ"
+    },
+    {
+      "title": "とびらをあけるメアリー・ポピンズ",
+      "author": "トラヴァース 林容吉・訳",
+      "publisher": "岩波書店",
+      "from": "series:メアリー・ポピンズ"
+    },
+    {
+      "title": "公園のメアリー・ポピンズ",
+      "author": "トラヴァース 林容吉・訳",
+      "publisher": "岩波書店",
+      "from": "series:メアリー・ポピンズ"
     }
   ]
 }

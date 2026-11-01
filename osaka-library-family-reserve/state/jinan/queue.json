@@ -1,23 +1,19 @@
 {
   "items": [
     {
+      "title": "ぐりとぐら",
+      "author": "なかがわりえこ おおむらゆりこ・絵",
+      "publisher": "福音館書店",
+      "from": "requeue:版違い再予約（2026-11-02 点字付さわるえほんを誤予約）"
+    },
+    {
       "title": "ちびゴリラのちびちび",
       "author": "ボーンスタイン いわたみみ・訳",
       "from": "requeue:予約取消"
     },
     {
-      "title": "ねないこだれだ",
-      "author": "せなけいこ",
-      "from": "requeue:予約取消"
-    },
-    {
-      "title": "くだものだもの",
-      "author": "石津ちひろ",
-      "from": "requeue:予約取消"
-    },
-    {
-      "title": "14ひきのひっこし",
-      "author": "いわむらかずお",
+      "title": "ティッチ",
+      "author": "ハッチンス いしいももこ・訳",
       "from": "requeue:予約取消"
     },
     {
@@ -102,6 +98,54 @@
       "author": "いわむらかずお",
       "publisher": "童心社",
       "from": "series:14ひきシリーズ"
+    },
+    {
+      "title": "パンどろぼう",
+      "author": "柴田ケイコ",
+      "publisher": "KADOKAWA",
+      "from": "series:パンどろぼう"
+    },
+    {
+      "title": "パンどろぼうvsにせパンどろぼう",
+      "author": "柴田ケイコ",
+      "publisher": "KADOKAWA",
+      "from": "series:パンどろぼう"
+    },
+    {
+      "title": "パンどろぼうとなぞのフランスパン",
+      "author": "柴田ケイコ",
+      "publisher": "KADOKAWA",
+      "from": "series:パンどろぼう"
+    },
+    {
+      "title": "パンどろぼうとおにぎりぼうやのたびだち",
+      "author": "柴田ケイコ",
+      "publisher": "KADOKAWA",
+      "from": "series:パンどろぼう"
+    },
+    {
+      "title": "パンどろぼうとほっかほっカー",
+      "author": "柴田ケイコ",
+      "publisher": "KADOKAWA",
+      "from": "series:パンどろぼう"
+    },
+    {
+      "title": "パンどろぼうとりんごかめん",
+      "author": "柴田ケイコ",
+      "publisher": "KADOKAWA",
+      "from": "series:パンどろぼう"
+    },
+    {
+      "title": "パンどろぼうとスイーツおうじ",
+      "author": "柴田ケイコ",
+      "publisher": "KADOKAWA",
+      "from": "series:パンどろぼう"
+    },
+    {
+      "title": "パンどろぼうとさすらいラーメン",
+      "author": "柴田ケイコ",
+      "publisher": "KADOKAWA",
+      "from": "series:パンどろぼう"
     }
   ]
 }

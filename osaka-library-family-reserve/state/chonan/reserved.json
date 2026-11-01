@@ -515,6 +515,38 @@
       "note": "",
       "source": "requeue:予約取消",
       "date": "2026-10-26"
+    },
+    {
+      "title": "ちいさなあなたへ",
+      "author": "アリスン・マギー",
+      "status": "reserved",
+      "note": "",
+      "source": "ehonnavi",
+      "date": "2026-11-02"
+    },
+    {
+      "title": "ひとまねこざるびょういんへいく",
+      "author": "レイ 光吉夏弥・訳",
+      "status": "reserved",
+      "note": "",
+      "source": "series:ひとまねこざる",
+      "date": "2026-11-02"
+    },
+    {
+      "title": "からからからが…",
+      "author": "高田桂子 木曽秀夫・絵",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-11-02"
+    },
+    {
+      "title": "かにむかし",
+      "author": "木下順二 清水崑・絵",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-11-02"
     }
   ]
 }
