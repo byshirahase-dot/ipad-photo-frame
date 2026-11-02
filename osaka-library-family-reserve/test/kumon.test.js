@@ -430,3 +430,50 @@ test("キュー由来の pick には fromQueue の印が付く（失敗時にキ
   assert.ok(fromList);
   assert.equal(fromList.fromQueue, undefined);
 });
+
+import { fillPublishers } from "../src/kumon.js";
+import { persistRequeued } from "../src/state.js";
+import { makeSeriesResolver } from "../src/series.js";
+import fs from "node:fs";
+
+// 2026-11-02 chojo: 取消復帰の「大造じいさんとガン」に出版社指定が無く、理論社の作品集で予約された
+test("fillPublishers: 出版社指定の無い pick にリストの出版社を補う（指定済み・リスト外はそのまま）", () => {
+  const rows = [
+    { title: "大造じいさんとガン", publisher: "偕成社" },
+    { title: "ちびゴリラのちびちび", publisher: "ほるぷ出版" },
+  ];
+  const out = fillPublishers(
+    [
+      { title: "大造じいさんとガン", author: "椋鳩十", from: "requeue:予約取消" },
+      { title: "ちびゴリラのちびちび", publisher: "別の社", from: "list" },
+      { title: "リストに無い本", from: "series:x" },
+    ],
+    rows
+  );
+  assert.equal(out[0].publisher, "偕成社");
+  assert.equal(out[1].publisher, "別の社");
+  assert.equal(out[2].publisher, undefined);
+});
+
+// 2026-11-02 jinan: バッチ不成立の回に「ティッチ」が台帳では expired・キューには無い状態になりかけた
+test("persistRequeued: 取消復帰の本をキュー先頭へ積む（既にある本は積まない）", () => {
+  const data = { items: [{ title: "ティッチ" }, { title: "B" }] };
+  let saved = 0;
+  persistRequeued(data, [{ title: "ティッチ" }, { title: "A" }], () => (saved += 1));
+  assert.deepEqual(data.items.map((b) => b.title), ["A", "ティッチ", "B"]);
+  assert.equal(saved, 1);
+  persistRequeued(data, [{ title: "A" }], () => (saved += 1));
+  assert.equal(saved, 1); // 変更なしなら保存もしない
+});
+
+test("makeSeriesResolver(persist:false): 展開しても commit するまで _expanded.json を書かない", () => {
+  const file = path.join(ROOT, "data", "series", "_expanded.json");
+  const before = fs.readFileSync(file, "utf8");
+  if (JSON.parse(before).series.includes("パンどろぼう")) return; // 既に展開済みなら検証対象外
+  const resolver = makeSeriesResolver({ pendingSeries: [], persist: false });
+  const s = resolver({ title: "パンどろぼう" });
+  assert.equal(s?.name, "パンどろぼう");
+  assert.equal(resolver({ title: "パンどろぼう" }), null); // 同じ実行内では二重展開しない
+  assert.equal(fs.readFileSync(file, "utf8"), before);
+  assert.equal(typeof resolver.commit, "function");
+});

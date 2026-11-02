@@ -38,3 +38,14 @@ export function ensureDir(p) {
   fs.mkdirSync(p, { recursive: true });
   return p;
 }
+
+/**
+ * 小書きの仮名を並字に揃える（ぁ→あ、ッ→ツ 等）。書名の照合用。
+ * 実害（2026-10-26 jinan）: リストの「くっきーだあいすき」がOPACでは「くっきーだぁいすき」で、
+ * 予約は成立していたのに照合が落ち、未成立と誤報告された。
+ */
+export function foldSmallKana(s) {
+  const small = "ぁぃぅぇぉっゃゅょゎゕゖァィゥェォッャュョヮヵヶ";
+  const large = "あいうえおつやゆよわかけアイウエオツヤユヨワカケ";
+  return String(s ?? "").replace(/[ぁぃぅぇぉっゃゅょゎゕゖァィゥェォッャュョヮヵヶ]/g, (c) => large[small.indexOf(c)]);
+}

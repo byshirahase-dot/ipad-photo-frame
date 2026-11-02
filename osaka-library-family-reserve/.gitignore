@@ -14,3 +14,6 @@ reports/.cache-*.json
 # 単発予約（--title）の一時レポート。本当の記録は state/ の台帳＝コミット対象。
 # 失敗時の内容は古くなりやすいのでGit管理しない。
 reports/adhoc-*.md
+
+# ドライラン／--plan-only のレポート（2026-11-02〜 本番の reports/日付.md とは別ファイルに出す）
+reports/*-dryrun.md

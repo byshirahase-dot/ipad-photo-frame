@@ -103,3 +103,52 @@ test("sameWork: 空白を詰めても別作品の取り違えは防ぐ（とも�
   assert.ok(!sameWork("ともだち やま", "ともだちや"));
   assert.ok(!sameWork("11ぴきのねこふくろのなか", "11ぴきのねこ"));
 });
+
+import { specialFormatOnly, isTooManyHitsPage, firstAuthorWord } from "../src/opac.js";
+
+// 2026-11-02 jinan の実害: 「ぐりとぐら てんじつきさわるえほん」は書誌種別=点字付だが、所蔵29冊のうち
+// 1冊だけ資料種別が「図書」で、「全所蔵が特殊」判定をすり抜けて予約された。
+test("specialFormatOnly: 書誌種別が点字付なら、所蔵に「図書」が混ざっていても特殊資料として弾く", () => {
+  const body =
+    "書誌種別 点字付 著者名 中川 李枝子／さく 出版者 福音館書店 " +
+    "資料種別 点字付 帯出区分 ".repeat(28) +
+    "資料種別 図書 帯出区分";
+  assert.equal(specialFormatOnly(body), "点字付");
+  assert.equal(specialFormatOnly("書誌種別 さわる本-利用限定 資料種別 図書"), "さわる本-利用限定");
+});
+
+test("specialFormatOnly: 書誌種別が図書なら従来どおり所蔵の資料種別で判定する", () => {
+  assert.equal(specialFormatOnly("書誌種別 図書 資料種別 図書"), null);
+  assert.equal(specialFormatOnly("書誌種別 図書 資料種別 大型絵本 資料種別 大型絵本"), "大型絵本");
+  assert.equal(specialFormatOnly("書誌種別 しかけ本 資料種別 図書"), null);
+});
+
+test("rankResults: 書名に「てんじつき」「さわるえほん」が付く版は後回し", () => {
+  const results = [
+    { index: 0, title: "ぐりとぐら てんじつきさわるえほん", publisher: "福音館書店" },
+    { index: 1, title: "ぐりとぐら", publisher: "福音館書店" },
+  ];
+  assert.deepEqual(rankResults(results, "ぐりとぐら", 6, false, "福音館書店").map((r) => r.index), [1, 0]);
+});
+
+// 2026-11-02 chojo「にんじん」: 該当1000件超でトップページへ突き返されていた（3週連続の検索不成立の真因）
+test("isTooManyHitsPage: 該当件数の上限超えメッセージを検出する", () => {
+  assert.ok(isTooManyHitsPage('lbAlert("該当件数が1000件を超えました。検索キーを見直し下さい。", "")'));
+  assert.ok(!isTooManyHitsPage("<title>トップページ：蔵書検索システム</title>"));
+});
+
+test("firstAuthorWord: リストの著者欄から原作者名だけを取り出す", () => {
+  assert.equal(firstAuthorWord("ルナール 高野優・訳"), "ルナール");
+  assert.equal(firstAuthorWord("なかがわりえこ おおむらゆりこ・絵"), "なかがわりえこ");
+  assert.equal(firstAuthorWord("椋鳩十"), "椋鳩十");
+  assert.equal(firstAuthorWord("ドロシー・マリノ"), "ドロシー・マリノ");
+  assert.equal(firstAuthorWord(""), "");
+});
+
+// 2026-10-26 jinan: リスト「くっきーだあいすき」／OPAC「くっきーだぁいすき」で成立照合が落ちた
+test("sameWork / rankResults: 小書きの仮名の違い（ぁ/あ）は同じ作品として通す", () => {
+  assert.ok(sameWork("くっきーだぁいすき", "くっきーだあいすき"));
+  assert.ok(!sameWork("ともだちやま", "ともだちや"));
+  const r = rankResults([{ index: 0, title: "くっきーだぁいすき", publisher: "金の星社" }], "くっきーだあいすき", 6, false, "金の星社");
+  assert.equal(r.length, 1);
+});

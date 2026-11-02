@@ -40,15 +40,20 @@ export function saveSeries(data) {
  * planWeek に渡す resolver を作る。
  * 展開済み(expanded)のシリーズは二度と展開しない。
  * series ファイル未作成のものは pendingSeries に積む（レポートで通知）。
+ *
+ * persist=false のときは展開の記録をメモリに留め、resolver.commit() を呼んだ時点で
+ * _expanded.json へ書く。予約バッチが成立せずキュー（続巻）を保存しない回に「展開済み」だけが
+ * 残ると、そのシリーズの続巻が二度と積まれなくなる（2026-11-02 jinan「パンどろぼう」で発生しかけた）。
  */
 export function makeSeriesResolver({ pendingSeries, persist = true }) {
   const hints = loadHints();
   const expandedFile = path.join(SERIES_DIR, "_expanded.json");
-  const expanded = fs.existsSync(expandedFile)
-    ? JSON.parse(fs.readFileSync(expandedFile, "utf8"))
-    : { series: [] };
+  const readExpanded = () =>
+    fs.existsSync(expandedFile) ? JSON.parse(fs.readFileSync(expandedFile, "utf8")) : { series: [] };
+  const expanded = readExpanded();
+  const added = [];
 
-  return (row) => {
+  const resolver = (row) => {
     const seriesName = hints[row.title];
     if (!seriesName) return null;
     if (expanded.series.includes(seriesName)) return null; // 重複展開しない
@@ -58,10 +63,17 @@ export function makeSeriesResolver({ pendingSeries, persist = true }) {
       return null; // ファイルができるまでは単巻として扱う
     }
     expanded.series.push(seriesName);
-    if (persist) {
-      ensureDir(SERIES_DIR);
-      fs.writeFileSync(expandedFile, JSON.stringify(expanded, null, 2) + "\n");
-    }
+    added.push(seriesName);
+    if (persist) resolver.commit();
     return { name: seriesName, volumes: series.volumes };
   };
+  /** この resolver で展開したシリーズを _expanded.json に確定する（他の実行の記録とマージ） */
+  resolver.commit = () => {
+    if (!added.length) return;
+    const onDisk = readExpanded();
+    for (const name of added) if (!onDisk.series.includes(name)) onDisk.series.push(name);
+    ensureDir(SERIES_DIR);
+    fs.writeFileSync(expandedFile, JSON.stringify(onDisk, null, 2) + "\n");
+  };
+  return resolver;
 }

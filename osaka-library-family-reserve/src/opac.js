@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { chromium } from "playwright";
-import { ensureDir } from "./config.js";
+import { ensureDir, foldSmallKana } from "./config.js";
 
 /**
  * 大阪市立図書館 蔵書検索システム (licsxp-opac / LICS-Re系) の Playwright ドライバ。
@@ -411,41 +411,76 @@ export class Opac {
     await this.page.waitForLoadState("domcontentloaded").catch(() => {});
   }
 
-  async searchTitle(title) {
+  /** トップページのキーワード欄に keyword を入れて検索を送信する */
+  async #submitTopSearch(keyword) {
+    await this.politeWait();
+    await this.page.goto(`${this.baseUrl}/WOpacSmtMnuTopAction.do`, {
+      waitUntil: "domcontentloaded",
+    });
+    const box = await this.firstVisible(
+      [
+        "#SearchKWInputSearch",
+        'input[name="kensaku_keyword"]',
+        this.page.getByLabel(/書名|タイトル|キーワード/),
+        'input[name*="word" i]',
+        'form input[type="text"]',
+      ],
+      "検索キーワード入力欄"
+    );
+    await box.fill(keyword);
+    const btn = await this.firstVisible(
+      [
+        "#schButtonSearch",
+        'input[type="image"][alt="検索"]',
+        this.page.getByRole("button", { name: /検索/ }),
+        'input[type="submit"][value*="検索"]',
+      ],
+      "検索ボタン"
+    );
+    await btn.click();
+    await this.page.waitForLoadState("domcontentloaded").catch(() => {});
+  }
+
+  async #onResultPage() {
+    const pageTitle = await this.page.title().catch(() => "");
+    return /検索結果/.test(pageTitle);
+  }
+
+  /**
+   * 書名で検索して結果一覧を返す: [{ index, title, author, publisher, href }]
+   * null = 検索が実行できなかった（結果ページに到達せず）。[] = 所蔵なし。
+   * author / publisher は該当件数が多すぎて検索を突き返されたときの絞り込みにだけ使う。
+   */
+  async searchTitle(title, { author = "", publisher = "" } = {}) {
     try {
-      await this.politeWait();
-      await this.page.goto(`${this.baseUrl}/WOpacSmtMnuTopAction.do`, {
-        waitUntil: "domcontentloaded",
-      });
-      const box = await this.firstVisible(
-        [
-          "#SearchKWInputSearch",
-          'input[name="kensaku_keyword"]',
-          this.page.getByLabel(/書名|タイトル|キーワード/),
-          'input[name*="word" i]',
-          'form input[type="text"]',
-        ],
-        "検索キーワード入力欄"
-      );
-      await box.fill(title);
-      const btn = await this.firstVisible(
-        [
-          "#schButtonSearch",
-          'input[type="image"][alt="検索"]',
-          this.page.getByRole("button", { name: /検索/ }),
-          'input[type="submit"][value*="検索"]',
-        ],
-        "検索ボタン"
-      );
-      await btn.click();
-      await this.page.waitForLoadState("domcontentloaded").catch(() => {});
+      await this.#submitTopSearch(title);
       await this.shot(`search-${title.slice(0, 12)}`);
+
+      // 該当が1000件を超えると、OPACは結果を出さずトップページへ戻し「該当件数が1000件を超えました。
+      // 検索キーを見直し下さい。」と出す（実測 2026-11-02 chojo「にんじん」。3週連続で「検索が実行
+      // できなかった」の真因）。全項目キーワード検索なので、著者名→出版社名を足して取り直す。
+      // 書名の絞込み（前方一致）は後段で書名だけで行うので、足した語は件数を減らすためだけに効く。
+      if (!(await this.#onResultPage()) && (await this.#tooManyHits())) {
+        let found = false;
+        for (const extra of [firstAuthorWord(author), publisher].filter(Boolean)) {
+          await this.#submitTopSearch(`${title} ${extra}`);
+          await this.shot(`search-${title.slice(0, 8)}+${extra.slice(0, 8)}`);
+          // 足した語で0件になったら次の語へ（表記ゆれ。ここで [] を返すと「所蔵なし」で台帳に焼き付く）
+          if ((await this.#onResultPage()) && !(await this.#noHits())) {
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          await this.shot(`search-toomany-${title.slice(0, 10)}`);
+          return null;
+        }
+      }
 
       // 検索そのものが送信されず、トップページに留まることがある（実測 2026-09-14 chojo「にんじん」）。
       // これを「所蔵なし」と誤認すると台帳に failed として焼き付き、その本は二度と予約されない。
       // 結果一覧でも書誌詳細でもなければ null を返し、呼び出し側に「検索できなかった」と伝える。
-      const pageTitle = await this.page.title().catch(() => "");
-      if (!/検索結果/.test(pageTitle)) {
+      if (!(await this.#onResultPage())) {
         await this.shot(`search-failed-${title.slice(0, 10)}`);
         return null;
       }
@@ -602,6 +637,12 @@ export class Opac {
     } catch {
       return null;
     }
+  }
+
+  /** 該当件数の上限超えでトップページへ突き返されたか（メッセージは onload のダイアログ用スクリプト内にある） */
+  async #tooManyHits() {
+    const html = await this.page.content().catch(() => "");
+    return isTooManyHitsPage(html);
   }
 
   async #noHits() {
@@ -878,6 +919,24 @@ export class Opac {
     // ★2026-09-25: ここで href を goto してはいけない。GET で入り直した詳細は hash が空で、
     //   そこから開いたカートも hash 空になり、確定 POST がログイン画面に落ちる（全滅の真因）。
     //   取り残されるのは検索結果一覧（toDetail と有効な hash を持つ）なので、内部の POST 遷移で戻る。
+    // ★2026-11-02: 今いるページに有効な hash があれば、ここからカートリンクを押すのが最も確実。
+    //   hash はセッション内で共通（トップ・書誌詳細・カートで同じ値）で、版スキップした本の書誌詳細や、
+    //   検索を突き返されたトップページにも有効な値が残っている。旧実装はここで直近の本の詳細を開き直そうとし、
+    //   toDetail の無いページ（トップ・書誌詳細）では失敗して GET の恒久リンクへ落ち、hash 空のカートで
+    //   確定が止まっていた（chojo「にんじん」検索不成立／jinan「ちびゴリラのちびちび」点字付スキップが末尾）。
+    if (await this.#formHash()) {
+      await this.politeWait();
+      await this.page.evaluate(() => { window.submitFlg = true; }).catch(() => {});
+      const here = this.page.locator('#stat-cart, #usr-cart, a[onclick*="yoycart"]').first();
+      await Promise.all([
+        this.page.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 15000 }).catch(() => {}),
+        here.click().catch(() => {}),
+      ]);
+      if (await this.#isCartPage()) {
+        await this.shot("cart");
+        return true;
+      }
+    }
     let reopened = false;
     if (this.lastCartDetailTilcod) {
       await this.politeWait();
@@ -1184,10 +1243,29 @@ export function tilcodFromHref(href) {
  * 書誌詳細ページの本文から資料種別を調べ、所蔵が特殊資料（点字・デイジー・大型絵本・
  * 紙芝居・大活字・AV資料等）**のみ**の場合はその種別名を返す（通常の図書があれば null）。
  */
+export function isTooManyHitsPage(html) {
+  return /該当件数が\s*[0-9,]+\s*件を超えました/.test(String(html ?? ""));
+}
+
+/**
+ * リストの著者欄（「ルナール 高野優・訳」「なかがわりえこ おおむらゆりこ・絵」等）から、
+ * 検索の絞り込みに足す原作者名（最初の語）を取り出す。
+ */
+export function firstAuthorWord(author) {
+  const w = String(author ?? "").trim().split(/[\s　]+/)[0] ?? "";
+  return w.replace(/[・･／/](訳|絵|文|作|画|著|編|さく|え|ぶん|やく)$/, "");
+}
+
 export function specialFormatOnly(bodyText) {
-  const kinds = [...String(bodyText ?? "").matchAll(/資料種別\s*[:：]?\s*([^\s、]+)/g)].map((m) => m[1]);
+  const text = String(bodyText ?? "");
+  const special = /点字|点付|てんじ|さわる|デイジー|大型|紙芝居|大活字|カセット|マルチメディア|DVD|VHS|CD|布の絵本|電子/;
+  // 書誌そのものの種別（書誌種別）が特殊資料なら、所蔵の一部が「図書」で登録されていても特殊資料の本とみなす。
+  // 実害（2026-11-02 jinan）: 「ぐりとぐら てんじつきさわるえほん」は書誌種別=点字付だが、29冊の所蔵のうち
+  // 1冊だけ資料種別が「図書」で登録されていたため、下の「全所蔵が特殊」判定をすり抜けて予約された。
+  const bib = text.match(/書誌種別\s*[:：]?\s*([^\s、]+)/)?.[1];
+  if (bib && special.test(bib)) return bib;
+  const kinds = [...text.matchAll(/資料種別\s*[:：]?\s*([^\s、]+)/g)].map((m) => m[1]);
   if (!kinds.length) return null;
-  const special = /点字|デイジー|大型|紙芝居|大活字|カセット|マルチメディア|DVD|VHS|CD|布の絵本|電子/;
   if (kinds.every((k) => special.test(k))) return [...new Set(kinds)].join("・");
   return null;
 }
@@ -1205,8 +1283,7 @@ export function specialFormatOnly(bodyText) {
  */
 export function sameWork(siteTitle, wantedTitle) {
   const norm = (s) =>
-    String(s ?? "")
-      .normalize("NFKC")
+    foldSmallKana(String(s ?? "").normalize("NFKC"))
       .replace(/[\s\u3000]+/g, " ")
       .trim()
       .toLowerCase();
@@ -1256,9 +1333,9 @@ export function publisherMatches(rowPublisher, expected) {
 }
 
 export function rankResults(results, wantedTitle, limit = 3, preferBunko = false, expectedPublisher = null) {
-  const norm = (s) => String(s).replace(/[\s　]/g, "").toLowerCase();
+  const norm = (s) => foldSmallKana(String(s)).replace(/[\s　]/g, "").toLowerCase();
   const w = norm(wantedTitle);
-  const special = /大型|紙芝居|点字|デイジー|カセット|大活字|DVD|CD/;
+  const special = /大型|紙芝居|点字|点付|てんじ|さわる|デイジー|カセット|大活字|DVD|CD/;
   const isBunko = (r) => /文庫/.test(`${r.title} ${r.writer ?? ""} ${r.publisher ?? ""}`);
   // 上下巻の並び順（ユーザー指定 2026-08: 上下に分かれている時は上から予約する）。
   // 同じ作品名で複数巻がヒットしたら 上/単巻 → 中 → 下 の順に並べ、上巻を先に予約させる。

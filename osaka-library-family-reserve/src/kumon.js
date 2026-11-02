@@ -192,6 +192,25 @@ export function planWeek({
 }
 
 /**
+ * 出版社指定（publisher）の無い pick に、公文リスト・絵本ナビリストの出版社を補う。
+ * 取消復帰でキューに戻した本（from="requeue:…"）は台帳由来で publisher を持たないため、版ガードが効かず
+ * 別の版を予約していた（2026-11-02 chojo「大造じいさんとガン」が偕成社でなく理論社の作品集で成立、
+ * jinan「ちびゴリラのちびちび」は点訳ボランティア版の書誌まで候補に入っていた）。
+ * リストに無い本（シリーズ続巻・単発予約等）はそのまま。
+ */
+export function fillPublishers(picks, rows) {
+  const byKey = new Map();
+  for (const r of rows) {
+    if (r.publisher && !byKey.has(Ledger.key(r.title))) byKey.set(Ledger.key(r.title), r.publisher);
+  }
+  return picks.map((p) => {
+    if (p.publisher) return p;
+    const pub = byKey.get(Ledger.key(p.title));
+    return pub ? { ...p, publisher: pub } : p;
+  });
+}
+
+/**
  * カート投入フェーズの処理順を最適化する（2026-08-09 追加 / 2026-08-17 全面見直し）。
  *
  * 背景: 予約は「各本をカートに入れる → 最後にカートを一括確定」という二段構え。確定は

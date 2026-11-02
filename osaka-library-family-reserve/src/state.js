@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { ROOT, ensureDir, todayStr } from "./config.js";
+import { ROOT, ensureDir, todayStr, foldSmallKana } from "./config.js";
 
 function stateDir(accountId) {
   return ensureDir(path.join(ROOT, "state", accountId));
@@ -23,7 +23,7 @@ export class Ledger {
   }
   /** タイトルの表記ゆれを吸収して照合するキー */
   static key(title) {
-    return String(title)
+    return foldSmallKana(String(title))
       .replace(/[\s　]/g, "")
       .replace(/[（(].*?[）)]/g, "")
       .toLowerCase();
@@ -123,6 +123,15 @@ export class Queue {
   get length() {
     return this.data.items.length;
   }
+}
+
+/** 取消復帰の本をキュー（data.items）の先頭へ積んで保存する。既に載っている本は積まない */
+export function persistRequeued(data, items, save) {
+  data.items ??= [];
+  const fresh = items.filter((it) => !data.items.some((b) => Ledger.key(b.title) === Ledger.key(it.title)));
+  if (!fresh.length) return;
+  data.items.unshift(...fresh);
+  save();
 }
 
 /** 母アカウント: Cowork が置く data/mom/queue.json と推薦済み記録 */

@@ -1,7 +1,7 @@
 import path from "node:path";
 import { ROOT, loadDotEnv, loadAccountsConfig, credentialsFor, todayStr, ensureDir } from "./config.js";
-import { Ledger, Progress, Queue, readMomQueue, writeMomQueue, recordMomRecommended } from "./state.js";
-import { loadKumonList, flatten, planWeek, loadEhonnaviList, orderPicksForCart } from "./kumon.js";
+import { Ledger, Progress, Queue, readMomQueue, writeMomQueue, recordMomRecommended, persistRequeued } from "./state.js";
+import { loadKumonList, flatten, planWeek, loadEhonnaviList, orderPicksForCart, fillPublishers } from "./kumon.js";
 import { makeSeriesResolver } from "./series.js";
 import { Opac, rankResults, sameWork } from "./opac.js";
 import { writeReport } from "./report.js";
@@ -53,6 +53,9 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, adhoc, pe
   let progress = null;
   let queue = null;
   let plan = null;
+  let resolver = null;
+  // 取消復帰で再予約対象に戻した本。バッチ不成立でキューを保存しない回でも、これだけは確実に残す
+  const requeuedItems = [];
 
   if (adhoc) {
     // 単発予約モード: 「この本を◯◯のアカウントで予約して」用。進度・キューには触れない。
@@ -79,7 +82,8 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, adhoc, pe
     // 過去、planWeek の shift が即ファイル書き込みされ、予約失敗時にキューが空になり
     // シリーズ続巻が失われる不具合があったため。
     queue = new Queue(id, { persist: false });
-    const resolver = makeSeriesResolver({ pendingSeries, persist: !dryRun });
+    // 展開の記録（_expanded.json）もキューと同じく、バッチ成立を確認してから確定する（resolver.commit）
+    resolver = makeSeriesResolver({ pendingSeries, persist: false });
     // 絵本ナビ枠（年齢帯で絞ったリスト）。account.ehonnaviAge が無ければ枠なし
     const ehonnaviList = account.ehonnaviAge != null ? loadEhonnaviList(account.ehonnaviAge) : [];
     plan = planWeek({
@@ -89,7 +93,8 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, adhoc, pe
       ehonnaviList,
       ehonnaviPerWeek: account.ehonnaviPerWeek ?? cfg.ehonnaviPerWeek ?? 0,
     });
-    picks = plan.picks;
+    // キュー由来で出版社指定の無い本（取消復帰など）にもリストの出版社で版ガードを掛ける
+    picks = fillPublishers(plan.picks, [...flat, ...loadEhonnaviList()]);
   } else {
     // 母: Cowork が置いた data/mom/queue.json を優先消化
     const { file, queue: momQueue } = readMomQueue();
@@ -191,9 +196,13 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, adhoc, pe
       if (!dryRun) {
         ledger.markExpired(entry, `予約${s.state}（期限切れ・延滞ペナルティ等）のため再予約対象に戻した`);
         if (account.mode === "kumon" && queue) {
-          queue.unshift({ title: entry.title, author: entry.author ?? "", from: "requeue:予約取消" });
+          const item = { title: entry.title, author: entry.author ?? "", from: "requeue:予約取消" };
+          queue.unshift(item);
+          requeuedItems.push(item);
         } else if (section.momQueue) {
-          section.momQueue.items.unshift({ title: entry.title, author: entry.author ?? "", reason: "予約取消の再予約" });
+          const item = { title: entry.title, author: entry.author ?? "", reason: "予約取消の再予約" };
+          section.momQueue.items.unshift(item);
+          requeuedItems.push(item);
         }
       }
     }
@@ -250,7 +259,7 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, adhoc, pe
         if (pick.advanceTo) cursor = pick.advanceTo;
         continue;
       }
-      const results = await opac.searchTitle(pick.title);
+      const results = await opac.searchTitle(pick.title, { author: pick.author, publisher: pick.publisher });
       // null = 検索が実行できなかった（結果ページに到達せず）。所蔵なしではないので
       // 台帳にもカーソルにも触れず、そのまま翌週へ持ち越す。
       if (results === null) {
@@ -260,8 +269,11 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, adhoc, pe
       }
       // 母（recommend）は同名なら文庫版を優先して予約する（ユーザー指定）。
       // 公文リストの本は出版社もリストと一致する版だけを予約する（ユーザー指定・リスト＝正）
+      // 候補は6件まで試す。3件だと点字付の書誌が上位を占めた本で通常版まで届かなかった
+      // （2026-11-02 jinan「わたしとあそんで」: 福音館書店の4書誌のうち上位3件が点字付、4件目が通常版）。
+      // 余分な書誌詳細の表示は、上位が予約不可・特殊資料だったときにだけ発生する。
       const candidates = results?.length
-        ? rankResults(results, pick.title, 3, account.preferBunko ?? account.mode === "recommend", pick.publisher || null)
+        ? rankResults(results, pick.title, 6, account.preferBunko ?? account.mode === "recommend", pick.publisher || null)
         : [];
       if (!candidates.length) {
         // 検索ヒットはあったのに候補が残らなかった＝「所蔵なし」ではない。
@@ -399,16 +411,32 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, adhoc, pe
         if (cursor) progress.set(cursor.level, cursor.position);
         // --limit は planWeek が消化した一部の pick だけを処理するため、キュー消化を確定すると
         // 未処理の pick を取りこぼす。テスト用途の --limit ではキューを確定しない（台帳で自己回復する）。
-        if (!(limit > 0)) queue.save(); // シリーズ消化・展開の結果をここで初めてファイルへ確定
+        if (!(limit > 0)) {
+          queue.save(); // シリーズ消化・展開の結果をここで初めてファイルへ確定
+          resolver?.commit();
+        }
         section.next = cursor ?? progress.get();
       } else {
         section.next = progress.get(); // 未確定：次回は同じ位置から再開
+        // 取消復帰の台帳 expired 化（markExpired）は即時に書かれるので、再予約先のキューにも
+        // 必ず残す。旧実装はバッチ不成立でキューを保存せず、その本が台帳でもキューでも
+        // 予約対象から消えていた（2026-11-02 jinan「ティッチ」で発生しかけた）。
+        if (requeuedItems.length) {
+          const onDisk = new Queue(id); // ファイルの現状（今回の消化は反映しない）
+          persistRequeued(onDisk.data, requeuedItems, () => onDisk.save());
+        }
       }
     }
-    if (batchOk && account.mode === "recommend" && section.momQueue) {
-      const reservedTitles = new Set(section.reserved.map((b) => b.title));
-      section.momQueue.items = section.momQueue.items.filter((b) => !reservedTitles.has(b.title));
-      writeMomQueue(section.momQueueFile, section.momQueue);
+    if (account.mode === "recommend" && section.momQueue) {
+      if (batchOk) {
+        const reservedTitles = new Set(section.reserved.map((b) => b.title));
+        section.momQueue.items = section.momQueue.items.filter((b) => !reservedTitles.has(b.title));
+        writeMomQueue(section.momQueueFile, section.momQueue);
+      } else if (requeuedItems.length) {
+        const { file, queue: onDisk } = readMomQueue();
+        const data = onDisk ?? { items: [] };
+        persistRequeued(data, requeuedItems, () => writeMomQueue(file, data));
+      }
     }
   } else if (account.mode === "kumon" && plan) {
     section.next = plan.nextProgress;
@@ -458,8 +486,9 @@ async function main() {
     sections.push(section);
   }
 
-  // 単発予約は週次レポート（reports/日付.md）を上書きしないよう別ファイルに書く
-  const slug = args.titles?.length ? `adhoc-${todayStr()}` : null;
+  // 単発予約・ドライラン（--plan-only 含む）は週次レポート（reports/日付.md）を上書きしないよう別ファイルに書く。
+  // 2026-11-02: 本番後に --plan-only を回したら本番レポートが計画で上書きされ、手で再構成する羽目になった。
+  const slug = args.titles?.length ? `adhoc-${todayStr()}` : args.dryRun ? `${todayStr()}-dryrun` : null;
   const file = writeReport({ dryRun: args.dryRun, sections, pendingSeries, slug });
   console.log(`\nレポート: ${path.relative(process.cwd(), file)}`);
 }
