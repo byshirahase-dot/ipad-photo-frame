@@ -152,3 +152,23 @@ test("sameWork / rankResults: 小書きの仮名の違い（ぁ/あ）は同じ�
   const r = rankResults([{ index: 0, title: "くっきーだぁいすき", publisher: "金の星社" }], "くっきーだあいすき", 6, false, "金の星社");
   assert.equal(r.length, 1);
 });
+
+import { parseHitCount, publisherMatches } from "../src/opac.js";
+
+test("parseHitCount: 「該当 N 件」を読む（カンマ・無しにも対応）", () => {
+  assert.equal(parseHitCount("検索結果 該当 131 件 表示件数"), 131);
+  assert.equal(parseHitCount("該当 1,234 件"), 1234);
+  assert.equal(parseHitCount("本文が空"), null);
+});
+
+// 2026-11-02 判明: リスト「冨山房」／OPAC「富山房」で12週連続見送っていた（まよなかのだいどころ）
+test("publisherMatches: 異体字（冨/富 等）を同一視する", () => {
+  assert.ok(publisherMatches("富山房", "冨山房"));
+  assert.ok(publisherMatches("冨山房インターナショナル", "冨山房"));
+  assert.ok(!publisherMatches("福音館書店", "冨山房"));
+});
+
+test("rankResults: OPACが「富山房」でもリスト「冨山房」の版を候補にする", () => {
+  const rs = [{ index: 0, title: "まよなかのだいどころ", publisher: "富山房" }];
+  assert.equal(rankResults(rs, "まよなかのだいどころ", 6, false, "冨山房").length, 1);
+});

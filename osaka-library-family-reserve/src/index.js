@@ -259,7 +259,7 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, adhoc, pe
         if (pick.advanceTo) cursor = pick.advanceTo;
         continue;
       }
-      const results = await opac.searchTitle(pick.title, { author: pick.author, publisher: pick.publisher });
+      let results = await opac.searchTitle(pick.title, { author: pick.author, publisher: pick.publisher });
       // null = 検索が実行できなかった（結果ページに到達せず）。所蔵なしではないので
       // 台帳にもカーソルにも触れず、そのまま翌週へ持ち越す。
       if (results === null) {
@@ -272,9 +272,24 @@ async function runAccount({ id, account, cfg, dryRun, planOnly, limit, adhoc, pe
       // 候補は6件まで試す。3件だと点字付の書誌が上位を占めた本で通常版まで届かなかった
       // （2026-11-02 jinan「わたしとあそんで」: 福音館書店の4書誌のうち上位3件が点字付、4件目が通常版）。
       // 余分な書誌詳細の表示は、上位が予約不可・特殊資料だったときにだけ発生する。
-      const candidates = results?.length
-        ? rankResults(results, pick.title, 6, account.preferBunko ?? account.mode === "recommend", pick.publisher || null)
-        : [];
+      const rank = (rs) =>
+        rs?.length ? rankResults(rs, pick.title, 6, account.preferBunko ?? account.mode === "recommend", pick.publisher || null) : [];
+      let candidates = rank(results);
+      // リスト指定の版が見つからず、しかも該当件数が読んだ行数より多い（＝読み切れていない）ときは、
+      // 出版者でも絞り込んで1回だけ取り直す。書名の索引には短編集の収録作品名まで入り、書名前方一致でも
+      // 100件を超えて古い版が読む範囲（3ページ）の外へ落ちる（2026-11-02 jinan「かえりみち」131件・
+      // 「りんごのき」89件、chonan「ひとまねこざる」38件）。取り直しで0件なら1回目の結果のまま見送る。
+      if (!candidates.length && pick.publisher && results?.length && (results.total ?? Infinity) > results.length) {
+        const again = await opac.searchTitle(pick.title, {
+          author: pick.author,
+          publisher: pick.publisher,
+          narrowPublisher: true,
+        });
+        if (again?.length) {
+          results = again;
+          candidates = rank(again);
+        }
+      }
       if (!candidates.length) {
         // 検索ヒットはあったのに候補が残らなかった＝「所蔵なし」ではない。
         // 出版社不一致のほか、検索結果1ページ目に該当の版が載っていない場合がある

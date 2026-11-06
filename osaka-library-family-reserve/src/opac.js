@@ -399,16 +399,38 @@ export class Opac {
 
   /** 検索結果一覧の絞込みフォームで「書名」を range 指定（0=含む / 1=で始まる）で再検索する */
   async #narrowByTitle(title, range) {
-    await this.page.selectOption("#searchkind_add", "0"); // 書名
+    await this.#narrow("0", title, range); // 書名
+  }
+
+  /**
+   * 検索結果一覧の絞込みフォームで再検索する（現在の結果に AND で絞り込む）。
+   * kind: 0=書名 1=著者名 2=出版者 3=件名 / range: 0=この言葉を含む 1=この言葉で始まる
+   */
+  async #narrow(kind, keyword, range) {
+    await this.page.selectOption("#searchkind_add", kind);
     await this.page.selectOption("#searchrange_add", range).catch(() => {});
-    await this.page.locator("#search_add").fill(title);
+    await this.page.locator("#search_add").fill(keyword);
     await this.politeWait();
-    // 再検索ボタンは input の onchange で有効化されるため JS で直接実行
-    await this.page.evaluate(() => {
-      // eslint-disable-next-line no-undef
-      submitNarrow();
-    });
-    await this.page.waitForLoadState("domcontentloaded").catch(() => {});
+    // 再検索ボタンは input の onchange で有効化されるため JS で直接実行。
+    // ★遷移を待って受ける（並べ替えと同じ罠）: submit 後に waitForLoadState を呼ぶだけだと、まだ遷移前の
+    //   読み込み済みページで即座に解決し、**絞込み前の一覧**を読んでしまう。実測（2026-10-26 chonan
+    //   「おかあさんだいすき」）: 保存された narrow ページは本文が空の読み込み途中で、続く処理は絞込み前の
+    //   全項目検索（既定順10件）を読み、岩波書店版に届かず「版が見つからない」になっていた。
+    await Promise.all([
+      this.page.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 15000 }).catch(() => {}),
+      this.page
+        .evaluate(() => {
+          // eslint-disable-next-line no-undef
+          submitNarrow();
+        })
+        .catch(() => {}),
+    ]);
+  }
+
+  /** 結果一覧の「該当 N 件」（読めなければ null） */
+  async #hitCount() {
+    const body = (await this.page.textContent("body").catch(() => "")) || "";
+    return parseHitCount(body);
   }
 
   /** トップページのキーワード欄に keyword を入れて検索を送信する */
@@ -449,9 +471,11 @@ export class Opac {
   /**
    * 書名で検索して結果一覧を返す: [{ index, title, author, publisher, href }]
    * null = 検索が実行できなかった（結果ページに到達せず）。[] = 所蔵なし。
-   * author / publisher は該当件数が多すぎて検索を突き返されたときの絞り込みにだけ使う。
+   * 返す配列の total に絞込み後の該当件数（「該当 N 件」）を載せる（読めなければ null）。
+   * author / publisher は該当件数が多すぎて検索を突き返されたときの絞り込みに使う。
+   * narrowPublisher=true なら、書名の絞込みのあと出版者（publisher を含む）でも絞り込む。
    */
-  async searchTitle(title, { author = "", publisher = "" } = {}) {
+  async searchTitle(title, { author = "", publisher = "", narrowPublisher = false } = {}) {
     try {
       await this.#submitTopSearch(title);
       await this.shot(`search-${title.slice(0, 12)}`);
@@ -504,6 +528,15 @@ export class Opac {
         if (await this.#noHits()) {
           await this.#narrowByTitle(title, "0");
           await this.shot(`narrow2-${title.slice(0, 12)}`);
+          if (await this.#noHits()) return [];
+        }
+        // 出版者でも絞り込む（index.js が「書名だけでは該当が多く、リスト指定の版が読んだ範囲に無かった」本に
+        // 限って頼む）。書名の索引には短編集の収録作品名まで入るため、書名前方一致でも「かえりみち」は131件残り、
+        // 出版年降順で読む3ページ（60件）に古い童心社版が入らなかった（2026-11-02 jinan。りんごのき・
+        // ひとまねこざるも同様）。0件なら [] を返し、呼び出し側は1回目の結果を使う（所蔵なし扱いにしない）。
+        if (narrowPublisher && publisher) {
+          await this.#narrow("2", publisher, "0");
+          await this.shot(`narrowpub-${title.slice(0, 10)}`);
           if (await this.#noHits()) return [];
         }
       }
@@ -570,6 +603,7 @@ export class Opac {
       //   雑誌は書名索引に記事名まで入るため、書名検索でも除外できない。
       //   通常の検索（例「おおはくちょうのそら」4件）では追加のリクエストは発生しない。
       const results = [];
+      results.total = await this.#hitCount(); // 絞込み後の該当件数（読んだ行数と比べ、取りこぼしの可能性を判定する）
       const hasYear = (r) => /\d{4}\/\d{2}/.test(`${r.publisher ?? ""} ${r.author ?? ""}`);
       for (let page = 1; page <= 3; page++) {
         if (page > 1) {
@@ -1243,6 +1277,12 @@ export function tilcodFromHref(href) {
  * 書誌詳細ページの本文から資料種別を調べ、所蔵が特殊資料（点字・デイジー・大型絵本・
  * 紙芝居・大活字・AV資料等）**のみ**の場合はその種別名を返す（通常の図書があれば null）。
  */
+/** 結果一覧の本文から「該当 N 件」の N を取り出す（無ければ null） */
+export function parseHitCount(text) {
+  const m = String(text ?? "").match(/該当\s*([0-9,]+)\s*件/);
+  return m ? Number(m[1].replace(/,/g, "")) : null;
+}
+
 export function isTooManyHitsPage(html) {
   return /該当件数が\s*[0-9,]+\s*件を超えました/.test(String(html ?? ""));
 }
@@ -1323,9 +1363,19 @@ export function sameWork(siteTitle, wantedTitle) {
   return extendsWith(a, sa, sb) || extendsWith(b, sb, sa);
 }
 
-/** 出版社名の表記ゆれを吸収して比較する（NFKC正規化・空白除去・部分一致） */
+/**
+ * 出版社名の表記ゆれを吸収して比較する（NFKC正規化・空白除去・異体字・部分一致）。
+ * 異体字の実害（2026-11-02 判明）: 「まよなかのだいどころ」はリストが「冨山房」、OPACが「富山房」で、
+ * 検索結果に正しい版（センダック・1982）が出ていたのに12週連続「版が見つからない」で見送っていた。
+ */
+const PUBLISHER_VARIANTS = { "冨": "富", "髙": "高", "﨑": "崎", "邉": "辺", "邊": "辺", "濵": "浜", "德": "徳" };
 export function publisherMatches(rowPublisher, expected) {
-  const norm = (s) => String(s ?? "").normalize("NFKC").replace(/[\s　・]/g, "").toLowerCase();
+  const norm = (s) =>
+    String(s ?? "")
+      .normalize("NFKC")
+      .replace(/[冨髙﨑邉邊濵德]/g, (c) => PUBLISHER_VARIANTS[c])
+      .replace(/[\s　・]/g, "")
+      .toLowerCase();
   const a = norm(rowPublisher);
   const b = norm(expected);
   if (!a || !b) return false;
