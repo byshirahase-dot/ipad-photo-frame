@@ -447,34 +447,38 @@
     {
       "title": "夜の小学校で",
       "author": "岡田淳",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "ehonnavi",
-      "date": "2026-10-24"
+      "date": "2026-10-24",
+      "expiredDate": "2026-11-09"
     },
     {
       "title": "ふしぎの国のアリス",
       "author": "キャロル 芹生一・訳",
-      "status": "reserved",
-      "note": "版違い: ディズニーアニメ小説版15（偕成社1998・ISBN4-03-791130-2）を予約。リスト指定の芹生一訳・偕成社版はOPAC検索結果に無し。手動取消をユーザーに依頼。reservedのまま残す（同じ版の再取得防止）。正しい版の扱いはユーザー判断待ち",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "list",
-      "date": "2026-10-24"
+      "date": "2026-10-24",
+      "expiredDate": "2026-11-09"
     },
     {
       "title": "キャプテンはつらいぜ",
       "author": "後藤竜二",
-      "status": "reserved",
-      "note": "",
+      "status": "expired",
+      "note": "予約取消（期限切れ・延滞ペナルティ等）のため再予約対象に戻した",
       "source": "requeue:予約取消",
-      "date": "2026-10-24"
+      "date": "2026-10-24",
+      "expiredDate": "2026-11-09"
     },
     {
       "title": "フングリコングリ 図工室のおはなし会",
       "author": "岡田淳",
-      "status": "reserved",
-      "note": "",
+      "status": "borrowed",
+      "note": "受取済み・貸出中（借用済み）のため終了扱い",
       "source": "ehonnavi",
-      "date": "2026-10-26"
+      "date": "2026-10-26",
+      "borrowedDate": "2026-11-09"
     },
     {
       "title": "シャーロットのおくりもの",
@@ -503,18 +507,52 @@
     {
       "title": "大造じいさんとガン",
       "author": "椋鳩十",
-      "status": "reserved",
-      "note": "",
+      "status": "borrowed",
+      "note": "受取済み・貸出中（借用済み）のため終了扱い",
       "source": "requeue:予約取消",
-      "date": "2026-11-02"
+      "date": "2026-11-02",
+      "borrowedDate": "2026-11-09"
     },
     {
       "title": "クリスマス・キャロル",
       "author": "",
+      "status": "borrowed",
+      "note": "受取済み・貸出中（借用済み）のため終了扱い",
+      "source": "requeue:予約取消",
+      "date": "2026-11-02",
+      "borrowedDate": "2026-11-09"
+    },
+    {
+      "title": "ふしぎの時間割",
+      "author": "岡田淳",
       "status": "reserved",
       "note": "",
-      "source": "requeue:予約取消",
-      "date": "2026-11-02"
+      "source": "ehonnavi",
+      "date": "2026-11-09"
+    },
+    {
+      "title": "マヤの一生",
+      "author": "椋鳩十",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-11-09"
+    },
+    {
+      "title": "にんじん",
+      "author": "ルナール 高野優・訳",
+      "status": "reserved",
+      "note": "",
+      "source": "priority:長女リクエスト(先に読みたい・公文G-4を前倒し)｜2026-09-26 検索不成立でキューから消失していたため手動で復帰",
+      "date": "2026-11-09"
+    },
+    {
+      "title": "生物の消えた島",
+      "author": "田川日出夫 松岡達英・絵",
+      "status": "reserved",
+      "note": "",
+      "source": "requeue:予約取消（2026-09-25 markExpired・中断バッチのため手動補完）",
+      "date": "2026-11-09"
     }
   ]
 }
