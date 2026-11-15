@@ -650,6 +650,70 @@
       "note": "",
       "source": "requeue:検索方法の不備で見送り後に進度が通過・消失（2026-11-06 出版者絞込み追加後に再試行）",
       "date": "2026-11-09"
+    },
+    {
+      "title": "おやすみみみずく",
+      "author": "パット・ハッチンス",
+      "status": "reserved",
+      "note": "",
+      "source": "ehonnavi",
+      "date": "2026-11-16"
+    },
+    {
+      "title": "ゆうちゃんのゆうは？",
+      "author": "かんざわとしこ たばたせいいち・絵",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-11-16"
+    },
+    {
+      "title": "まっくろネリノ",
+      "author": "ガルラー やがわすみこ・訳",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-11-16"
+    },
+    {
+      "title": "ぼくのかえりみち",
+      "author": "ひがしちから",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-11-16"
+    },
+    {
+      "title": "グリーンマントのピーマンマン",
+      "author": "さくらともこ 中村景児・絵",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-11-16"
+    },
+    {
+      "title": "しっぽのはたらき",
+      "author": "川田健 藪内正幸・絵",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-11-16"
+    },
+    {
+      "title": "キャベツくん",
+      "author": "長新太",
+      "status": "reserved",
+      "note": "",
+      "source": "requeue:予約取消",
+      "date": "2026-11-16"
+    },
+    {
+      "title": "うえきやのくまさん",
+      "author": "ウォージントン まさきるりこ・訳",
+      "status": "reserved",
+      "note": "",
+      "source": "requeue:予約取消",
+      "date": "2026-11-16"
     }
   ]
 }

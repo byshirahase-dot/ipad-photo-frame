@@ -1,13 +1,9 @@
 {
   "items": [
     {
-      "title": "あおい目のこねこ",
-      "author": "マチーセン せたていじ・訳",
-      "from": "requeue:予約取消"
-    },
-    {
       "title": "だってだってのおばあさん",
       "author": "佐野洋子",
+      "publisher": "フレーベル館",
       "from": "requeue:予約取消"
     },
     {
@@ -42,6 +38,96 @@
       "author": "レイ 光吉夏弥・訳",
       "publisher": "岩波書店",
       "from": "series:ひとまねこざる"
+    },
+    {
+      "title": "ぞうのババール",
+      "author": "ブリュノフ やがわすみこ・訳",
+      "publisher": "評論社",
+      "from": "series:ぞうのババール"
+    },
+    {
+      "title": "ババールのしんこんりょこう",
+      "author": "ブリュノフ やがわすみこ・訳",
+      "publisher": "評論社",
+      "from": "series:ぞうのババール"
+    },
+    {
+      "title": "おうさまババール",
+      "author": "ブリュノフ やがわすみこ・訳",
+      "publisher": "評論社",
+      "from": "series:ぞうのババール"
+    },
+    {
+      "title": "ババールのこどもたち",
+      "author": "ブリュノフ やがわすみこ・訳",
+      "publisher": "評論社",
+      "from": "series:ぞうのババール"
+    },
+    {
+      "title": "ババールとサンタクロース",
+      "author": "ブリュノフ やがわすみこ・訳",
+      "publisher": "評論社",
+      "from": "series:ぞうのババール"
+    },
+    {
+      "title": "こまったさんのスパゲティ",
+      "author": "寺村輝夫 岡本颯子・絵",
+      "publisher": "あかね書房",
+      "from": "series:こまったさん"
+    },
+    {
+      "title": "こまったさんのカレーライス",
+      "author": "寺村輝夫 岡本颯子・絵",
+      "publisher": "あかね書房",
+      "from": "series:こまったさん"
+    },
+    {
+      "title": "こまったさんのハンバーグ",
+      "author": "寺村輝夫 岡本颯子・絵",
+      "publisher": "あかね書房",
+      "from": "series:こまったさん"
+    },
+    {
+      "title": "こまったさんのオムレツ",
+      "author": "寺村輝夫 岡本颯子・絵",
+      "publisher": "あかね書房",
+      "from": "series:こまったさん"
+    },
+    {
+      "title": "こまったさんのサラダ",
+      "author": "寺村輝夫 岡本颯子・絵",
+      "publisher": "あかね書房",
+      "from": "series:こまったさん"
+    },
+    {
+      "title": "こまったさんのグラタン",
+      "author": "寺村輝夫 岡本颯子・絵",
+      "publisher": "あかね書房",
+      "from": "series:こまったさん"
+    },
+    {
+      "title": "こまったさんのコロッケ",
+      "author": "寺村輝夫 岡本颯子・絵",
+      "publisher": "あかね書房",
+      "from": "series:こまったさん"
+    },
+    {
+      "title": "こまったさんのラーメン",
+      "author": "寺村輝夫 岡本颯子・絵",
+      "publisher": "あかね書房",
+      "from": "series:こまったさん"
+    },
+    {
+      "title": "こまったさんのシチュー",
+      "author": "寺村輝夫 岡本颯子・絵",
+      "publisher": "あかね書房",
+      "from": "series:こまったさん"
+    },
+    {
+      "title": "こまったさんのスープ",
+      "author": "寺村輝夫 岡本颯子・絵",
+      "publisher": "あかね書房",
+      "from": "series:こまったさん"
     }
   ]
 }

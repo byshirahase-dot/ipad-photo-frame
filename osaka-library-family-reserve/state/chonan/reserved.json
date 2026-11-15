@@ -617,6 +617,62 @@
       "note": "",
       "source": "requeue:手動取消の取り直し（岩波の大型絵本＝標準版でOK・ユーザー確認2026-10-26）",
       "date": "2026-11-09"
+    },
+    {
+      "title": "ちょっとだけ",
+      "author": "瀧村有子",
+      "status": "reserved",
+      "note": "",
+      "source": "ehonnavi",
+      "date": "2026-11-16"
+    },
+    {
+      "title": "きかんしゃやえもん",
+      "author": "阿川弘之 岡部冬彦・絵",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-11-16"
+    },
+    {
+      "title": "いたずらきかんしゃちゅうちゅう",
+      "author": "バートン むらおかはなこ・訳",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-11-16"
+    },
+    {
+      "title": "そらをとんだけいこのあやとり",
+      "author": "やまわきゆりこ",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-11-16"
+    },
+    {
+      "title": "ちいさなもみのき",
+      "author": "ブラウン クーニー・絵",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-11-16"
+    },
+    {
+      "title": "すずめのくつした",
+      "author": "セルデン リップマン・絵",
+      "status": "reserved",
+      "note": "",
+      "source": "list",
+      "date": "2026-11-16"
+    },
+    {
+      "title": "あおい目のこねこ",
+      "author": "マチーセン せたていじ・訳",
+      "status": "reserved",
+      "note": "",
+      "source": "requeue:予約取消",
+      "date": "2026-11-16"
     }
   ]
 }
