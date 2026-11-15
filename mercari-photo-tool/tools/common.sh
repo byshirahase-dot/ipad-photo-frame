@@ -53,23 +53,39 @@ ensure_setup() {
   fi
 }
 
-# ツールがすでに動いているか（app.py が起動時に logs/server.pid を書く）
-server_running() {
-  [ -f "$STATE_DIR/server.pid" ] || return 1
-  ps -p "$(cat "$STATE_DIR/server.pid")" -o command= 2>/dev/null | grep -q "app.py"
+# その PID がこのツール（app.py か、裏で見張っているループ）か
+is_tool_pid() {
+  [ -n "$1" ] && ps -p "$1" -o command= 2>/dev/null | grep -q "app.py"
 }
 
+# ツールがすでに動いているか（app.py が起動時に logs/server.pid を書く）
+server_running() {
+  [ -f "$STATE_DIR/server.pid" ] && is_tool_pid "$(cat "$STATE_DIR/server.pid")"
+}
+
+# ツールを止める（裏の見張りループと、古い版などで PID が記録されていないツールも止める）
 stop_server() {
-  server_running || return 0
-  local pid
-  pid="$(cat "$STATE_DIR/server.pid")"
-  kill "$pid" 2>/dev/null
+  mkdir -p "$STATE_DIR"
+  touch "$STATE_DIR/stop"  # 見張りループに「起動し直さない」と伝える
+  local pids="" pid
+  for f in "$STATE_DIR/runner.pid" "$STATE_DIR/server.pid"; do
+    [ -f "$f" ] && is_tool_pid "$(cat "$f")" && pids="$pids $(cat "$f")"
+  done
+  if command -v lsof >/dev/null 2>&1; then
+    for pid in $(lsof -ti tcp:7860-7879 -sTCP:LISTEN 2>/dev/null); do
+      is_tool_pid "$pid" && pids="$pids $pid"
+    done
+  fi
+  [ -z "${pids// /}" ] && return 0
+  kill $pids 2>/dev/null
   # 完全に終わるまで待つ（すぐ起動し直したときに同じポート番号を使えるように）
   for _ in $(seq 1 30); do
-    kill -0 "$pid" 2>/dev/null || return 0
+    local alive=""
+    for pid in $pids; do kill -0 "$pid" 2>/dev/null && alive=1; done
+    [ -z "$alive" ] && return 0
     sleep 0.5
   done
-  kill -9 "$pid" 2>/dev/null
+  kill -9 $pids 2>/dev/null
 }
 
 # iPhone で開くアドレスとQRコードを表示する

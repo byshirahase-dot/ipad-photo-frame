@@ -156,8 +156,17 @@ def write_state(port: int, url: str | None, host_url: str | None) -> None:
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))  # 「自動起動をオフ」で止めたときも後片付けする
 
 
+def port_in_use(port: int) -> bool:
+    """そのポートで何かが待ち受けているか（Mac では bind だけだと使用中でも「空き」に見えるため、接続して確かめる）。"""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.settimeout(0.5)
+        return s.connect_ex(("127.0.0.1", port)) == 0
+
+
 def free_port(start: int) -> int:
     for port in range(start, start + 20):
+        if port_in_use(port):
+            continue
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # 終了直後のポートも使えるように
             try:
@@ -504,7 +513,15 @@ def build_ui(port: int | None = None) -> gr.Blocks:
 
 def main() -> None:
     server = CFG["server"]
-    port = free_port(int(server["port"]))
+    port = int(server["port"])
+    if BACKGROUND:
+        # 自動起動ではアドレスを変えない（iPhone のブックマークがそのまま使えるように）。
+        # 使用中なら終了し、run_background.sh が少し待ってから起動し直す
+        if port_in_use(port):
+            print(f"[待機] ポート {port} は使用中です（ほかのツールが動いている?）。空いたら起動し直します", flush=True)
+            sys.exit(75)
+    else:
+        port = free_port(port)
     host = "0.0.0.0" if server.get("allow_lan", True) else "127.0.0.1"
     ssl = {}
     if server.get("https"):
