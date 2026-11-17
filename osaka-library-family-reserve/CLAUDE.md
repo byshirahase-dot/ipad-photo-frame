@@ -31,6 +31,12 @@ reports/YYYY-MM-DD.md    実行レポート
 logs/YYYY-MM-DD/         スクリーンショットとHTML（失敗解析用）
 src/                     実装（config/state/kumon/series/opac/report/index/rate）
 run.sh                   1コマンド実行（依存セットアップ込み）
+scripts/reading-checklist.mjs   読んだかチェックリスト作成（保存済みの貸出状況一覧から。サイトアクセスなし）
+scripts/record-reading.mjs      読んだ本を読書記録フォームへ送信
+scripts/add-recommendations.mjs 子供読書アプリのおすすめ本を予約キュー先頭へ追加（リストに無い本だけ）
+scripts/lib/reading-link.mjs    上記3本の共通ロジック（test/reading-link.test.js）
+reading.local.json       フォームID・子どもの名前・ドライブのID（Git管理外。reading.local.example.json を参照）
+state/_reading/          チェックリスト・記録済み題名などの作業ファイル（Git管理外）
 ```
 
 ## 版の特定ルール（2026-07-12 ユーザー指定・重要）
@@ -84,6 +90,36 @@ run.sh                   1コマンド実行（依存セットアップ込み）
   すると台帳に載るので、通常進度がその位置に来ても二重予約されない**（例: 2026-08-17 に長女G-11〜16を前倒し予約）
 - 実行後、成功/失敗と受取館（阿倍野）をユーザーに報告する。タイトルが曖昧な場合は
   検索結果の候補（logs/のスクショや出力）を見て確認してから確定する
+
+## 子供読書アプリ（読書記録）との連携（2026-11-17 追加・ユーザー依頼）
+
+claude.ai のプロジェクト「子供読書アプリ」（読んだ本の記録＋次の3冊のおすすめ）と、この自動予約をつなぐ。
+**src/ は変更していない**（追加は scripts/ と手順書だけ。予約の動きは従来どおり）。
+
+- **読んだかチェック**: 週次実行が毎回保存している貸出状況一覧（`logs/日付/アカウント/NN-lent-list.html`。
+  資料名・貸出日・返却期日が載る）を読み、「今借りている本＋直近4週に借りていた本」のうち
+  ①自動予約の台帳（state/{id}/reserved.json）にあり ②読書記録にまだ無い本を、子どもごとに番号付きで出す。
+  ユーザーが「長女 1,3 読んだ」と答えたら `scripts/record-reading.mjs` が読書記録の Googleフォームへ送信する
+  （回答シート「子どもの読書記録」に 名前・本のタイトル・日付 が入る。日付＝答えた日）。
+  記録済みかどうかは回答シート（週次セッションが Drive から読んで state/_reading/sheet.json に写す）と
+  state/_reading/recorded.json（このスクリプトが送信した分）で判定する。
+  ユーザーはスマホの「子供読書アプリ」プロジェクトからも答えられる（その場合はプロジェクト側の Claude が
+  同じフォームへ送信する。次の週次でシートを読めば自動的に反映される）。
+- **おすすめの追加**: プロジェクト側の Claude が、おすすめした本を Googleドライブ「図書館予約連携」フォルダに
+  `未_予約追加_…` として置く。週次セッションが手順2cで拾い、`scripts/add-recommendations.mjs` が
+  公文リスト・絵本ナビ（その子の年齢帯）・シリーズ巻・台帳・キューと照合して、どこにも無い本だけを
+  その子のキュー先頭へ入れる（ユーザー了承: 先頭。末尾だと数か月先になるため）。
+- **Git に入れないもの**: このリポジトリは GitHub 上で公開設定のため、フォームID・子どもの名前・ドライブのIDは
+  `reading.local.json`（.gitignore 済み）に置く。手順書・スクリプトには書かない。チェックリスト等の作業ファイル
+  （state/_reading/）も Git 管理外。
+- 自動予約以外で借りた本（台帳に無い本。紙芝居など）はチェックリストに載せない。
+- コマンド:
+  ```bash
+  node scripts/reading-checklist.mjs --recorded=state/_reading/sheet.json   # チェックリスト作成
+  node scripts/record-reading.mjs --account=chojo --numbers=1,3 --dry-run  # 送信内容の確認（--dry-run を外すと送信）
+  node scripts/add-recommendations.mjs --file=state/_reading/reco-YYYY-MM-DD.json --dry-run
+  node --test test/reading-link.test.js
+  ```
 
 ## コマンド
 
@@ -781,3 +817,32 @@ npm test                          # ロジックの単体テスト
   - 確認点: jinan「かえりみち」「りんごのき」・chonan「ひとまねこざる」で logs/ に `narrowpub-` が出て成立するか。
 - 実地確認は次回（2026-11-09）の本番で: chojo「にんじん」が「書名＋ルナール」で検索成立するか、jinan「ちびゴリラ」「わたしとあそんで」が
   通常版で成立するか、末尾が失敗でも確定まで進むか。
+
+### 2026-11-17 セッション（claude.ai「子供読書アプリ」プロジェクトから・読書記録との連携を追加）
+
+- ユーザー依頼: ①自動予約で借りた本を「読んだか」チェックリストに答えたら読書記録に入れたい
+  ②子供読書アプリのおすすめで予約リストに無い本をリストに足したい。設計は上の「子供読書アプリとの連携」を参照。
+- 追加: `scripts/reading-checklist.mjs` / `scripts/record-reading.mjs` / `scripts/add-recommendations.mjs` /
+  `scripts/lib/reading-link.mjs` / `test/reading-link.test.js`（8件パス）/ `reading.local.example.json`。
+  `.gitignore` に reading.local.json と state/_reading/ を追加。SCHEDULE_PROMPT.md に手順 2c・6b と手順7の返信対応を追記。
+  **src/・state/・data/ は変更していない。**
+- 確認済み: 11/16 の貸出状況一覧から初回チェックリストを作成（長女11・長男16・次男10冊）し、ドライブの
+  「図書館予約連携」に `読んだかチェック_2026-11-16` として保存。record-reading / add-recommendations は
+  `--dry-run` で確認。フォームの項目（名前=選択式・本のタイトル・日付）は公開ページの定義と一致。
+- **フォーム送信も確認済み（同日）**: ユーザーの回答（長女5・長男8・次男5冊）を `record-reading.mjs --numbers` で送信し、
+  全18冊 `OK 記録`。回答シートに 名前・本のタイトル・日付（2026/11/17）で行が増えたことを Drive から確認した。
+- **未コミット**: このセッションは git 操作をしていない。上記の追加・変更ファイル（scripts/・test/・
+  SCHEDULE_PROMPT.md・CLAUDE.md・.gitignore・reading.local.example.json）を次回の週次コミットに含めること
+  （reading.local.json と state/_reading/ は含めない＝.gitignore 済み）。
+- このセッションで `npm test` を1回実行した際、既存テスト2件（台帳の一時フォルダを消すテスト）がセッションの
+  削除制限で失敗し、`state/_test_ledger/`・`state/_test_borrowed/` が残った。削除はせず
+  `logs/_to_delete_2026-11-17/` へ移動済み（logs/ は Git 管理外。不要なら消してよい）。
+  変更前の SCHEDULE_PROMPT.md・CLAUDE.md の控えは `logs/_backup_2026-11-17/` にある。
+- **おすすめ追加も実行済み（同日・ユーザー依頼「動かしてみて」）**: 子供読書アプリ側で3人に3冊ずつおすすめを出し、ドライブに
+  `未_予約追加_2026-11-17_長女／長男／次男` を作成。このセッションが手順2cと同じ流れで `add-recommendations.mjs` を実行し、
+  キュー先頭に6冊を追加した（長女: 選ばなかった冒険／十一月の扉、長男: つりばしゆらゆら／おさるのまいにち、
+  次男: おれはティラノサウルスだ／よるくま）。公文リストにあった3冊（西の魔女が死んだ G-2／番ねずみのヤカちゃん B-24／
+  めっきらもっきらどおんどん A-5）は SKIP。再実行しても重複追加されないこと、`--plan-only` の計画に6冊が載ることを確認。
+  ドライブの3ファイルは `済_` に改名済み。変更前のキューの控えは `logs/_backup_2026-11-17/state/`。
+  **次の週次実行で、この6冊が実際に予約できたか（版が見つかったか）を報告に書くこと。**
+

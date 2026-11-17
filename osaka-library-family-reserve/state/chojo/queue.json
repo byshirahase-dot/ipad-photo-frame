@@ -1,6 +1,18 @@
 {
   "items": [
     {
+      "title": "選ばなかった冒険",
+      "author": "岡田淳",
+      "publisher": "偕成社",
+      "from": "reco:子供読書アプリ(2026-11-17)"
+    },
+    {
+      "title": "十一月の扉",
+      "author": "高楼方子",
+      "publisher": "福音館書店",
+      "from": "reco:子供読書アプリ(2026-11-17)"
+    },
+    {
       "title": "ハックルベリー・フィンの冒険 上",
       "author": "トウェイン",
       "from": "requeue:予約取消（2026-09-25 markExpired・中断バッチのため手動補完）"

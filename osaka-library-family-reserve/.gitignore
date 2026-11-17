@@ -17,3 +17,7 @@ reports/adhoc-*.md
 
 # ドライラン／--plan-only のレポート（2026-11-02〜 本番の reports/日付.md とは別ファイルに出す）
 reports/*-dryrun.md
+
+# 読書記録連携（2026-11-17）: フォームID・子どもの名前・ドライブのIDと、チェックリストの作業ファイルは Git 管理しない
+reading.local.json
+state/_reading/

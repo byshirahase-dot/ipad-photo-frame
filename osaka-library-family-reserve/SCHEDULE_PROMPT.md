@@ -34,6 +34,19 @@
    **公文リスト(data/kumon_list.csv)に既にある本は入れない**。出版社は版特定に使うので正確に。
    所蔵確認は不要（スクリプトが所蔵なしを自動処理する）。
 
+2c. **子供読書アプリのおすすめを予約キューへ（2026-11-17追加）**: `reading.local.json` の `drive.folderId`
+   （Googleドライブ「図書館予約連携」フォルダ）を Drive の search_files で `parentId = '<folderId>'` として検索し、
+   タイトルが `未_予約追加` で始まるファイルを read_file_content で読む。本文は1行1冊で
+   `続柄｜題名｜著者｜出版社`（続柄は 長女/長男/次男）。これを
+   `state/_reading/reco-YYYY-MM-DD.json`（`{"items":[{"account","title","author","publisher"}]}`）に書き写し、
+   `node scripts/add-recommendations.mjs --file=state/_reading/reco-YYYY-MM-DD.json --dry-run` で結果を見てから
+   `--dry-run` を外して実行する。公文リスト・絵本ナビ・シリーズ巻・台帳・キューのどこにも無い本だけが、
+   その子のキュー**先頭**に入る（from は `reco:子供読書アプリ(日付)`。週2冊のキュー枠で順に予約される）。
+   処理できたファイルは update_file でタイトルの `未_` を `済_` に変える（削除しない）。
+   題名・出版社は書かれたとおりに写す（直さない）。SKIP になった本と理由は報告に書く。
+   `reco:` の本が「出版社の版が見つからない」で見送りになった週は、報告に書いてユーザーに確認する。
+   Drive のツールが使えない回は何もせず、報告に「追加リクエスト未確認」と書く。
+
 3. **計画確認**: `./run.sh --all --plan-only`（数秒・サイトアクセスなし）で今週の予定を確認。
    重複や明らかな選書ミスがあれば修正してから進む。
 
@@ -68,10 +81,29 @@
      「読んだことがある本や感想（★1〜5）があれば返信で教えてください。
      来週月曜の予約前に差し替え・反映します」
 
+6b. **読んだかチェックリスト（子ども3人・2026-11-17追加。サイトアクセスなし）**:
+   1. Drive の read_file_content で読書記録シート（`reading.local.json` の `drive.recordSheetId`）を読み、
+      名前ごとの「本のタイトル」を `state/_reading/sheet.json` に
+      `{"<名前>":["題名", ...], ...}` の形で書き写す（名前はシートの表記のまま）。
+   2. `node scripts/reading-checklist.mjs --recorded=state/_reading/sheet.json` を実行する。
+      今週の実行が保存した貸出状況一覧（logs/日付/アカウント/*lent-list.html）と直近4週分から、
+      自動予約で借りた本のうち読書記録にまだ無い本を、子どもごとに番号付きで出す。
+   3. 出力（`state/_reading/checklist-latest.md`）を、報告の最後（母の4冊の後）にそのまま載せる。
+   4. 同じ内容を Drive の連携フォルダ（`drive.folderId`）に `読んだかチェック_YYYY-MM-DD`
+      （日付は貸出状況の時点）という名前で create_file する（textContent・contentMimeType: text/plain）。
+      フォルダ内の前の週の `読んだかチェック_…` は update_file でタイトルの先頭に `旧_` を付ける（削除しない）。
+   Drive のツールが使えない回は 2〜3 だけ行い（sheet.json は前回のものを使う）、その旨を報告に書く。
+
 7. **後日の返信対応**: このセッションにユーザーから返信が来たら:
    - 「◯◯はもう読んだ」→ history.csv に追記し、queue.json から外して**代わりの1冊を選書して補充**
    - 感想・評価 → history.csv と preferences.md の「最近の要望メモ」に反映
    - 更新後にコミット・プッシュする（来週月曜のセッションが git pull で引き継ぐ）
+   - 読んだかチェックへの返信（例「長女 1,3 読んだ」）→
+     `node scripts/record-reading.mjs --account=chojo --numbers=1,3 --dry-run` で題名を確認してから
+     `--dry-run` を外して実行する（読書記録フォームへ送信。読んだ日は実行日。日付の指定があれば `--date=YYYY-MM-DD`）。
+     アカウントは 長女=chojo / 長男=chonan / 次男=jinan。`OK 記録` が出た本は次回のチェックリストから消える。
+     `NG 送信を確認できず` が出た本は再送せず、そのまま報告する。「読まなかった」本は何もしなくてよい
+     （返却から4週たつとリストから外れる）。
 
 制約:
 - 予約操作はスクリプト（run.sh）だけが行う。あなたがブラウザで図書館サイトを直接操作しない。

@@ -1,6 +1,18 @@
 {
   "items": [
     {
+      "title": "おれはティラノサウルスだ",
+      "author": "宮西達也",
+      "publisher": "ポプラ社",
+      "from": "reco:子供読書アプリ(2026-11-17)"
+    },
+    {
+      "title": "よるくま",
+      "author": "酒井駒子",
+      "publisher": "偕成社",
+      "from": "reco:子供読書アプリ(2026-11-17)"
+    },
+    {
       "title": "そらまめくんのベッド",
       "author": "なかやみわ",
       "from": "requeue:予約取消"

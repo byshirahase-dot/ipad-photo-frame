@@ -1,0 +1,13 @@
+{
+  "form": {
+    "id": "（Googleフォームの /forms/d/e/ の後ろのID）",
+    "entries": { "name": "entry.0000000000", "title": "entry.0000000000", "date": "entry.0000000000" }
+  },
+  "names": { "chojo": "（フォームの名前欄の選択肢）", "chonan": "", "jinan": "" },
+  "drive": {
+    "folderId": "（Googleドライブ「図書館予約連携」フォルダのID）",
+    "folderName": "図書館予約連携",
+    "recordSheetId": "（フォームの回答シートのID）",
+    "recordSheetName": "子どもの読書記録"
+  }
+}
